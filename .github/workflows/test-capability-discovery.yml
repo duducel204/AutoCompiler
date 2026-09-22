@@ -25,4 +25,4 @@ jobs:
       - name: Run discovery
         run: python scripts/discover.py
       - name: Run tests
-        run: python -m unittest discover -s tests -p "test_*.py" -v
+        run: python tests/test_discover.py -v
