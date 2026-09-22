@@ -16,6 +16,7 @@ TESTS=[
  "tests.test_b2_b3",
  "tests.test_environment_resolution",
  "tests.test_trust_architecture",
+ "tests.test_real_provisioning_vertical",
 ]
 
 def run(cmd):
