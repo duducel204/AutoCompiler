@@ -67,3 +67,48 @@ The real-Windows standalone proof validates this as a practical design principle
 
 ### H-011 — Measured n8n replacement
 **Status:** active hypothesis. Replacement is evaluated as functional equivalence over an explicit benchmark ladder, not as UI or architecture cloning. Claims must follow measured coverage.
+
+
+## Accepted principles added after provisioning experiments
+
+### D-010 — Planning and mutation are separate phases
+Planning must be inspectable and read-only. Environment changes belong to an explicit Apply phase and require authorization when protected resources are affected.
+
+### D-011 — Resolve capability gaps with minimum environment mutation
+Prefer an already usable provider, then configuration or composition, before acquiring new software. Installation is one possible resolution strategy, not the default.
+
+### D-012 — Skills do not install providers directly
+Skills declare semantic capabilities. Providers implement capabilities. Acquisition recipes describe how a missing provider can be obtained. The provisioner owns environment mutation.
+
+### D-013 — Acquisition requires provenance and verification
+Acquisition contracts identify source, pinned version, platform, architecture, license, install scope, administrative requirements, rollback and post-acquisition verification. Downloaded or portable artifacts require checksum evidence.
+
+### D-014 — Provider ownership and consumers are durable state
+AutoCompiler must distinguish resources it acquired from pre-existing user resources and track which automations consume them.
+
+### D-015 — Trust Gate is the canonical repository validation contract
+Cross-platform validation on Windows and Ubuntu is the canonical gate. Automated repair is subordinate to: restore invariants; never manufacture green.
+
+## Validated evidence added after B1-B3 and provisioning
+
+- B1 reusable Automation IR executes folder scan, extension filter, copy and durable state through compiled artifacts.
+- B2 primitives cover schedule contracts, HTTP request, transformation and durable state; native scheduler installation remains a separate proof.
+- B3 primitives cover webhook semantics, condition, branch and state; live network operation remains a separate proof.
+- PR #16 provisioning passed the Trust Gate on Windows and Ubuntu.
+- The proof starts with an absent capability, creates a read-only plan, blocks unauthorized apply, checksum-verifies acquisition, registers ownership and consumer, compiles a consumer, and executes without AutoCompiler runtime or recurring AI.
+
+### H-012 — Intention to installed computational capability
+**Status:** strongest current product thesis, not a frozen product definition.
+
+```text
+INTENTION
+  → REQUIREMENT GRAPH
+  → RESOURCE GRAPH
+  → CAPABILITY RESOLUTION
+  → REUSE / CONFIGURE / ACQUIRE / GENERATE / DELEGATE
+  → PLAN → AUTHORIZE → APPLY → VERIFY
+  → COMPILE / INSTALL
+  → USER-OWNED EXECUTION
+```
+
+The next falsification point is external reality: resolve a genuine missing capability using a pinned, free external provider with complete provenance and rollback, then prove that an independently generated automation can use it.
