@@ -18,3 +18,7 @@ D-016,discovery,"A generated Python-standard-library automation copied a real fi
 D-017,discovery,"Cross-platform behavior matters at the resource-lifecycle level: Windows exposed SQLite file locking during CI cleanup that Ubuntu did not.",confirmed,high
 D-018,hypothesis,"A small platform-neutral Automation IR may separate automation meaning from provider and target selection.",active,very-high
 D-019,hypothesis,"The same Automation IR should be compilable to multiple targets if the compiler hypothesis is correct.",active,very-high
+D-020,hypothesis,"A skill can be a reusable capability contract or a composition of other skills while providers remain concrete implementations.",active,very-high
+D-021,hypothesis,"A validated automation may be crystallized into a higher-level reusable skill.",active,very-high
+D-022,hypothesis,"AutoCompiler can test n8n replacement as measured functional equivalence for growing workflow classes rather than as a clone of n8n runtime or UI.",active,very-high
+D-023,process,"n8n replacement claims must be tied to explicit benchmark coverage and reusable primitives rather than workflow-specific code.",confirmed,very-high
