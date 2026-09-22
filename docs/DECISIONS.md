@@ -61,3 +61,9 @@ The real-Windows standalone proof validates this as a practical design principle
 ## Naming
 
 `AutoCompiler` remains a **working title**. The repository name must not force the architecture.
+
+### H-010 — Skill as reusable automation unit
+**Status:** active hypothesis. A skill is a contract over capabilities, permissions, inputs/outputs and policy; a validated automation may itself become a composite skill.
+
+### H-011 — Measured n8n replacement
+**Status:** active hypothesis. Replacement is evaluated as functional equivalence over an explicit benchmark ladder, not as UI or architecture cloning. Claims must follow measured coverage.
