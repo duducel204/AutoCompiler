@@ -22,3 +22,9 @@ D-020,hypothesis,"A skill can be a reusable capability contract or a composition
 D-021,hypothesis,"A validated automation may be crystallized into a higher-level reusable skill.",active,very-high
 D-022,hypothesis,"AutoCompiler can test n8n replacement as measured functional equivalence for growing workflow classes rather than as a clone of n8n runtime or UI.",active,very-high
 D-023,process,"n8n replacement claims must be tied to explicit benchmark coverage and reusable primitives rather than workflow-specific code.",confirmed,very-high
+D-024,discovery,"Planning and environment mutation are separate phases: a plan can describe required changes without mutating the machine while apply is authorization-gated.",confirmed,very-high
+D-025,discovery,"A missing capability can be resolved by acquiring a provider, verifying its bytes, and registering provider ownership plus the consuming automation.",confirmed,very-high
+D-026,discovery,"A provisioned capability can be consumed by a generated artifact that executes without AutoCompiler runtime and without recurring AI.",confirmed,very-high
+D-027,process,"Repository health now has a canonical cross-platform Trust Gate; failures must restore invariants rather than manufacture green.",confirmed,very-high
+D-028,architecture,"Acquisition is a capability-gap strategy rather than a direct responsibility of a skill; provider acquisition requires provenance, verification, authorization and rollback contracts.",confirmed,very-high
+D-029,hypothesis,"The strongest current product thesis is that AutoCompiler transforms an intention into installed computational capability while preferring reuse and minimum environment mutation.",active,very-high
