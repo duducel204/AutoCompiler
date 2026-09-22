@@ -20,8 +20,11 @@ class StandaloneTests(unittest.TestCase):
             self.assertEqual(p.returncode,0,p.stderr)
             self.assertEqual((dst/"hello.txt").read_text(encoding="utf-8"),"proof")
             self.assertTrue((gen/"history.db").exists())
-            with sqlite3.connect(gen/"history.db") as con:
+            con = sqlite3.connect(gen/"history.db")
+            try:
                 self.assertEqual(con.execute("select status from events").fetchone()[0],"ok")
+            finally:
+                con.close()
             self.assertNotIn("autocompiler", (gen/"automation.py").read_text(encoding="utf-8").lower())
 
 if __name__=="__main__":
