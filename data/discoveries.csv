@@ -1,0 +1,13 @@
+id,type,statement,status,impact
+D-001,origin,"The project began by asking how to build n8n-like automation from logic and free tools already available to ordinary computer users.",confirmed,very-high
+D-002,problem,"A permanent automation platform can become a runtime dependency and lock-in point.",observed,high
+D-003,problem,"Repeated LLM inference creates recurring cost when deterministic work is sent to AI again and again.",observed,very-high
+D-004,resource,"A personal computer already exposes files shell Python browser scheduler CPU/GPU local network and potentially local AI.",confirmed,very-high
+D-005,resource,"GitHub can provide distribution versioning Actions releases collaboration and community without being the mandatory runtime.",confirmed,high
+D-006,resource,"Sheets and Apps Script can provide lightweight state UI triggers and integrations.",confirmed,medium
+D-007,hypothesis,"AI may be most useful for intent interpretation planning repair and semantic exceptions rather than routine execution.",active,very-high
+D-008,hypothesis,"Generated automation may be able to keep running after our own tool is closed or removed.",active,very-high
+D-009,hypothesis,"Colab can reduce experimentation friction but should not be assumed to be durable production infrastructure.",active,medium
+D-010,hypothesis,"A planner may choose among local tools GitHub Google local AI and cloud AI according to capability cost privacy and reliability.",active,very-high
+D-011,hypothesis,"Successful AI-assisted behavior could later be crystallized into deterministic recipes.",explore,high
+D-012,process,"Preserving how hypotheses evolved is important because freezing the latest idea too early narrows the search space.",confirmed,very-high
