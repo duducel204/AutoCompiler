@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/autocompiler/automation-ir.schema.json",
+  "title": "AutoCompiler Automation IR",
+  "type": "object",
+  "required": ["version", "name", "trigger", "steps"],
+  "properties": {
+    "version": { "type": "string" },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "trigger": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string" },
+        "every": { "type": "string" },
+        "at": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "capabilities": { "type": "object", "additionalProperties": true },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "action"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "action": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "state": { "type": "object", "additionalProperties": true },
+    "policy": { "type": "object", "additionalProperties": true }
+  },
+  "additionalProperties": true
+}
