@@ -10,6 +10,11 @@ SUPPORTED_SKILLS = {
     "filter.extension": {"requires": [], "permissions": []},
     "filesystem.copy": {"requires": ["filesystem.read", "filesystem.write"], "permissions": ["read", "write"]},
     "state.record": {"requires": ["durable_state"], "permissions": ["write"]},
+    "http.request": {"requires": ["http.client"], "permissions": ["network"]},
+    "data.map": {"requires": [], "permissions": []},
+    "flow.condition": {"requires": [], "permissions": []},
+    "flow.branch": {"requires": [], "permissions": []},
+    "state.record_jsonl": {"requires": ["durable_state", "filesystem.write"], "permissions": ["write"]},
 }
 
 @dataclass(frozen=True)
@@ -21,7 +26,7 @@ def load_ir(path: str | Path) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 def validate_ir(ir: dict[str, Any]) -> IRValidation:
-    if ir.get("schema_version") != "0.1":
+    if ir.get("schema_version") not in {"0.1", "0.2"}:
         raise ValueError("Unsupported Automation IR schema_version")
     steps = ir.get("steps")
     if not isinstance(steps, list) or not steps:
