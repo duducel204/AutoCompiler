@@ -78,11 +78,18 @@ Full trail: [docs/ORIGIN.md](docs/ORIGIN.md)
 | D-005 | resource | GitHub can provide distribution versioning Actions releases collaboration and community without being the mandatory runtime. | CONFIRMED: confirmed | high |
 | D-006 | resource | Sheets and Apps Script can provide lightweight state UI triggers and integrations. | CONFIRMED: confirmed | medium |
 | D-007 | hypothesis | AI may be most useful for intent interpretation planning repair and semantic exceptions rather than routine execution. | ACTIVE: active | very-high |
-| D-008 | hypothesis | Generated automation may be able to keep running after our own tool is closed or removed. | ACTIVE: active | very-high |
+| D-008 | discovery | Generated automation can keep running without importing or calling AutoCompiler after compilation. | CONFIRMED: confirmed | very-high |
 | D-009 | hypothesis | Colab can reduce experimentation friction but should not be assumed to be durable production infrastructure. | ACTIVE: active | medium |
 | D-010 | hypothesis | A planner may choose among local tools GitHub Google local AI and cloud AI according to capability cost privacy and reliability. | ACTIVE: active | very-high |
 | D-011 | hypothesis | Successful AI-assisted behavior could later be crystallized into deterministic recipes. | EXPLORE: explore | high |
 | D-012 | process | Preserving how hypotheses evolved is important because freezing the latest idea too early narrows the search space. | CONFIRMED: confirmed | very-high |
+| D-013 | discovery | Capability is not the same as a named tool: multiple providers may satisfy one requirement and missing Git did not prevent repository acquisition through PowerShell HTTP and ZIP. | CONFIRMED: confirmed | very-high |
+| D-014 | discovery | Capability state must distinguish detected accessible authorized and usable; real Windows evidence showed PowerShell detected while .ps1 execution was blocked by execution policy. | CONFIRMED: confirmed | very-high |
+| D-015 | discovery | A narrow Portuguese intent can be compiled into an explicit permission and deterministic recipe that performs a real filesystem action. | CONFIRMED: confirmed | high |
+| D-016 | discovery | A generated Python-standard-library automation copied a real file and persisted its own SQLite history on Windows with recurring AI disabled. | CONFIRMED: confirmed | very-high |
+| D-017 | discovery | Cross-platform behavior matters at the resource-lifecycle level: Windows exposed SQLite file locking during CI cleanup that Ubuntu did not. | CONFIRMED: confirmed | high |
+| D-018 | hypothesis | A small platform-neutral Automation IR may separate automation meaning from provider and target selection. | ACTIVE: active | very-high |
+| D-019 | hypothesis | The same Automation IR should be compilable to multiple targets if the compiler hypothesis is correct. | ACTIVE: active | very-high |
 <!-- DISCOVERIES_TABLE_END -->
 
 ## 4. Resource map
@@ -281,19 +288,19 @@ The roadmap prioritizes questions and experiments, not implementation momentum.
 |---|---|---|---|---|---|---|
 | E-001 | Origin | Research map | DONE: implemented | P0 | 2/10 | Can the repository preserve origin discoveries resources hypotheses and tests separately? |
 | E-002 | Foundation | Dynamic README | DONE: implemented | P0 | 3/10 | Can structured state remain the source of truth? |
-| E-003 | Exploration | Capability inventory | PLANNED: planned | P0 | 4/10 | What useful zero or low-cost capabilities can one ordinary Windows PC expose? |
-| E-004 | Exploration | Local zero-cloud automation | PLANNED: planned | P0 | 4/10 | Can one useful automation run entirely with native or local tools? |
+| E-003 | Exploration | Capability inventory | OPEN: validated | P0 | 4/10 | What useful zero or low-cost capabilities can one ordinary Windows PC expose? |
+| E-004 | Exploration | Local zero-cloud automation | OPEN: partial | P0 | 4/10 | Can one useful automation run entirely with native or local tools? |
 | E-005 | Exploration | GitHub-only automation | PLANNED: planned | P1 | 4/10 | What can GitHub provide without our own server? |
 | E-006 | Exploration | Sheets plus Apps Script | PLANNED: planned | P1 | 4/10 | Can Sheets serve as lightweight control or state while Apps Script triggers work? |
-| E-007 | Architecture | Portable intent representation | PLANNED: planned | P0 | 5/10 | Do we need an IR and what is its minimum useful shape? |
-| E-008 | Architecture | Planner proof | PLANNED: planned | P0 | 6/10 | Can the system choose among paths using cost privacy reliability and capability? |
-| E-009 | Architecture | Runtime-independence proof | PLANNED: planned | P0 | 5/10 | Can generated automation survive removal of the project tool? |
-| E-010 | AI | Zero-token repeat | PLANNED: planned | P0 | 5/10 | Can AI help create a task once while repeated runs use zero inference? |
+| E-007 | Architecture | Portable intent representation | ACTIVE: active | P0 | 5/10 | Do we need an IR and what is its minimum useful shape? |
+| E-008 | Architecture | Planner proof | OPEN: partial | P0 | 6/10 | Can the system choose among paths using cost privacy reliability and capability? |
+| E-009 | Architecture | Runtime-independence proof | OPEN: validated | P0 | 5/10 | Can generated automation survive removal of the project tool? |
+| E-010 | AI | Zero-token repeat | OPEN: validated | P0 | 5/10 | Can generated deterministic work repeat with zero inference? |
 | E-011 | AI | Local-AI fallback | PLANNED: planned | P2 | 5/10 | Can local inference handle selected semantic steps before paid cloud? |
 | E-012 | AI | Paid-AI escalation | PLANNED: planned | P2 | 5/10 | Can cloud AI be explicit budgeted and only used after cheaper paths fail? |
 | E-013 | Distribution | Colab playground | PLANNED: planned | P2 | 3/10 | Can a user understand and test the concept without installing anything? |
 | E-014 | Distribution | Repository install flow | EXPLORE: explore | P1 | 7/10 | Can a GitHub repository move from interesting to running in one or two confirmations? |
-| E-015 | Evolution | Execution trace | EXPLORE: explore | P2 | 5/10 | What minimum trace is needed for audit repair and later learning? |
+| E-015 | Evolution | Execution trace | OPEN: partial | P2 | 5/10 | What minimum trace is needed for audit repair and later learning? |
 | E-016 | Evolution | Crystallization | EXPLORE: explore | P3 | 8/10 | Can repeated AI-assisted work become more deterministic over time? |
 | E-017 | Evolution | Multi-machine capability mesh | EXPLORE: explore | P3 | 9/10 | Does routing by capability add enough value after single-machine success? |
 
