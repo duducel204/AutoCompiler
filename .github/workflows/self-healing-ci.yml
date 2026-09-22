@@ -1,0 +1,56 @@
+name: Self-healing CI gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: self-heal-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-repair-revalidate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate, repair safe known failures, and revalidate
+        id: heal
+        shell: pwsh
+        run: |
+          python scripts/ci_self_heal.py
+      - name: Commit proven automatic repair
+        if: success()
+        shell: pwsh
+        run: |
+          if (git status --porcelain) {
+            git config user.name "autocompiler-ci"
+            git config user.email "actions@users.noreply.github.com"
+            git add . ':!.autocompiler-ci.log'
+            git commit -m "ci: self-heal verified mechanical failure"
+            git push
+          }
+      - name: Final OK
+        if: success()
+        shell: pwsh
+        run: Write-Host "OK - all AutoCompiler checks passed after validation/self-healing."
+      - name: Failure report
+        if: failure()
+        shell: pwsh
+        run: |
+          Write-Host "::error::AutoCompiler checks still fail after safe repair attempts. Review .autocompiler-ci.log in the job output/artifact."
+      - name: Upload diagnostic log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autocompiler-ci-failure
+          path: .autocompiler-ci.log
