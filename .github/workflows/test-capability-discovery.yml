@@ -31,3 +31,5 @@ jobs:
           python tests/test_planner_runtime.py -v
       - name: Run zero-token example
         run: python scripts/run_recipe.py examples/hello-local.recipe.json
+      - name: Run one-command proof
+        run: python demo.py
