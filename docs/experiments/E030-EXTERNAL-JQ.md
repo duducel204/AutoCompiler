@@ -33,3 +33,10 @@ Pinned release evidence:
 - admin: no
 - rollback: delete AutoCompiler-owned provider
 - verification: checksum + jq --version
+
+
+## Validation protocol
+
+E-030 is not marked validated by this branch. The exact immutable PR head must first complete the canonical Trust Gate successfully on Windows and Ubuntu. Only after that observed evidence may a separate evidence-record commit promote E-030 and D-030/D-031 from active hypotheses to validated/confirmed state.
+
+This deliberately separates implementation from evidence and prevents a state file from claiming success before CI has produced it.
