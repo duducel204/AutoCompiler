@@ -69,7 +69,20 @@ Full trail: [docs/ORIGIN.md](docs/ORIGIN.md)
 ## 3. Discoveries
 
 <!-- DISCOVERIES_TABLE_START -->
-<!-- generated -->
+| ID | Type | Discovery / hypothesis | Status | Impact |
+|---|---|---|---|---|
+| D-001 | origin | The project began by asking how to build n8n-like automation from logic and free tools already available to ordinary computer users. | CONFIRMED: confirmed | very-high |
+| D-002 | problem | A permanent automation platform can become a runtime dependency and lock-in point. | OBSERVED: observed | high |
+| D-003 | problem | Repeated LLM inference creates recurring cost when deterministic work is sent to AI again and again. | OBSERVED: observed | very-high |
+| D-004 | resource | A personal computer already exposes files shell Python browser scheduler CPU/GPU local network and potentially local AI. | CONFIRMED: confirmed | very-high |
+| D-005 | resource | GitHub can provide distribution versioning Actions releases collaboration and community without being the mandatory runtime. | CONFIRMED: confirmed | high |
+| D-006 | resource | Sheets and Apps Script can provide lightweight state UI triggers and integrations. | CONFIRMED: confirmed | medium |
+| D-007 | hypothesis | AI may be most useful for intent interpretation planning repair and semantic exceptions rather than routine execution. | ACTIVE: active | very-high |
+| D-008 | hypothesis | Generated automation may be able to keep running after our own tool is closed or removed. | ACTIVE: active | very-high |
+| D-009 | hypothesis | Colab can reduce experimentation friction but should not be assumed to be durable production infrastructure. | ACTIVE: active | medium |
+| D-010 | hypothesis | A planner may choose among local tools GitHub Google local AI and cloud AI according to capability cost privacy and reliability. | ACTIVE: active | very-high |
+| D-011 | hypothesis | Successful AI-assisted behavior could later be crystallized into deterministic recipes. | EXPLORE: explore | high |
+| D-012 | process | Preserving how hypotheses evolved is important because freezing the latest idea too early narrows the search space. | CONFIRMED: confirmed | very-high |
 <!-- DISCOVERIES_TABLE_END -->
 
 ## 4. Resource map
@@ -77,7 +90,23 @@ Full trail: [docs/ORIGIN.md](docs/ORIGIN.md)
 These are candidate building blocks, not mandatory dependencies.
 
 <!-- RESOURCES_TABLE_START -->
-<!-- generated -->
+| Resource | Category | Local | Cloud | Cost | Execute | Store | Trigger |
+|---|---|---|---|---|---|---|---|
+| Windows | operating-system | yes | no | owned | yes | yes | yes |
+| PowerShell | shell | yes | no | free | yes | no | no |
+| Python | runtime | yes | yes | free | yes | yes | no |
+| Task Scheduler | scheduler | yes | no | free | yes | no | yes |
+| SQLite | state | yes | no | free | no | yes | no |
+| Browser | interface | yes | yes | owned | yes | no | yes |
+| Git | versioning | yes | yes | free | no | yes | yes |
+| GitHub | collaboration | no | yes | free-tier | yes | yes | yes |
+| GitHub Actions | executor | no | yes | free-tier | yes | yes | yes |
+| Google Sheets | state-ui | no | yes | free-tier | no | yes | yes |
+| Apps Script | serverless | no | yes | free-tier | yes | yes | yes |
+| Google Drive | storage | no | yes | free-tier | no | yes | yes |
+| Google Colab | playground | no | yes | free-tier | yes | yes | no |
+| Ollama-or-llama.cpp | local-ai | yes | no | local-compute | yes | no | no |
+| Cloud AI APIs | cloud-ai | no | yes | variable | yes | no | no |
 <!-- RESOURCES_TABLE_END -->
 
 > **Before asking AI how to solve a task, first ask what the user's existing environment can already do at near-zero marginal cost.**
@@ -87,7 +116,17 @@ These are candidate building blocks, not mandatory dependencies.
 We intentionally keep multiple possibilities alive.
 
 <!-- HYPOTHESES_TABLE_START -->
-<!-- generated -->
+| ID | Hypothesis | Status | Dependency | Cost | Complexity | Differentiation |
+|---|---|---|---|---|---|---|
+| H-001 | Mini n8n: build a small persistent workflow engine. | DEPRIORITIZED: deprioritized | own-runtime | low-to-medium | high | low |
+| H-002 | GitHub-native automation: use repositories Actions Issues and PRs as the main control plane. | ACTIVE: active | GitHub | low | medium | high |
+| H-003 | Local-first automation: use the user's computer as the primary execution environment. | ACTIVE: active | user-computer | very-low | medium | medium |
+| H-004 | Automation compiler: transform intent or IR into native artifacts that survive without our runtime. | LEADING: leading | low | very-low | high | high |
+| H-005 | Capability router: discover resources and choose the minimum-cost sufficient path automatically. | ACTIVE: active | discovery-layer | very-low-to-variable | high | very-high |
+| H-006 | Hybrid mesh: route work across multiple user-owned machines and cloud resources. | EXPLORE: explore | agents-network | variable | very-high | very-high |
+| H-007 | AI crystallization: replace stable parts of successful AI-assisted executions with deterministic recipes. | EXPLORE: explore | tracing-plus-AI | declining-over-time | very-high | very-high |
+| H-008 | GitHub as decentralized catalog: repositories expose installable automations with explicit permissions. | EXPLORE: explore | GitHub-plus-installer | low | high | high |
+| H-009 | Colab playground: let users test the concept with no local installation. | ACTIVE: active | Colab | free-tier | low | medium |
 <!-- HYPOTHESES_TABLE_END -->
 
 The current favorite is not automatically the final answer. A hypothesis earns promotion through experiments.
@@ -238,7 +277,27 @@ The same intent might target Windows Task Scheduler + PowerShell, Python, GitHub
 The roadmap prioritizes questions and experiments, not implementation momentum.
 
 <!-- ROADMAP_TABLE_START -->
-<!-- generated -->
+| ID | Phase | Experiment | Status | Priority | Complexity | Question |
+|---|---|---|---|---|---|---|
+| E-001 | Origin | Research map | DONE: implemented | P0 | 2/10 | Can the repository preserve origin discoveries resources hypotheses and tests separately? |
+| E-002 | Foundation | Dynamic README | DONE: implemented | P0 | 3/10 | Can structured state remain the source of truth? |
+| E-003 | Exploration | Capability inventory | PLANNED: planned | P0 | 4/10 | What useful zero or low-cost capabilities can one ordinary Windows PC expose? |
+| E-004 | Exploration | Local zero-cloud automation | PLANNED: planned | P0 | 4/10 | Can one useful automation run entirely with native or local tools? |
+| E-005 | Exploration | GitHub-only automation | PLANNED: planned | P1 | 4/10 | What can GitHub provide without our own server? |
+| E-006 | Exploration | Sheets plus Apps Script | PLANNED: planned | P1 | 4/10 | Can Sheets serve as lightweight control or state while Apps Script triggers work? |
+| E-007 | Architecture | Portable intent representation | PLANNED: planned | P0 | 5/10 | Do we need an IR and what is its minimum useful shape? |
+| E-008 | Architecture | Planner proof | PLANNED: planned | P0 | 6/10 | Can the system choose among paths using cost privacy reliability and capability? |
+| E-009 | Architecture | Runtime-independence proof | PLANNED: planned | P0 | 5/10 | Can generated automation survive removal of the project tool? |
+| E-010 | AI | Zero-token repeat | PLANNED: planned | P0 | 5/10 | Can AI help create a task once while repeated runs use zero inference? |
+| E-011 | AI | Local-AI fallback | PLANNED: planned | P2 | 5/10 | Can local inference handle selected semantic steps before paid cloud? |
+| E-012 | AI | Paid-AI escalation | PLANNED: planned | P2 | 5/10 | Can cloud AI be explicit budgeted and only used after cheaper paths fail? |
+| E-013 | Distribution | Colab playground | PLANNED: planned | P2 | 3/10 | Can a user understand and test the concept without installing anything? |
+| E-014 | Distribution | Repository install flow | EXPLORE: explore | P1 | 7/10 | Can a GitHub repository move from interesting to running in one or two confirmations? |
+| E-015 | Evolution | Execution trace | EXPLORE: explore | P2 | 5/10 | What minimum trace is needed for audit repair and later learning? |
+| E-016 | Evolution | Crystallization | EXPLORE: explore | P3 | 8/10 | Can repeated AI-assisted work become more deterministic over time? |
+| E-017 | Evolution | Multi-machine capability mesh | EXPLORE: explore | P3 | 9/10 | Does routing by capability add enough value after single-machine success? |
+
+**Experiments tracked:** 17 · **Implemented:** 2
 <!-- ROADMAP_TABLE_END -->
 
 ## 13. What is not decided
