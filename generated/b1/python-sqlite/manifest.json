@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "automation": "b1-folder-filter-copy-history",
+  "target": "python-sqlite",
+  "state_provider": "sqlite",
+  "required_capabilities": [
+    "durable_state",
+    "filesystem.read",
+    "filesystem.write"
+  ],
+  "permissions": [
+    {
+      "mode": "read",
+      "path": "./b1-input"
+    },
+    {
+      "mode": "read",
+      "path": "./b1-input"
+    },
+    {
+      "mode": "write",
+      "path": "./b1-output"
+    },
+    {
+      "mode": "write",
+      "path": "./state"
+    }
+  ],
+  "runtime_dependency": "python-standard-library",
+  "autocompiler_required_after_compile": false,
+  "recurring_ai_required": false
+}

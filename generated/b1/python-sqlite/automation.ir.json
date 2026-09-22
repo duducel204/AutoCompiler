@@ -1,0 +1,65 @@
+{
+  "schema_version": "0.1",
+  "name": "b1-folder-filter-copy-history",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "scan",
+      "skill": "filesystem.scan",
+      "with": {
+        "path": "./b1-input",
+        "glob": "*"
+      },
+      "permissions": [
+        {
+          "mode": "read",
+          "path": "./b1-input"
+        }
+      ]
+    },
+    {
+      "id": "txt-only",
+      "skill": "filter.extension",
+      "with": {
+        "from": "scan",
+        "extension": ".txt"
+      }
+    },
+    {
+      "id": "copy",
+      "skill": "filesystem.copy",
+      "with": {
+        "from": "txt-only",
+        "destination": "./b1-output"
+      },
+      "permissions": [
+        {
+          "mode": "read",
+          "path": "./b1-input"
+        },
+        {
+          "mode": "write",
+          "path": "./b1-output"
+        }
+      ]
+    },
+    {
+      "id": "history",
+      "skill": "state.record",
+      "with": {
+        "from": "copy"
+      },
+      "permissions": [
+        {
+          "mode": "write",
+          "path": "./state"
+        }
+      ]
+    }
+  ],
+  "state": {
+    "file": "history.db"
+  }
+}
