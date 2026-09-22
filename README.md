@@ -100,6 +100,8 @@ Full trail: [docs/ORIGIN.md](docs/ORIGIN.md)
 | D-027 | process | Repository health now has a canonical cross-platform Trust Gate; failures must restore invariants rather than manufacture green. | CONFIRMED: confirmed | very-high |
 | D-028 | architecture | Acquisition is a capability-gap strategy rather than a direct responsibility of a skill; provider acquisition requires provenance, verification, authorization and rollback contracts. | CONFIRMED: confirmed | very-high |
 | D-029 | hypothesis | The strongest current product thesis is that AutoCompiler transforms an intention into installed computational capability while preferring reuse and minimum environment mutation. | ACTIVE: active | very-high |
+| D-030 | discovery | A pinned external standalone provider can be acquired over HTTPS, verified by SHA-256 and executable identity, registered as AutoCompiler-owned, consumed by an independent artifact, and removed without administrator privileges. | CONFIRMED: confirmed | very-high |
+| D-031 | discovery | Provider rollback must respect ownership and consumers: AutoCompiler may remove an AutoCompiler-owned provider only when the relevant consumer relationship permits it. | CONFIRMED: confirmed | very-high |
 <!-- DISCOVERIES_TABLE_END -->
 
 ## 4. Resource map
@@ -325,7 +327,7 @@ The roadmap prioritizes questions and experiments, not implementation momentum.
 | E-027 | Safety | Acquisition provenance | OPEN: partial | P0 | 8/10 | Can provider acquisition require source version platform architecture checksum license scope rollback and verification metadata? |
 | E-028 | Foundation | Canonical Trust Gate | OPEN: validated | P0 | 6/10 | Can one cross-platform gate become the canonical repository validation contract? |
 | E-029 | Lifecycle | Environment manifest ownership | OPEN: partial | P0 | 7/10 | Can AutoCompiler distinguish acquired providers from user-owned resources and track consumers safely? |
-| E-030 | Provisioning | External real provider acquisition | ACTIVE: active | P0 | 8/10 | Can a pinned free external provider be acquired with provenance authorization verification ownership and rollback? |
+| E-030 | Provisioning | External real provider acquisition | OPEN: validated | P0 | 8/10 | Can a pinned free external provider be acquired with provenance authorization verification ownership and rollback? |
 
 **Experiments tracked:** 30 · **Implemented:** 2
 <!-- ROADMAP_TABLE_END -->
