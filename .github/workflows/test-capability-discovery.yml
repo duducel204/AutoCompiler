@@ -26,3 +26,4 @@ jobs:
         run: python scripts/discover.py
       - name: Run tests
         run: python tests/test_discover.py -v
+          python tests/test_planner_runtime.py -v
