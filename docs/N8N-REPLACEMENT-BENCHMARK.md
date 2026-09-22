@@ -18,9 +18,9 @@ Measure whether AutoCompiler can execute useful workflow classes commonly handle
 
 | Level | Workflow | Required primitives | Current evidence |
 |---|---|---|---|
-| B1 | Folder -> filter -> copy -> history | filesystem scan/filter/copy + state | PARTIAL: standalone proof exists, not yet expressed through reusable IR skills |
-| B2 | Schedule -> HTTP -> transform -> store | schedule/http/map/state | NOT PROVEN |
-| B3 | Webhook -> condition -> branch -> action | webhook/condition/branch/action | NOT PROVEN |
+| B1 | Folder -> filter -> copy -> history | filesystem scan/filter/copy + state | PASS IN CI: reusable IR skills compile to two standalone provider paths |
+| B2 | Schedule -> HTTP -> transform -> store | schedule/http/map/state | IMPLEMENTED IN BATCH: semantic execution + Windows/cron schedule contracts; native installation proof pending |
+| B3 | Webhook -> condition -> branch -> action | webhook/condition/branch/action | IMPLEMENTED IN BATCH: semantic execution + standard-library webhook provider; live network proof pending |
 | B4 | API A -> foreach -> API B -> persist | http/foreach/map/state | NOT PROVEN |
 | B5 | Failure -> retry -> fallback -> notify | retry/on_error/notify | NOT PROVEN |
 | B6 | Secret -> authenticated API -> protected execution | secrets/http/permissions | NOT PROVEN |
