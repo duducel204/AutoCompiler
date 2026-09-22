@@ -6,19 +6,31 @@ import platform
 import shutil
 import sqlite3
 import subprocess
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
 
 
 @dataclass
+class Provider:
+    name: str
+    path: Optional[str] = None
+    detection: str = "not_detected"
+
+
+@dataclass
 class Capability:
     id: str
-    available: bool
+    detected: bool
+    installed: str = "unknown"
+    accessible: str = "unknown"
+    authorized: str = "unknown"
+    usable: str = "untested"
     path: Optional[str] = None
     version: Optional[str] = None
     cost_profile: str = "free/local"
     notes: Optional[str] = None
+    providers: list[Provider] = field(default_factory=list)
 
 
 def command_version(command: str, args: list[str]) -> tuple[Optional[str], Optional[str]]:
@@ -35,31 +47,93 @@ def command_version(command: str, args: list[str]) -> tuple[Optional[str], Optio
 
 def detect_command(capability_id: str, command: str, version_args: list[str]) -> Capability:
     path, version = command_version(command, version_args)
-    return Capability(capability_id, bool(path), path=path, version=version)
+    detected = bool(path)
+    return Capability(
+        capability_id,
+        detected,
+        installed="yes" if detected else "unknown",
+        accessible="yes" if detected else "unknown",
+        path=path,
+        version=version,
+    )
+
+
+def windows_browser_providers() -> list[Provider]:
+    if platform.system().lower() != "windows":
+        return []
+
+    roots = [
+        os.getenv("PROGRAMFILES"),
+        os.getenv("PROGRAMFILES(X86)"),
+        os.getenv("LOCALAPPDATA"),
+    ]
+    candidates = [
+        ("Google Chrome", Path("Google/Chrome/Application/chrome.exe")),
+        ("Microsoft Edge", Path("Microsoft/Edge/Application/msedge.exe")),
+        ("Brave", Path("BraveSoftware/Brave-Browser/Application/brave.exe")),
+    ]
+
+    found: list[Provider] = []
+    for root in filter(None, roots):
+        for name, suffix in candidates:
+            path = Path(root) / suffix
+            if path.is_file() and not any(p.path == str(path) for p in found):
+                found.append(Provider(name=name, path=str(path), detection="filesystem"))
+    return found
+
+
+def detect_browser() -> Capability:
+    cli_names = ["chrome", "google-chrome", "chromium", "msedge", "firefox", "brave"]
+    cli_path = next((shutil.which(x) for x in cli_names if shutil.which(x)), None)
+    providers = windows_browser_providers()
+
+    if cli_path:
+        providers.insert(0, Provider(name=Path(cli_path).stem, path=cli_path, detection="PATH"))
+
+    detected = bool(providers)
+    return Capability(
+        "browser",
+        detected,
+        installed="yes" if detected else "unknown",
+        accessible="unknown",
+        authorized="unknown",
+        usable="untested",
+        path=providers[0].path if providers else None,
+        notes="Detection does not imply permission or automation usability.",
+        providers=providers,
+    )
 
 
 def discover() -> dict:
-    capabilities: list[Capability] = []
+    capabilities: list[Capability] = [
+        Capability(
+            "filesystem",
+            True,
+            installed="yes",
+            accessible="yes",
+            authorized="unknown",
+            usable="untested",
+            path=str(Path.home()),
+            notes="Local user filesystem is detectable; permissions remain separate.",
+        )
+    ]
 
-    capabilities.append(Capability(
-        "filesystem",
-        True,
-        path=str(Path.home()),
-        notes="Local user filesystem is available.",
-    ))
-
-    capabilities.append(detect_command("python", "python", ["--version"]))
-    if not capabilities[-1].available:
-        capabilities[-1] = detect_command("python", "python3", ["--version"])
+    python = detect_command("python", "python", ["--version"])
+    if not python.detected:
+        python = detect_command("python", "python3", ["--version"])
+    capabilities.append(python)
 
     capabilities.append(detect_command("git", "git", ["--version"]))
 
     if platform.system().lower() == "windows":
         capabilities.append(detect_command("powershell", "powershell", ["-NoProfile", "-Command", "$PSVersionTable.PSVersion.ToString()"]))
+        scheduler = shutil.which("schtasks")
         capabilities.append(Capability(
             "native_scheduler",
-            bool(shutil.which("schtasks")),
-            path=shutil.which("schtasks"),
+            bool(scheduler),
+            installed="yes" if scheduler else "unknown",
+            accessible="yes" if scheduler else "unknown",
+            path=scheduler,
             notes="Windows Task Scheduler via schtasks.",
         ))
     else:
@@ -68,6 +142,8 @@ def discover() -> dict:
         capabilities.append(Capability(
             "native_scheduler",
             bool(scheduler),
+            installed="yes" if scheduler else "unknown",
+            accessible="yes" if scheduler else "unknown",
             path=scheduler,
             notes="Detected crontab or systemd tooling.",
         ))
@@ -75,26 +151,27 @@ def discover() -> dict:
     capabilities.append(Capability(
         "sqlite",
         True,
+        installed="yes",
+        accessible="yes",
         version=sqlite3.sqlite_version,
         notes="Python standard-library sqlite3.",
     ))
 
-    browsers = ["chrome", "google-chrome", "chromium", "msedge", "firefox"]
-    browser_path = next((shutil.which(x) for x in browsers if shutil.which(x)), None)
-    capabilities.append(Capability("browser_cli", bool(browser_path), path=browser_path))
+    capabilities.append(detect_browser())
+    capabilities.append(detect_command("local_ai_ollama", "ollama", ["--version"]))
 
-    ollama = detect_command("local_ai_ollama", "ollama", ["--version"])
-    capabilities.append(ollama)
-
+    github_env = bool(os.getenv("GITHUB_ACTIONS") or os.getenv("GITHUB_REPOSITORY"))
     capabilities.append(Capability(
         "github_environment",
-        bool(os.getenv("GITHUB_ACTIONS") or os.getenv("GITHUB_REPOSITORY")),
+        github_env,
+        installed="unknown",
+        accessible="yes" if github_env else "unknown",
         notes="Environment variables only; this does not imply authenticated API access.",
     ))
 
-    available = sum(1 for c in capabilities if c.available)
+    detected = sum(1 for c in capabilities if c.detected)
     return {
-        "schema_version": "0.1",
+        "schema_version": "0.2-experimental",
         "experiment": "E-003",
         "machine": {
             "os": platform.system(),
@@ -102,7 +179,7 @@ def discover() -> dict:
             "architecture": platform.machine(),
         },
         "summary": {
-            "available": available,
+            "detected": detected,
             "checked": len(capabilities),
         },
         "capabilities": [asdict(c) for c in capabilities],
