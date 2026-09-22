@@ -17,6 +17,7 @@ TESTS=[
  "tests.test_environment_resolution",
  "tests.test_trust_architecture",
  "tests.test_real_provisioning_vertical",
+ "tests.test_external_provider_e030",
 ]
 
 def run(cmd):
