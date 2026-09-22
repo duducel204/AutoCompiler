@@ -1,39 +1,47 @@
-# Vision
+# Vision — problem first
 
-## Problem
+## Root question
 
-Automation tools often create two recurring dependencies:
+Can we build powerful personal automation from resources users already possess or can access freely, while minimizing:
 
-1. a **platform/runtime dependency** — workflows only run while the platform exists;
-2. an **inference dependency** — AI agents repeatedly spend tokens on work that has already become routine.
+- permanent platform dependency;
+- recurring infrastructure cost;
+- recurring AI inference cost;
+- vendor lock-in?
 
-AutoCompiler explores an alternative: use intelligence to understand and design work, then compile stable behavior into native automation owned by the user.
+## What is fixed
 
-## North-star statement
+The **problem** is fixed: useful automation with low recurring cost and low dependency.
 
-> **Compile intent into automation you own.**
+## What is not fixed
 
-A successful AutoCompiler workflow should tend toward:
+The final solution may or may not be:
 
-- zero mandatory hosted runtime;
-- zero unnecessary AI calls;
-- explicit permissions;
-- portable source files;
-- native execution where practical;
-- low switching cost and low lock-in.
+- a compiler;
+- a local agent;
+- a capability router;
+- GitHub-native;
+- a multi-machine mesh;
+- a CLI;
+- a desktop app;
+- a visual workflow tool.
 
-## Mental model
+These remain hypotheses.
 
-AutoCompiler is closer to a **compiler/toolchain** than to a workflow SaaS.
+## Current leading direction
 
 ```text
-Intent → IR → planning → target compiler → native artifacts
+intent
+→ discover capabilities
+→ structured requirements
+→ choose execution strategy
+→ use native/user-owned resources
 ```
 
-The target may be PowerShell, Python, GitHub Actions, Apps Script, cron/systemd or future backends.
+AI can participate in interpretation, planning, repair or semantic steps, but deterministic routine work should prefer ordinary software.
 
-## Why the local computer matters
+## North-star property
 
-A computer is not merely a host. It is a bundle of capabilities: filesystem access, installed applications, CPU/GPU, local network access, browser state and native schedulers.
+> **Useful automation that the user can understand, own, move and run at very low recurring cost.**
 
-AutoCompiler should discover those capabilities and choose them when they are sufficient.
+See `docs/ORIGIN.md` for the reasoning trail.
