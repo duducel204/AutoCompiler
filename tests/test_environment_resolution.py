@@ -2,21 +2,25 @@ import tempfile
 import unittest
 from pathlib import Path
 from src.autocompiler.environment import build_resource_graph
+from src.autocompiler.acquisition import AcquisitionArtifact, Provenance
 from src.autocompiler.provisioning import AcquisitionRecipe, CapabilityRegistry, Provisioner
 from src.autocompiler.environment_manifest import register
+
+def recipe(capability="run_python", provider="portable-python"):
+    provenance=Provenance("https://example.invalid/provider","1.0","test","test","sha256:test","MIT","user",False,"remove provider","provider --version")
+    artifact=AcquisitionArtifact(provider,(capability,),"portable",("install-test-provider",),provenance)
+    return AcquisitionRecipe(capability,provider,artifact)
 
 class EnvironmentResolutionTests(unittest.TestCase):
     def test_reuse_before_acquire_and_gap_resolution(self):
         inventory={"capabilities":[{"id":"filesystem","detected":True,"usable":"yes"},{"id":"python","detected":False}]}
         graph=build_resource_graph(inventory)
-        recipe=AcquisitionRecipe("run_python","portable-python","download",["acquire-python"],"trusted-test-source")
-        plan=CapabilityRegistry([recipe]).resolve(["filesystem.read","run_python"],graph,{"zero_cost":True,"no_admin":True})
+        plan=CapabilityRegistry([recipe()]).resolve(["filesystem.read","run_python"],graph,{"zero_cost":True,"no_admin":True})
         self.assertEqual([x.action for x in plan.resolutions],["reuse","acquire"])
         self.assertEqual(plan.permissions,["environment.modify"])
 
     def test_provisioning_is_authorized_verified_and_owned(self):
-        recipe=AcquisitionRecipe("pdf.generate","test-pdf","portable",["install"],"trusted-test-source")
-        plan=CapabilityRegistry([recipe]).resolve(["pdf.generate"],{"resources":[]})
+        plan=CapabilityRegistry([recipe("pdf.generate","test-pdf")]).resolve(["pdf.generate"],{"resources":[]})
         provisioner=Provisioner(lambda cmd:0,lambda capability,provider: True)
         self.assertEqual(provisioner.apply(plan)["status"],"authorization_required")
         result=provisioner.apply(plan,authorized=True)

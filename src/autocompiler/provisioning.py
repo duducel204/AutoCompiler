@@ -1,16 +1,18 @@
 from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Callable
+from .acquisition import AcquisitionArtifact
 
 @dataclass(frozen=True)
 class AcquisitionRecipe:
     capability: str
     provider: str
-    strategy: str
-    command: list[str]
-    source: str
+    artifact: AcquisitionArtifact
     cost: str = "free"
-    requires_admin: bool = False
+
+    @property
+    def requires_admin(self) -> bool:
+        return self.artifact.provenance.requires_admin
 
 @dataclass(frozen=True)
 class Resolution:
@@ -51,7 +53,8 @@ class CapabilityRegistry:
                 recipes = [r for r in recipes if r.cost == "free"]
             if recipes:
                 r = recipes[0]
-                out.append(Resolution(capability, "acquire", r.provider, "Capability gap resolved by acquisition recipe.", r))
+                r.artifact.validate()
+                out.append(Resolution(capability, "acquire", r.provider, "Capability gap resolved by verified acquisition contract.", r))
             else:
                 out.append(Resolution(capability, "unresolved", "", "No permitted provider or acquisition recipe found."))
         permissions = sorted({"environment.modify" for x in out if x.action == "acquire"})
@@ -68,7 +71,8 @@ class Provisioner:
         results = []
         for item in acquisitions:
             assert item.recipe is not None
-            code = self.runner(item.recipe.command)
+            item.recipe.artifact.validate()
+            code = self.runner(list(item.recipe.artifact.command))
             verified = code == 0 and self.verifier(item.capability, item.provider)
             results.append({"capability": item.capability, "provider": item.provider, "verified": verified})
             if not verified:
