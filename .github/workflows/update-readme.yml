@@ -1,10 +1,6 @@
 name: Update dynamic README
 
 on:
-  push:
-    paths:
-      - "data/*.csv"
-      - "scripts/render_readme.py"
   workflow_dispatch:
 
 permissions:
