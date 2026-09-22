@@ -30,9 +30,14 @@ jobs:
           python tests/test_discover.py -v
           python tests/test_planner_runtime.py -v
           python tests/test_intent.py -v
+          python tests/test_standalone.py -v
       - name: Run zero-token example
         run: python scripts/run_recipe.py examples/hello-local.recipe.json
       - name: Run one-command proof
         run: python demo.py
+      - name: Compile standalone automation
+        run: python build_standalone_demo.py
+      - name: Run generated standalone automation
+        run: python generated/folder-automation/automation.py
       - name: Run intent-to-execution proof
         run: python intent_demo.py "crie um arquivo chamado teste.txt na minha Área de Trabalho com a data atual"
