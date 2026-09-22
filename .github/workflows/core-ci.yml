@@ -1,0 +1,30 @@
+name: Core CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Existing core tests
+        run: |
+          python tests/test_discover.py -v
+          python tests/test_planner_runtime.py -v
+          python tests/test_intent.py -v
+          python tests/test_standalone.py -v
+      - name: Skills IR multi-target tests
+        run: python tests/test_ir_compiler.py -v
+      - name: Compile B1 artifacts
+        run: python build_b1.py
