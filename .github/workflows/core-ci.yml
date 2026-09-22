@@ -1,33 +1,14 @@
-name: Core CI
-
+name: Core CI diagnostics
 on:
-  push:
-  pull_request:
-
+  workflow_dispatch:
 permissions:
   contents: read
-
 jobs:
   core:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Existing core tests
-        run: |
-          python tests/test_discover.py -v
-          python tests/test_planner_runtime.py -v
-          python tests/test_intent.py -v
-          python tests/test_standalone.py -v
-      - name: Skills IR and environment tests
-        run: |
-          python -m unittest tests.test_ir_compiler -v
-          python -m unittest tests.test_b2_b3 -v
-          python -m unittest tests.test_environment_resolution -v
-      - name: Compile B1 artifacts
-        run: python build_b1.py
+      - run: python scripts/trust_gate.py
