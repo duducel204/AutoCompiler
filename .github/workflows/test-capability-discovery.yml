@@ -4,8 +4,9 @@ on:
   push:
     paths:
       - "src/**"
-      - "scripts/discover.py"
+      - "scripts/**"
       - "tests/**"
+      - "examples/**"
       - ".github/workflows/test-capability-discovery.yml"
   pull_request:
   workflow_dispatch:
@@ -25,5 +26,8 @@ jobs:
       - name: Run discovery
         run: python scripts/discover.py
       - name: Run tests
-        run: python tests/test_discover.py -v
+        run: |
+          python tests/test_discover.py -v
           python tests/test_planner_runtime.py -v
+      - name: Run zero-token example
+        run: python scripts/run_recipe.py examples/hello-local.recipe.json
