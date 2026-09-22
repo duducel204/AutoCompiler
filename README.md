@@ -94,6 +94,12 @@ Full trail: [docs/ORIGIN.md](docs/ORIGIN.md)
 | D-021 | hypothesis | A validated automation may be crystallized into a higher-level reusable skill. | ACTIVE: active | very-high |
 | D-022 | hypothesis | AutoCompiler can test n8n replacement as measured functional equivalence for growing workflow classes rather than as a clone of n8n runtime or UI. | ACTIVE: active | very-high |
 | D-023 | process | n8n replacement claims must be tied to explicit benchmark coverage and reusable primitives rather than workflow-specific code. | CONFIRMED: confirmed | very-high |
+| D-024 | discovery | Planning and environment mutation are separate phases: a plan can describe required changes without mutating the machine while apply is authorization-gated. | CONFIRMED: confirmed | very-high |
+| D-025 | discovery | A missing capability can be resolved by acquiring a provider, verifying its bytes, and registering provider ownership plus the consuming automation. | CONFIRMED: confirmed | very-high |
+| D-026 | discovery | A provisioned capability can be consumed by a generated artifact that executes without AutoCompiler runtime and without recurring AI. | CONFIRMED: confirmed | very-high |
+| D-027 | process | Repository health now has a canonical cross-platform Trust Gate; failures must restore invariants rather than manufacture green. | CONFIRMED: confirmed | very-high |
+| D-028 | architecture | Acquisition is a capability-gap strategy rather than a direct responsibility of a skill; provider acquisition requires provenance, verification, authorization and rollback contracts. | CONFIRMED: confirmed | very-high |
+| D-029 | hypothesis | The strongest current product thesis is that AutoCompiler transforms an intention into installed computational capability while preferring reuse and minimum environment mutation. | ACTIVE: active | very-high |
 <!-- DISCOVERIES_TABLE_END -->
 
 ## 4. Resource map
@@ -314,8 +320,14 @@ The roadmap prioritizes questions and experiments, not implementation momentum.
 | E-022 | Compatibility | n8n workflow importer | EXPLORE: explore | P2 | 9/10 | Can representative exported n8n workflows map into AutoCompiler IR and run without n8n? |
 | E-023 | Benchmark | n8n replacement B2 | ACTIVE: active | P0 | 7/10 | Can reusable IR cover scheduled HTTP transformation and persistence without recurring AI? |
 | E-024 | Benchmark | n8n replacement B3 | ACTIVE: active | P0 | 7/10 | Can reusable IR cover webhook condition branching and action semantics? |
+| E-025 | Architecture | Environment resolution and provisioning | OPEN: validated | P0 | 8/10 | Can AutoCompiler resolve a missing capability through a controlled provider acquisition path? |
+| E-026 | Safety | Plan Apply Verify boundary | OPEN: validated | P0 | 7/10 | Can planning remain read-only while environment mutation requires explicit authorization and post-change verification? |
+| E-027 | Safety | Acquisition provenance | OPEN: partial | P0 | 8/10 | Can provider acquisition require source version platform architecture checksum license scope rollback and verification metadata? |
+| E-028 | Foundation | Canonical Trust Gate | OPEN: validated | P0 | 6/10 | Can one cross-platform gate become the canonical repository validation contract? |
+| E-029 | Lifecycle | Environment manifest ownership | OPEN: partial | P0 | 7/10 | Can AutoCompiler distinguish acquired providers from user-owned resources and track consumers safely? |
+| E-030 | Provisioning | External real provider acquisition | ACTIVE: active | P0 | 8/10 | Can a pinned free external provider be acquired with provenance authorization verification ownership and rollback? |
 
-**Experiments tracked:** 24 · **Implemented:** 2
+**Experiments tracked:** 30 · **Implemented:** 2
 <!-- ROADMAP_TABLE_END -->
 
 ## 13. What is not decided
