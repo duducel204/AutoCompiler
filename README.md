@@ -1,251 +1,294 @@
-# AutoCompiler
+# AutoCompiler — working title
 
-> **Compile intent into automation you own.**
+> **Research question:** can powerful personal automation be built from resources people already have, without requiring a permanent automation platform, paid infrastructure, or recurring AI inference?
 
-AutoCompiler is an experimental open-source project exploring a different automation model:
+**AutoCompiler is a working name, not a frozen product definition.**
 
-- **No mandatory automation platform** at runtime.
-- **No mandatory cloud**.
-- **No recurring AI dependency** for deterministic work.
-- **Use what you already have**: Windows, PowerShell, Python, GitHub Actions, Google Apps Script, local models, APIs and files.
-- **Generate native artifacts** that keep working even if AutoCompiler is closed or removed.
+This repository exists first to preserve and test the idea space that started with a simpler question:
 
-The project is intentionally **compiler-first, runtime-light**. AI may help interpret intent, plan or handle exceptional semantic steps; ordinary execution should prefer deterministic tools.
+> **How far can we go toward an n8n-like capability using logic plus free tools already available on a computer and on the internet?**
 
-## Core thesis
+The current leading hypothesis is that the answer may **not** be another automation platform. It may be a thin layer that discovers existing capabilities, plans how to combine them, and, when possible, generates automation that can run using native or user-owned tools.
 
-```text
-Human intent
-    ↓
-Capability discovery
-    ↓
-Automation IR
-    ↓
-Cost / privacy / reliability planner
-    ↓
-Native target compiler
-    ↓
-PowerShell | Python | GitHub Actions | Apps Script | cron/systemd
-    ↓
-Automation the user owns
-```
+## 1. The original problem
 
-**Design rule:** if a normal algorithm, script, parser, cache or native scheduler can do the job reliably, do not spend AI tokens on it.
+We want useful automation without automatically accepting:
 
-## Why this exists
+- a permanent n8n/Zapier-like runtime;
+- a server that must stay online;
+- a monthly automation-platform bill;
+- an LLM call for every repeated step;
+- a cloud-only architecture;
+- lock-in to one vendor or execution environment.
 
-Traditional workflow platforms keep themselves in the execution path. AI-first agents often keep inference in the execution path. AutoCompiler explores the opposite:
-
-> **Use intelligence to create, repair or improve automation; use ordinary software to repeat what is already understood.**
-
-That gives us three guiding principles:
-
-1. **Local-first** — use the user's machine when it is the simplest viable executor.
-2. **Deterministic-first** — use scripts/rules/parsers before LLM inference.
-3. **Runtime independence** — generated automation should survive without the compiler whenever possible.
-
-## Project status
-
-<!-- ROADMAP_TABLE_START -->
-| ID | Phase | Component | Status | Priority | Complexity | Goal |
-|---|---|---|---|---:|---:|---|
-| AC-001 | Foundation | Vision | ✅ documented | P0 | 1/10 | Freeze the problem and project thesis |
-| AC-002 | Foundation | Dynamic README | ✅ implemented | P0 | 2/10 | Make project status data-driven |
-| AC-003 | Foundation | Automation IR | 🟡 draft | P0 | 4/10 | Define a portable intermediate representation |
-| AC-004 | MVP | Capability Discovery | ⬜ planned | P0 | 4/10 | Detect useful local capabilities |
-| AC-005 | MVP | Planner | ⬜ planned | P0 | 5/10 | Choose cheapest sufficient execution path |
-| AC-006 | MVP | Windows Compiler | ⬜ planned | P0 | 5/10 | Compile IR to PowerShell plus Task Scheduler |
-| AC-007 | MVP | GitHub Compiler | ⬜ planned | P1 | 4/10 | Compile IR to GitHub Actions |
-| AC-008 | MVP | Permission Plan | ⬜ planned | P0 | 4/10 | Explain filesystem network shell and AI access |
-| AC-009 | MVP | CLI | ⬜ planned | P0 | 4/10 | Provide discover create plan compile install commands |
-| AC-010 | AI | Intent Compiler | ⬜ planned | P1 | 6/10 | Turn natural language into constrained IR |
-| AC-011 | AI | Zero-Token Runtime | ⬜ planned | P0 | 5/10 | Ensure deterministic workflows run without model calls |
-| AC-012 | AI | AI Fallback | ⬜ planned | P2 | 6/10 | Allow semantic steps only when required |
-| AC-013 | Distribution | One-click Local Install | 🔬 explore | P1 | 7/10 | Reduce GitHub project-to-running friction |
-| AC-014 | Distribution | Colab Playground | 🔬 explore | P2 | 3/10 | Offer a zero-install demo |
-| AC-015 | Distribution | GitHub Template | ⬜ planned | P1 | 3/10 | Make project easy to fork and experiment with |
-| AC-016 | Evolution | Execution Trace | ⬜ planned | P2 | 5/10 | Record what happened without central lock-in |
-| AC-017 | Evolution | Crystallization | 🔬 explore | P3 | 8/10 | Convert successful AI-assisted behavior into deterministic recipes |
-| AC-018 | Evolution | Capability Mesh | 🔬 explore | P3 | 9/10 | Route tasks across multiple user-owned machines |
-
-**Tracked items:** 18 · **Completed/documented:** 2 · **Progress:** 11%
-
-_Source: `data/roadmap.csv` · Generated automatically. Do not edit this table by hand._
-<!-- ROADMAP_TABLE_END -->
-
-## Initial user experience
+At the same time, useful infrastructure already exists:
 
 ```text
-$ autocompile discover
+COMPUTER
+filesystem · PowerShell/shell · Python · scheduler · browser
+Git · SQLite · CPU/GPU · local models
 
-✓ Windows 11
-✓ PowerShell
-✓ Python
-✓ Git
-✓ Chrome
-✓ Task Scheduler
-✓ GitHub available
-✓ Local AI optional
+INTERNET / FREE TIERS
+GitHub · GitHub Actions · Google Sheets · Apps Script
+Drive · Colab · APIs · other services
 ```
 
-Then:
+The project asks:
+
+> **Can these pieces behave like one automation environment without forcing the user into one new central platform?**
+
+## 2. How the idea evolved
 
 ```text
-$ autocompile create
-
-What do you want to automate?
-> Every day at 19:00 back up Documents to D:\Backup
+"build something like n8n with free tools"
+                    ↓
+GitHub Actions + Sheets + Apps Script + Python
+                    ↓
+the user's computer should also be an executor
+                    ↓
+the computer is a bundle of capabilities, not merely a host
+                    ↓
+AI should not spend tokens on deterministic routine work
+                    ↓
+AI may help interpretation, planning, repair and exceptions
+                    ↓
+GitHub may be distribution/versioning/community, not the system itself
+                    ↓
+Colab may be a zero-install playground, not production infrastructure
+                    ↓
+generated automation may survive without our own runtime
+                    ↓
+CURRENT LEADING HYPOTHESIS
+intent → discover resources → plan → generate/compose → native execution
 ```
 
-Possible output:
+**The repository must preserve this reasoning, not only the latest answer.**
+
+Full trail: [docs/ORIGIN.md](docs/ORIGIN.md)
+
+## 3. Discoveries
+
+<!-- DISCOVERIES_TABLE_START -->
+<!-- generated -->
+<!-- DISCOVERIES_TABLE_END -->
+
+## 4. Resource map
+
+These are candidate building blocks, not mandatory dependencies.
+
+<!-- RESOURCES_TABLE_START -->
+<!-- generated -->
+<!-- RESOURCES_TABLE_END -->
+
+> **Before asking AI how to solve a task, first ask what the user's existing environment can already do at near-zero marginal cost.**
+
+## 5. Competing hypotheses
+
+We intentionally keep multiple possibilities alive.
+
+<!-- HYPOTHESES_TABLE_START -->
+<!-- generated -->
+<!-- HYPOTHESES_TABLE_END -->
+
+The current favorite is not automatically the final answer. A hypothesis earns promotion through experiments.
+
+## 6. Current leading hypothesis
 
 ```text
-Plan
-✓ PowerShell is sufficient
-✓ Windows Task Scheduler is sufficient
-✓ AI required at runtime: NO
-✓ Cloud required: NO
-
-Generated:
-automation/
-├── backup.ps1
-├── install.ps1
-├── uninstall.ps1
-├── manifest.yaml
-└── README.md
+                    HUMAN INTENT
+                         │
+                         ▼
+                capability discovery
+                         │
+                         ▼
+             structured requirements / IR?
+                         │
+                         ▼
+                policy + cost planner
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+       local PC       GitHub          Google
+          │              │              │
+    PowerShell        Actions       Apps Script
+    Python            Git           Sheets/Drive
+    scheduler
+    browser
+    local AI
+          │              │              │
+          └──────────────┼──────────────┘
+                         ▼
+               USER-OWNED AUTOMATION
 ```
 
-The generated automation runs using native tools. AutoCompiler does not need to remain running.
+We want to optimize for sufficient capability, reliability, low recurring cost, low AI usage, low lock-in and explicit permissions.
 
-## Three execution paths
+## 7. AI is a resource, not automatically the runtime
 
-| Path | Purpose | Runtime dependency on AutoCompiler |
-|---|---|---|
-| **Install locally** | Use the user's computer and native OS tools | Preferably none |
-| **Run with GitHub** | Use GitHub Actions for cloud/event execution | None after generation |
-| **Try in Colab** | Zero-install demo / experimentation | Demo only |
-
-## Proposed repository-install experience
-
-A future repository may expose:
+A central research direction is **minimum sufficient intelligence**:
 
 ```text
-[ Install locally ]   [ Try in Colab ]   [ Run with GitHub ]
+rule / parser / regex / SQL / cache
+                ↓ if insufficient
+Python / PowerShell / normal API
+                ↓ if insufficient
+local model
+                ↓ if insufficient
+cloud AI
+                ↓ if still ambiguous
+human review
 ```
 
-The local installer should present permissions before installation:
+> **No LLM should be called merely because an LLM exists.**
+
+A deterministic workflow should be capable of repeated runs with zero AI calls.
+
+## 8. The computer is first-class infrastructure
+
+A local machine may expose capabilities unavailable to cloud-only automation: files, installed applications, browser state, LAN access, PowerShell, Python, CPU/GPU, local models and native schedulers.
+
+A future inventory might look like:
 
 ```text
-READ:   ~/Downloads/*.pdf
-WRITE:  ~/Documents/PDFs/
-NETWORK: none
-SHELL:  Python
-AI at runtime: none
-Recurring cost: 0
+$ project discover
+
+Windows             ✓
+PowerShell          ✓
+Python              ✓
+Task Scheduler      ✓
+Git                 ✓
+Chrome              ✓
+SQLite              ✓
+Ollama              ?
+GitHub              ✓
+Google              ?
 ```
 
-## Automation IR
+## 9. GitHub's role
 
-AutoCompiler needs a small intermediate representation between human intent and target-specific code.
+GitHub can provide code hosting, version history, pull requests, releases, Actions, webhooks, issues, community and distribution.
 
-Example:
+But:
+
+```text
+project ≠ GitHub
+GitHub = one powerful capability among several
+```
+
+A purely local automation must remain possible.
+
+## 10. Installation and experimentation
+
+Current onboarding hypothesis:
+
+```text
+GitHub repository
+      │
+      ├── Install locally → use the user's machine
+      ├── Try in Colab    → zero-install experiment
+      └── Run with GitHub → cloud/event execution
+```
+
+A future install flow should expose permissions and recurring cost before execution:
+
+```text
+READ:      ~/Downloads/*.pdf
+WRITE:     ~/Documents/PDFs/
+NETWORK:   none
+SHELL:     Python
+AI:        none at runtime
+COST:      0 recurring
+```
+
+## 11. Automation IR is a hypothesis
+
+An intermediate representation may keep intent independent from execution technology:
 
 ```yaml
 version: "0.1"
-name: nightly-backup
+name: documents-backup
 
 trigger:
   type: schedule
-  at: "19:00"
   every: day
+  at: "19:00"
 
-capabilities:
+needs:
   filesystem:
-    read:
-      - "~/Documents/**"
-    write:
-      - "D:/Backup/**"
+    read: ["~/Documents/**"]
+    write: ["D:/Backup/**"]
 
 steps:
-  - id: backup
-    action: filesystem.sync
+  - action: filesystem.sync
     from: "~/Documents"
     to: "D:/Backup"
 
 policy:
-  prefer:
-    - deterministic
-    - local
+  prefer: [deterministic, local]
   ai_runtime: forbidden
+  paid_cloud: avoid
 ```
 
-See [`docs/AUTOMATION_IR.md`](docs/AUTOMATION_IR.md).
+The same intent might target Windows Task Scheduler + PowerShell, Python, GitHub Actions, Apps Script or cron/systemd.
 
-## What AutoCompiler is **not**
+**IR/compiler is still a hypothesis, not the definition of the whole project.**
 
-It is not intended to begin as:
+## 12. Research roadmap
 
-- a full n8n clone;
-- a drag-and-drop visual builder;
-- a mandatory hosted SaaS;
-- a proprietary runtime that every generated automation depends on;
-- an LLM loop that spends tokens on deterministic operations.
+The roadmap prioritizes questions and experiments, not implementation momentum.
 
-## Repository map
+<!-- ROADMAP_TABLE_START -->
+<!-- generated -->
+<!-- ROADMAP_TABLE_END -->
+
+## 13. What is not decided
+
+We have **not** decided that the final product must be a workflow engine, compiler, mesh, agent, desktop app, SaaS, GitHub-native system, AI-first system or visual/no-code builder.
+
+Those are candidates.
+
+The invariant is the problem:
+
+> **Get useful automation from available resources while minimizing recurring cost, AI dependence and platform lock-in.**
+
+## 14. Repository as a living research map
 
 ```text
-.
-├── README.md
-├── data/
-│   └── roadmap.csv              # editable source for the dynamic README table
-├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── AUTOMATION_IR.md
-│   ├── DECISIONS.md
-│   ├── PRINCIPLES.md
-│   └── VISION.md
-├── examples/
-│   └── backup-windows/
-│       └── Autofile.yaml
-├── schemas/
-│   └── automation-ir.schema.json
-├── scripts/
-│   └── render_readme.py
-└── .github/workflows/
-    └── update-readme.yml
+data/
+├── discoveries.csv
+├── resources.csv
+├── hypotheses.csv
+└── roadmap.csv
 ```
 
-## Dynamic README table
-
-The roadmap/status table above is **data-driven**.
-
-Edit:
+These create four distinct memories:
 
 ```text
-data/roadmap.csv
+DISCOVERIES → what we learned
+RESOURCES   → what exists
+HYPOTHESES  → what might work
+ROADMAP     → what we will test
 ```
 
-The workflow `.github/workflows/update-readme.yml` runs the renderer and commits an updated README when the generated table changes.
+A new idea should normally enter as a hypothesis, not silently overwrite prior reasoning.
 
-This establishes a simple rule from day one:
+## 15. Working principles
 
-> **Structured project state lives as data; documentation is a generated view of that state.**
+1. Explore before freezing architecture.
+2. Deterministic before probabilistic.
+3. Existing/free resources before new paid infrastructure.
+4. Local capability is first-class.
+5. AI must justify its runtime cost.
+6. Generated artifacts should be inspectable.
+7. Avoid mandatory central runtime where possible.
+8. Permissions should be visible before execution.
+9. Record why a decision changed.
+10. Do not confuse the latest hypothesis with the original objective.
 
-## Contribution direction
+## Status
 
-Before adding integrations, prioritize the universal core:
+This repository is currently in **exploration / architecture research**.
 
-```text
-intent
-→ capabilities
-→ IR
-→ planner
-→ target compiler
-→ native artifact
-```
+The next milestone is not "build the product." It is:
 
-A connector is valuable only when it expands a capability without turning AutoCompiler into another permanent platform dependency.
-
-## License
-
-License not yet frozen. A permissive license such as Apache-2.0 or MIT should be evaluated before public launch.
+> **Prove or falsify the core hypotheses with small experiments.**
