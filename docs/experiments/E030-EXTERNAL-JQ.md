@@ -40,3 +40,16 @@ Pinned release evidence:
 E-030 is not marked validated by this branch. The exact immutable PR head must first complete the canonical Trust Gate successfully on Windows and Ubuntu. Only after that observed evidence may a separate evidence-record commit promote E-030 and D-030/D-031 from active hypotheses to validated/confirmed state.
 
 This deliberately separates implementation from evidence and prevents a state file from claiming success before CI has produced it.
+
+
+## Observed evidence
+
+Validated candidate commit: `241ee630be1f2916a5d1c81320502db578db8063` (PR #20).
+
+Observed before evidence promotion:
+- AutoCompiler Trust Gate: SUCCESS.
+- Test capability discovery: SUCCESS.
+- The canonical Trust Gate includes `tests.test_external_provider_e030`.
+- The candidate was immutable during validation; automatic README branch mutation had already been disabled.
+
+E-030 is therefore promoted only in the subsequent evidence-record change, preserving the order **execution → evidence → record**.
