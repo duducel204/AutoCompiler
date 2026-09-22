@@ -35,7 +35,10 @@ class IRCompilerTest(unittest.TestCase):
                 self.assertEqual(result["processed"],1)
                 self.assertTrue((case/"output"/"keep.txt").exists())
                 self.assertFalse((case/"output"/"skip.pdf").exists())
-                self.assertNotIn("autocompiler", (out/"automation.py").read_text(encoding="utf-8").lower())
+                generated = (out/"automation.py").read_text(encoding="utf-8").lower()
+                self.assertNotIn("import autocompiler", generated)
+                self.assertNotIn("from autocompiler", generated)
+                self.assertFalse(result["autocompiler_runtime_used"])
                 if target=="python-sqlite":
                     with sqlite3.connect(out/"history.db") as con:
                         self.assertEqual(con.execute("select status from events").fetchone()[0],"ok")
