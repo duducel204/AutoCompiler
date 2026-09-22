@@ -8,7 +8,7 @@ This repository exists first to preserve and test the idea space that started wi
 
 > **How far can we go toward an n8n-like capability using logic plus free tools already available on a computer and on the internet?**
 
-The current leading hypothesis is that the answer may **not** be another automation platform. It may be a thin layer that discovers existing capabilities, plans how to combine them, and, when possible, generates automation that can run using native or user-owned tools.
+The current strongest thesis is that the answer may **not** be another permanent automation platform. AutoCompiler is converging on a layer that turns an intention into installed computational capability: discover and reuse what the environment already has, resolve genuine capability gaps with minimum mutation, obtain authorization before protected changes, verify the result, and compile user-owned automation that can survive without AutoCompiler.
 
 ## 1. The original problem
 
