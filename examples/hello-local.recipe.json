@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1",
+  "name": "hello-local",
+  "trigger": {"type": "manual"},
+  "state": {"provider": "sqlite"},
+  "steps": [
+    {
+      "id": "write-proof",
+      "capability": "filesystem",
+      "action": "write_text",
+      "args": {
+        "path": ".autocompiler/proof.txt",
+        "text": "AutoCompiler executed this deterministic recipe locally without recurring AI."
+      }
+    },
+    {
+      "id": "python-proof",
+      "capability": "python",
+      "action": "python",
+      "args": {"code": "print('python-provider-ok')"}
+    }
+  ]
+}
