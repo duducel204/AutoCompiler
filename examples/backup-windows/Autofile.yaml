@@ -1,0 +1,31 @@
+version: "0.1"
+name: documents-backup
+
+description: Back up the Documents folder every day using native Windows capabilities.
+
+trigger:
+  type: schedule
+  every: day
+  at: "19:00"
+
+capabilities:
+  os: windows
+  shell: powershell
+  filesystem:
+    read:
+      - "~/Documents/**"
+    write:
+      - "D:/Backup/**"
+
+steps:
+  - id: sync
+    action: filesystem.sync
+    from: "~/Documents"
+    to: "D:/Backup"
+
+policy:
+  prefer:
+    - deterministic
+    - local
+  ai_runtime: forbidden
+  paid_cloud: forbidden
