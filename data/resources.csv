@@ -1,0 +1,16 @@
+id,resource,category,local,cloud,cost_profile,execute,store,trigger
+R-001,Windows,operating-system,yes,no,owned,yes,yes,yes
+R-002,PowerShell,shell,yes,no,free,yes,no,no
+R-003,Python,runtime,yes,yes,free,yes,yes,no
+R-004,Task Scheduler,scheduler,yes,no,free,yes,no,yes
+R-005,SQLite,state,yes,no,free,no,yes,no
+R-006,Browser,interface,yes,yes,owned,yes,no,yes
+R-007,Git,versioning,yes,yes,free,no,yes,yes
+R-008,GitHub,collaboration,no,yes,free-tier,yes,yes,yes
+R-009,GitHub Actions,executor,no,yes,free-tier,yes,yes,yes
+R-010,Google Sheets,state-ui,no,yes,free-tier,no,yes,yes
+R-011,Apps Script,serverless,no,yes,free-tier,yes,yes,yes
+R-012,Google Drive,storage,no,yes,free-tier,no,yes,yes
+R-013,Google Colab,playground,no,yes,free-tier,yes,yes,no
+R-014,Ollama-or-llama.cpp,local-ai,yes,no,local-compute,yes,no,no
+R-015,Cloud AI APIs,cloud-ai,no,yes,variable,yes,no,no
