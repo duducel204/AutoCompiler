@@ -40,8 +40,11 @@ class IRCompilerTest(unittest.TestCase):
                 self.assertNotIn("from autocompiler", generated)
                 self.assertFalse(result["autocompiler_runtime_used"])
                 if target=="python-sqlite":
-                    with sqlite3.connect(out/"history.db") as con:
+                    con = sqlite3.connect(out/"history.db")
+                    try:
                         self.assertEqual(con.execute("select status from events").fetchone()[0],"ok")
+                    finally:
+                        con.close()
                 else:
                     row=json.loads((out/"history.jsonl").read_text(encoding="utf-8").splitlines()[0])
                     self.assertEqual(row["status"],"ok")
