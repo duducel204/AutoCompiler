@@ -6,8 +6,15 @@ D-004,resource,"A personal computer already exposes files shell Python browser s
 D-005,resource,"GitHub can provide distribution versioning Actions releases collaboration and community without being the mandatory runtime.",confirmed,high
 D-006,resource,"Sheets and Apps Script can provide lightweight state UI triggers and integrations.",confirmed,medium
 D-007,hypothesis,"AI may be most useful for intent interpretation planning repair and semantic exceptions rather than routine execution.",active,very-high
-D-008,hypothesis,"Generated automation may be able to keep running after our own tool is closed or removed.",active,very-high
+D-008,discovery,"Generated automation can keep running without importing or calling AutoCompiler after compilation.",confirmed,very-high
 D-009,hypothesis,"Colab can reduce experimentation friction but should not be assumed to be durable production infrastructure.",active,medium
 D-010,hypothesis,"A planner may choose among local tools GitHub Google local AI and cloud AI according to capability cost privacy and reliability.",active,very-high
 D-011,hypothesis,"Successful AI-assisted behavior could later be crystallized into deterministic recipes.",explore,high
 D-012,process,"Preserving how hypotheses evolved is important because freezing the latest idea too early narrows the search space.",confirmed,very-high
+D-013,discovery,"Capability is not the same as a named tool: multiple providers may satisfy one requirement and missing Git did not prevent repository acquisition through PowerShell HTTP and ZIP.",confirmed,very-high
+D-014,discovery,"Capability state must distinguish detected accessible authorized and usable; real Windows evidence showed PowerShell detected while .ps1 execution was blocked by execution policy.",confirmed,very-high
+D-015,discovery,"A narrow Portuguese intent can be compiled into an explicit permission and deterministic recipe that performs a real filesystem action.",confirmed,high
+D-016,discovery,"A generated Python-standard-library automation copied a real file and persisted its own SQLite history on Windows with recurring AI disabled.",confirmed,very-high
+D-017,discovery,"Cross-platform behavior matters at the resource-lifecycle level: Windows exposed SQLite file locking during CI cleanup that Ubuntu did not.",confirmed,high
+D-018,hypothesis,"A small platform-neutral Automation IR may separate automation meaning from provider and target selection.",active,very-high
+D-019,hypothesis,"The same Automation IR should be compilable to multiple targets if the compiler hypothesis is correct.",active,very-high
