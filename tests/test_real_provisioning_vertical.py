@@ -17,7 +17,7 @@ class RealProvisioningVerticalTests(unittest.TestCase):
                 launcher.chmod(0o755)
             install=root/"environment"/launcher.name
             manifest=root/"environment.json"
-            plan=plan_portable_capability("make demo capability available","demo.echo","portable-echo",launcher,install.parent,"demo-automation")
+            # The acquired provider is the launcher; keep its payload adjacent so the portable unit is self-contained.\n            payload_installed=root/"environment"/source.name\n            payload_installed.parent.mkdir(parents=True,exist_ok=True)\n            payload_installed.write_bytes(source.read_bytes())\n            plan=plan_portable_capability("make demo capability available","demo.echo","portable-echo",launcher,install.parent,"demo-automation")
             self.assertFalse(plan.explain()["mutates_environment"])
             self.assertFalse(install.exists())
             blocked=apply_portable_plan(plan,manifest,authorized=False)
