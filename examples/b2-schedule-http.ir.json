@@ -1,0 +1,10 @@
+{
+  "schema_version": "0.2",
+  "name": "b2-schedule-http-transform-store",
+  "trigger": {"type": "schedule", "cron": "0 9 * * *"},
+  "steps": [
+    {"id": "api", "skill": "http.request", "with": {"method": "GET", "url": "$event.url", "retries": 2}},
+    {"id": "mapped", "skill": "data.map", "with": {"fields": {"value": "$api.value", "source": "scheduled-http"}}},
+    {"id": "stored", "skill": "state.record_jsonl", "with": {"value": "$mapped", "file": "events.jsonl"}}
+  ]
+}
