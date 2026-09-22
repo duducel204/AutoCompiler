@@ -1,0 +1,10 @@
+{
+  "schema_version": "0.2",
+  "name": "b3-webhook-condition-branch",
+  "trigger": {"type": "webhook", "path": "/hook"},
+  "steps": [
+    {"id": "is_high", "skill": "flow.condition", "with": {"left": "$event.amount", "op": "gte", "right": 100}},
+    {"id": "decision", "skill": "flow.branch", "with": {"condition": "$is_high", "then": {"route": "high"}, "else": {"route": "normal"}}},
+    {"id": "stored", "skill": "state.record_jsonl", "with": {"value": "$decision", "file": "webhook-events.jsonl"}}
+  ]
+}
