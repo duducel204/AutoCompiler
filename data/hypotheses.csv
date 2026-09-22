@@ -1,0 +1,10 @@
+id,hypothesis,status,dependency,cost,complexity,differentiation
+H-001,"Mini n8n: build a small persistent workflow engine.",deprioritized,own-runtime,low-to-medium,high,low
+H-002,"GitHub-native automation: use repositories Actions Issues and PRs as the main control plane.",active,GitHub,low,medium,high
+H-003,"Local-first automation: use the user's computer as the primary execution environment.",active,user-computer,very-low,medium,medium
+H-004,"Automation compiler: transform intent or IR into native artifacts that survive without our runtime.",leading,low,very-low,high,high
+H-005,"Capability router: discover resources and choose the minimum-cost sufficient path automatically.",active,discovery-layer,very-low-to-variable,high,very-high
+H-006,"Hybrid mesh: route work across multiple user-owned machines and cloud resources.",explore,agents-network,variable,very-high,very-high
+H-007,"AI crystallization: replace stable parts of successful AI-assisted executions with deterministic recipes.",explore,tracing-plus-AI,declining-over-time,very-high,very-high
+H-008,"GitHub as decentralized catalog: repositories expose installable automations with explicit permissions.",explore,GitHub-plus-installer,low,high,high
+H-009,"Colab playground: let users test the concept with no local installation.",active,Colab,free-tier,low,medium
