@@ -1,51 +1,41 @@
 # Decision log
 
-This file records decisions without pretending exploratory ideas are final.
+This log distinguishes accepted principles from provisional architectural hypotheses.
 
-## D-001 — Do not start as an n8n clone
+## Accepted principles
 
-**Status:** accepted
+### D-001 — Do not optimize for becoming an n8n clone
+The goal is not feature parity. The root goal is low-cost, low-lock-in automation from available resources.
 
-The project will not compete feature-by-feature with visual workflow platforms. The initial differentiator is compilation into user-owned/native execution.
+### D-002 — The user's computer is a first-class resource
+Filesystem, shell, Python, browser, scheduler, CPU/GPU, LAN and local AI may all be capabilities.
 
-## D-002 — GitHub is a distribution/control capability, not a mandatory runtime
+### D-003 — GitHub is a capability, not a mandatory runtime
+GitHub can provide distribution, collaboration, Actions, releases and community. Local-only operation must remain possible.
 
-**Status:** accepted
+### D-004 — Avoid unnecessary runtime AI
+AI should not repeatedly perform deterministic work that scripts, rules, parsers, APIs, caches or databases can do reliably.
 
-GitHub may provide code distribution, Actions, releases, collaboration and community. Local-only workflows must remain possible.
+### D-005 — Preserve reasoning, not only conclusions
+Discoveries, resources, hypotheses and experiments remain separate so a new idea does not silently overwrite the path that produced it.
 
-## D-003 — The user's computer is a first-class execution resource
+### D-006 — Structured project state drives README views
+Dynamic README sections read from CSV datasets under `data/`.
 
-**Status:** accepted
+## Provisional hypotheses
 
-Filesystem, PowerShell, Python, browser, native scheduler, CPU/GPU and local models are treated as discoverable capabilities.
+### H-004 — Automation compiler
+**Status:** leading hypothesis, not final architecture.
 
-## D-004 — AI should not execute deterministic routine work by default
+### H-005 — Capability router
+**Status:** active hypothesis.
 
-**Status:** accepted
+### H-008 — GitHub as decentralized automation catalog
+**Status:** exploratory.
 
-AI can interpret intent, generate IR, repair failures and handle truly semantic steps. Repetitive deterministic work should use ordinary software.
+### H-009 — Colab playground
+**Status:** active for experimentation only.
 
-## D-005 — Generated automation should survive the compiler where possible
+## Naming
 
-**Status:** accepted
-
-This is a core anti-lock-in property.
-
-## D-006 — Dynamic README status originates from structured data
-
-**Status:** accepted
-
-`data/roadmap.csv` is the source for the README project-status table. A GitHub Action regenerates it.
-
-## D-007 — Colab is a playground, not production infrastructure
-
-**Status:** provisional
-
-Colab may demonstrate the project without installation. It should not become a reliability dependency.
-
-## D-008 — Project name AutoCompiler
-
-**Status:** provisional
-
-Working name only. Naming should be revisited before public launch.
+`AutoCompiler` remains a **working title**. The repository name must not force the architecture.
