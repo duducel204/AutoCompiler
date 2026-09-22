@@ -1,0 +1,22 @@
+pr,head_sha,merged_with_all_observed_checks_green,exception,repair_or_evidence
+1,581d93cc159d0bacc096329e5513d69d887a0549,true,,
+2,beaeca5eded9836bfb6e0080f7b87b8d82533e2e,true,,
+3,09b888d65143919dfa749656ca80f106324f8349,true,,
+4,7d826c37c1f669f0d70d969f582aca4d6d190d98,true,,
+5,81ee87d6e2faabec2ea22234b0732a6079e6277a,true,,
+6,eca8050029d0af1d659019238f5adebc4e398e0a,true,,
+7,3b589108424bacb2191282f2eb6a31e91457a5ed,true,,
+8,7bbb376a5bc04d72aa9f30685823a82e97b95852,true,,
+9,0cf01e84fc86aa5cd47d62620c33fef6f4910371,true,,
+10,0aacd303764ed1d4e43d985388e24cec1506bbbe,true,,
+11,26a19e0fa4c5c1791bd0cc65be484fb282bbd350,true,,
+12,f848acf79164faaf22745b76dc6dda45c3ecb2dc,true,,
+13,d10745beda8982a09ba30a802e4b6086943ac8f6,false,Core CI failure,subsequent stabilization
+14,4b17ed5eb6d200e75baf1b5b48da340760cf367e,false,Core CI + discovery + self-healing failure,PR 15 stabilization
+15,23f8a321cce3aee53d44d5b7b6dd295e9790b9d6,true,,
+16,5347d78258c277c6340083edc9947c98758060c5,true,,
+17,848d9a9150a7ed67693611ec87309a60da4e3420,true,,
+18,2d770cd1a3d30c3e8554766a258552e6fc8b6627,false,Trust Gate + discovery failure,PR 19 repair + PR 20 exact-head revalidation
+19,90425de8124a0a04d414cf973ade19d17a75e88e,true,,
+20,241ee630be1f2916a5d1c81320502db578db8063,true,,E-030 exact-head evidence
+21,e399fee14d5903877e9ae52ac21f50a577c406fa,true,,evidence record
