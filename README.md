@@ -90,6 +90,10 @@ Full trail: [docs/ORIGIN.md](docs/ORIGIN.md)
 | D-017 | discovery | Cross-platform behavior matters at the resource-lifecycle level: Windows exposed SQLite file locking during CI cleanup that Ubuntu did not. | CONFIRMED: confirmed | high |
 | D-018 | hypothesis | A small platform-neutral Automation IR may separate automation meaning from provider and target selection. | ACTIVE: active | very-high |
 | D-019 | hypothesis | The same Automation IR should be compilable to multiple targets if the compiler hypothesis is correct. | ACTIVE: active | very-high |
+| D-020 | hypothesis | A skill can be a reusable capability contract or a composition of other skills while providers remain concrete implementations. | ACTIVE: active | very-high |
+| D-021 | hypothesis | A validated automation may be crystallized into a higher-level reusable skill. | ACTIVE: active | very-high |
+| D-022 | hypothesis | AutoCompiler can test n8n replacement as measured functional equivalence for growing workflow classes rather than as a clone of n8n runtime or UI. | ACTIVE: active | very-high |
+| D-023 | process | n8n replacement claims must be tied to explicit benchmark coverage and reusable primitives rather than workflow-specific code. | CONFIRMED: confirmed | very-high |
 <!-- DISCOVERIES_TABLE_END -->
 
 ## 4. Resource map
@@ -303,8 +307,13 @@ The roadmap prioritizes questions and experiments, not implementation momentum.
 | E-015 | Evolution | Execution trace | OPEN: partial | P2 | 5/10 | What minimum trace is needed for audit repair and later learning? |
 | E-016 | Evolution | Crystallization | EXPLORE: explore | P3 | 8/10 | Can repeated AI-assisted work become more deterministic over time? |
 | E-017 | Evolution | Multi-machine capability mesh | EXPLORE: explore | P3 | 9/10 | Does routing by capability add enough value after single-machine success? |
+| E-018 | Architecture | Skill contract and recursive composition | ACTIVE: active | P0 | 6/10 | Can reusable skills express capabilities and compose into higher-level skills without binding to one provider? |
+| E-019 | Architecture | Multi-target Automation IR | ACTIVE: active | P0 | 7/10 | Can one provider-neutral automation definition compile to more than one target/provider path? |
+| E-020 | Benchmark | n8n replacement B1 | ACTIVE: active | P0 | 6/10 | Can AutoCompiler reproduce a representative folder-filter-copy-state workflow through reusable abstractions rather than hard-coded workflow code? |
+| E-021 | Benchmark | n8n replacement ladder | PLANNED: planned | P1 | 9/10 | How much representative n8n workflow functionality can AutoCompiler replace with measured evidence? |
+| E-022 | Compatibility | n8n workflow importer | EXPLORE: explore | P2 | 9/10 | Can representative exported n8n workflows map into AutoCompiler IR and run without n8n? |
 
-**Experiments tracked:** 17 · **Implemented:** 2
+**Experiments tracked:** 22 · **Implemented:** 2
 <!-- ROADMAP_TABLE_END -->
 
 ## 13. What is not decided
