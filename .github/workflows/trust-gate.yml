@@ -1,0 +1,42 @@
+name: AutoCompiler Trust Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trust-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trust:
+    name: Trust Gate (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate complete repository contract
+        run: python scripts/trust_gate.py
+
+  final:
+    name: Trust Gate
+    if: always()
+    needs: [trust]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all platform validations
+        run: |
+          test "${{ needs.trust.result }}" = "success"
+          echo "AUTOCOMPILER_TRUST_GATE=PASS"
