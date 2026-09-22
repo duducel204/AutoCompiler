@@ -24,9 +24,10 @@ jobs:
           python tests/test_planner_runtime.py -v
           python tests/test_intent.py -v
           python tests/test_standalone.py -v
-      - name: Skills IR multi-target tests
+      - name: Skills IR and environment tests
         run: |
           python -m unittest tests.test_ir_compiler -v
           python -m unittest tests.test_b2_b3 -v
+          python -m unittest tests.test_environment_resolution -v
       - name: Compile B1 artifacts
         run: python build_b1.py

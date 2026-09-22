@@ -1,0 +1,33 @@
+import tempfile
+import unittest
+from pathlib import Path
+from src.autocompiler.environment import build_resource_graph
+from src.autocompiler.provisioning import AcquisitionRecipe, CapabilityRegistry, Provisioner
+from src.autocompiler.environment_manifest import register
+
+class EnvironmentResolutionTests(unittest.TestCase):
+    def test_reuse_before_acquire_and_gap_resolution(self):
+        inventory={"capabilities":[{"id":"filesystem","detected":True,"usable":"yes"},{"id":"python","detected":False}]}
+        graph=build_resource_graph(inventory)
+        recipe=AcquisitionRecipe("run_python","portable-python","download",["acquire-python"],"trusted-test-source")
+        plan=CapabilityRegistry([recipe]).resolve(["filesystem.read","run_python"],graph,{"zero_cost":True,"no_admin":True})
+        self.assertEqual([x.action for x in plan.resolutions],["reuse","acquire"])
+        self.assertEqual(plan.permissions,["environment.modify"])
+
+    def test_provisioning_is_authorized_verified_and_owned(self):
+        recipe=AcquisitionRecipe("pdf.generate","test-pdf","portable",["install"],"trusted-test-source")
+        plan=CapabilityRegistry([recipe]).resolve(["pdf.generate"],{"resources":[]})
+        provisioner=Provisioner(lambda cmd:0,lambda capability,provider: True)
+        self.assertEqual(provisioner.apply(plan)["status"],"authorization_required")
+        result=provisioner.apply(plan,authorized=True)
+        self.assertTrue(result["ok"])
+        with tempfile.TemporaryDirectory() as td:
+            manifest=register(Path(td)/"environment.json","test-pdf","pdf.generate","autocompiler","demo")
+            self.assertEqual(manifest["providers"]["test-pdf"]["installed_by"],"autocompiler")
+            self.assertIn("demo",manifest["providers"]["test-pdf"]["consumers"])
+
+    def test_unknown_gap_fails_closed(self):
+        plan=CapabilityRegistry().resolve(["unknown.capability"],{"resources":[]})
+        self.assertEqual(plan.resolutions[0].action,"unresolved")
+
+if __name__=="__main__": unittest.main()

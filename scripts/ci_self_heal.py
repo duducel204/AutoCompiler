@@ -11,6 +11,7 @@ TESTS=[
  [sys.executable,"tests/test_standalone.py","-v"],
  [sys.executable,"-m","unittest","tests.test_ir_compiler","-v"],
  [sys.executable,"-m","unittest","tests.test_b2_b3","-v"],
+ [sys.executable,"-m","unittest","tests.test_environment_resolution","-v"],
 ]
 
 def run_suite():
