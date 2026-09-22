@@ -308,12 +308,14 @@ The roadmap prioritizes questions and experiments, not implementation momentum.
 | E-016 | Evolution | Crystallization | EXPLORE: explore | P3 | 8/10 | Can repeated AI-assisted work become more deterministic over time? |
 | E-017 | Evolution | Multi-machine capability mesh | EXPLORE: explore | P3 | 9/10 | Does routing by capability add enough value after single-machine success? |
 | E-018 | Architecture | Skill contract and recursive composition | ACTIVE: active | P0 | 6/10 | Can reusable skills express capabilities and compose into higher-level skills without binding to one provider? |
-| E-019 | Architecture | Multi-target Automation IR | ACTIVE: active | P0 | 7/10 | Can one provider-neutral automation definition compile to more than one target/provider path? |
-| E-020 | Benchmark | n8n replacement B1 | ACTIVE: active | P0 | 6/10 | Can AutoCompiler reproduce a representative folder-filter-copy-state workflow through reusable abstractions rather than hard-coded workflow code? |
+| E-019 | Architecture | Multi-target Automation IR | OPEN: validated | P0 | 7/10 | Can one provider-neutral automation definition compile to more than one target/provider path? |
+| E-020 | Benchmark | n8n replacement B1 | OPEN: validated | P0 | 6/10 | Can AutoCompiler reproduce a representative folder-filter-copy-state workflow through reusable abstractions rather than hard-coded workflow code? |
 | E-021 | Benchmark | n8n replacement ladder | PLANNED: planned | P1 | 9/10 | How much representative n8n workflow functionality can AutoCompiler replace with measured evidence? |
 | E-022 | Compatibility | n8n workflow importer | EXPLORE: explore | P2 | 9/10 | Can representative exported n8n workflows map into AutoCompiler IR and run without n8n? |
+| E-023 | Benchmark | n8n replacement B2 | ACTIVE: active | P0 | 7/10 | Can reusable IR cover scheduled HTTP transformation and persistence without recurring AI? |
+| E-024 | Benchmark | n8n replacement B3 | ACTIVE: active | P0 | 7/10 | Can reusable IR cover webhook condition branching and action semantics? |
 
-**Experiments tracked:** 22 · **Implemented:** 2
+**Experiments tracked:** 24 · **Implemented:** 2
 <!-- ROADMAP_TABLE_END -->
 
 ## 13. What is not decided
