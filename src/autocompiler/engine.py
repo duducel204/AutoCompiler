@@ -20,12 +20,18 @@ def resolve(value: Any, context: dict[str, Any]) -> Any:
     return value
 
 def compare(left: Any, op: str, right: Any) -> bool:
-    return {
-        "eq": left == right, "ne": left != right,
-        "gt": left > right, "gte": left >= right,
-        "lt": left < right, "lte": left <= right,
-        "contains": right in left,
-    }[op]
+    operations = {
+        "eq": lambda: left == right,
+        "ne": lambda: left != right,
+        "gt": lambda: left > right,
+        "gte": lambda: left >= right,
+        "lt": lambda: left < right,
+        "lte": lambda: left <= right,
+        "contains": lambda: right in left,
+    }
+    if op not in operations:
+        raise ValueError(f"Unsupported comparison operator: {op}")
+    return operations[op]()
 
 def execute(ir: dict[str, Any], event: dict[str, Any], root: Path, http_request) -> dict[str, Any]:
     context: dict[str, Any] = {"event": event}
