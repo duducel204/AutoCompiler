@@ -22,6 +22,22 @@ class IntentTests(unittest.TestCase):
         self.assertEqual(step["args"]["text"], "{CURRENT_DATE}")
         self.assertTrue(result.permissions[0].startswith("write:"))
 
+    def test_portuguese_file_with_literal_multiline_content(self):
+        supplied = "PROJETO — AUTOMAÇÃO\n\nOBJETIVO\nCriar uma solução.\nAUTO → HUMANO"
+        intent = (
+            "Crie um arquivo chamado projeto_whatsapp_automatizado.txt na minha Área de Trabalho "
+            "contendo exatamente o texto abaixo:\n" + supplied
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("autocompiler.intent._desktop", return_value=Path(tmp)):
+                result = compile_intent(intent)
+
+        self.assertTrue(result.understood)
+        step = result.recipe["steps"][0]
+        self.assertEqual(Path(step["args"]["path"]).name, "projeto_whatsapp_automatizado.txt")
+        self.assertEqual(step["args"]["text"], supplied)
+        self.assertIn("supplied text", result.explanation)
+
     def test_unknown_intent_does_not_execute_guess(self):
         result = compile_intent("organize tudo para mim")
         self.assertFalse(result.understood)
