@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from .catalog import CapabilityCatalog
+from .workspace import repository_snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web" / "local-canvas"
@@ -36,6 +37,9 @@ class CanvasHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/api/state":
             self._json(snapshot())
+            return
+        if path == "/api/workspace":
+            self._json(repository_snapshot(ROOT))
             return
         if path in ("/", "/index.html"):
             target = WEB / "index.html"
