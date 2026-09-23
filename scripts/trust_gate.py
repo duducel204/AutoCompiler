@@ -21,6 +21,7 @@ TESTS=[
  "tests.test_capability_catalog",
  "tests.test_local_canvas",
  "tests.test_workspace",
+ "tests.test_git_acquisition",
 ]
 
 def run(cmd):
