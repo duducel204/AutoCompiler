@@ -19,6 +19,7 @@ TESTS=[
  "tests.test_real_provisioning_vertical",
  "tests.test_external_provider_e030",
  "tests.test_capability_catalog",
+ "tests.test_local_canvas",
 ]
 
 def run(cmd):
