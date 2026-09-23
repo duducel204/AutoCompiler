@@ -14,10 +14,26 @@ from autocompiler.planner import Requirement, plan
 from autocompiler.runtime import execute
 
 
+def _read_intent() -> str:
+    if len(sys.argv) > 1:
+        return " ".join(sys.argv[1:]).strip()
+
+    print("O que voce quer automatizar?")
+    print("Cole o pedido completo. Para texto com varias linhas, termine com uma linha contendo apenas FIM.")
+    lines: list[str] = []
+    while True:
+        try:
+            line = input()
+        except EOFError:
+            break
+        if line.strip() == "FIM":
+            break
+        lines.append(line)
+    return "\n".join(lines).strip()
+
+
 def main() -> int:
-    intent = " ".join(sys.argv[1:]).strip()
-    if not intent:
-        intent = input("O que voce quer automatizar? ").strip()
+    intent = _read_intent()
 
     compiled = compile_intent(intent)
     if not compiled.understood or not compiled.recipe:
