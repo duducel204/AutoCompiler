@@ -21,6 +21,7 @@ class Resolution:
     provider: str
     reason: str
     recipe: AcquisitionRecipe | None = None
+    binding: dict[str, str] | None = None
 
 @dataclass
 class ExecutionPlan:
@@ -41,10 +42,22 @@ class CapabilityRegistry:
             existing.setdefault(resource["capability"], []).append(resource)
         out: list[Resolution] = []
         for capability in requirements:
-            candidates = existing.get(capability, [])
+            candidates = [
+                item
+                for item in existing.get(capability, [])
+                if item.get("state") == "usable"
+            ]
             if candidates:
-                chosen = sorted(candidates, key=lambda x: (x.get("state") != "usable", x["provider"]))[0]
-                out.append(Resolution(capability, "reuse", chosen["provider"], "Existing provider satisfies capability."))
+                chosen = sorted(candidates, key=lambda x: x["provider"])[0]
+                out.append(
+                    Resolution(
+                        capability,
+                        "reuse",
+                        chosen["provider"],
+                        "Existing usable provider satisfies capability.",
+                        binding=chosen.get("binding"),
+                    )
+                )
                 continue
             recipes = [r for r in self.recipes if r.capability == capability]
             if constraints.get("no_admin"):

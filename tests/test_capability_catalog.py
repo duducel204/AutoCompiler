@@ -55,6 +55,29 @@ class CapabilityCatalogTests(unittest.TestCase):
         self.assertEqual(resolution.action, "reuse")
         self.assertEqual(resolution.provider, "whatsapp-cloud-api")
 
+    def test_validated_resource_binding_is_persisted_and_exported(self):
+        self.catalog.register_candidate(
+            "vault.write",
+            "obsidian-local-vault",
+            "0.1.0",
+            ("tests/test_vault_provider.py",),
+            permissions=("filesystem.vault",),
+            rollback="remove local registration",
+            binding={"root": "C:/Vault"},
+        )
+        self.catalog.promote(
+            "vault.write",
+            "obsidian-local-vault",
+            ("local:binding:verified",),
+        )
+        resource = self.catalog.resource_graph()["resources"][0]
+        self.assertEqual(resource["binding"], {"root": "C:/Vault"})
+        resolution = CapabilityRegistry().resolve(
+            ["vault.write"],
+            self.catalog.resource_graph(),
+        ).resolutions[0]
+        self.assertEqual(resolution.binding, {"root": "C:/Vault"})
+
     def test_promotion_without_evidence_is_rejected(self):
         self.catalog.register_candidate(
             "example.capability",

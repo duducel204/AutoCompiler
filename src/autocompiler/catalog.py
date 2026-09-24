@@ -19,6 +19,7 @@ class CapabilityRecord:
     evidence: tuple[str, ...]
     permissions: tuple[str, ...] = ()
     rollback: str = ""
+    binding: dict[str, str] | None = None
 
     def validate(self) -> None:
         if not self.capability or not self.provider or not self.version:
@@ -73,6 +74,7 @@ class CapabilityCatalog:
         contract_tests: tuple[str, ...],
         permissions: tuple[str, ...] = (),
         rollback: str = "",
+        binding: dict[str, str] | None = None,
     ) -> CapabilityRecord:
         record = CapabilityRecord(
             capability=capability,
@@ -83,6 +85,7 @@ class CapabilityCatalog:
             evidence=(),
             permissions=permissions,
             rollback=rollback,
+            binding=binding,
         )
         records = [
             item for item in self._load()
@@ -109,6 +112,7 @@ class CapabilityCatalog:
                     evidence=evidence,
                     permissions=tuple(item.get("permissions", [])),
                     rollback=item.get("rollback", ""),
+                    binding=item.get("binding"),
                 )
                 record.validate()
                 records[index] = record.to_dict()
@@ -129,12 +133,13 @@ class CapabilityCatalog:
                     evidence=tuple(item.get("evidence", [])),
                     permissions=tuple(item.get("permissions", [])),
                     rollback=item.get("rollback", ""),
+                    binding=item.get("binding"),
                 )
                 record.validate()
                 out.append(record)
         return out
 
-    def resource_graph(self) -> dict[str, list[dict[str, str]]]:
+    def resource_graph(self) -> dict[str, list[dict[str, Any]]]:
         return {
             "resources": [
                 {
@@ -143,6 +148,7 @@ class CapabilityCatalog:
                     "state": "usable",
                     "version": record.version,
                     "source": "capability_catalog",
+                    **({"binding": record.binding} if record.binding else {}),
                 }
                 for record in self.validated()
             ]

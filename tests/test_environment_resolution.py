@@ -30,6 +30,19 @@ class EnvironmentResolutionTests(unittest.TestCase):
             self.assertEqual(manifest["providers"]["test-pdf"]["installed_by"],"autocompiler")
             self.assertIn("demo",manifest["providers"]["test-pdf"]["consumers"])
 
+    def test_detected_resource_does_not_bypass_usable_state(self):
+        graph={
+            "resources":[
+                {
+                    "capability":"schedule",
+                    "provider":"native_scheduler",
+                    "state":"detected",
+                }
+            ]
+        }
+        plan=CapabilityRegistry().resolve(["schedule"],graph)
+        self.assertEqual(plan.resolutions[0].action,"unresolved")
+
     def test_unknown_gap_fails_closed(self):
         plan=CapabilityRegistry().resolve(["unknown.capability"],{"resources":[]})
         self.assertEqual(plan.resolutions[0].action,"unresolved")

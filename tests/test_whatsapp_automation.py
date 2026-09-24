@@ -6,8 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from autocompiler.environment import build_resource_graph
-from autocompiler.discover import discover
+from autocompiler.environment import build_unified_resource_graph
 from autocompiler.whatsapp_automation import (
     SqliteConversationStore,
     WhatsAppBlueprint,
@@ -43,7 +42,7 @@ class WhatsAppAutomationTests(unittest.TestCase):
     def test_local_environment_is_not_claimed_as_real_whatsapp_provider(self):
         status = runtime_status(
             self.blueprint,
-            build_resource_graph(discover()),
+            build_unified_resource_graph(),
         )
         by_capability = {
             item["capability"]: item["action"]

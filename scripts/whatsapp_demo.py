@@ -8,8 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from autocompiler.discover import discover
-from autocompiler.environment import build_resource_graph
+from autocompiler.environment import build_unified_resource_graph
 from autocompiler.whatsapp_automation import (
     SqliteConversationStore,
     WhatsAppBlueprint,
@@ -30,7 +29,7 @@ def main() -> None:
     args = parser.parse_args()
 
     blueprint = WhatsAppBlueprint.load_csv(CSV)
-    graph = build_resource_graph(discover())
+    graph = build_unified_resource_graph()
 
     if args.status:
         print(json.dumps(runtime_status(blueprint, graph), indent=2, ensure_ascii=False))
