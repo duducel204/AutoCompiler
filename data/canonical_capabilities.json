@@ -1,0 +1,167 @@
+{
+  "schema_version": "1",
+  "audit_date": "2026-09-24",
+  "policy": {
+    "validated_means": "contract has reproducible evidence",
+    "availability_is_separate": true,
+    "resource_bound_requires_local_verification": true
+  },
+  "capabilities": [
+    {
+      "capability": "environment.discover",
+      "provider": "autocompiler.discover",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "builtin",
+      "contract_tests": ["tests/test_discover.py"],
+      "evidence": ["trust-gate:tests.test_discover:passed"],
+      "permissions": ["environment.inspect"],
+      "rollback": "remove canonical registration; no environment mutation is owned",
+      "notes": "Returns explicit detected/installed/accessible/authorized/usable lifecycle state without equating detection with authorization."
+    },
+    {
+      "capability": "repository.inspect",
+      "provider": "autocompiler.workspace",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "builtin",
+      "contract_tests": ["tests/test_workspace.py"],
+      "evidence": ["trust-gate:tests.test_workspace:passed"],
+      "permissions": ["filesystem.read"],
+      "rollback": "remove canonical registration; no repository content is owned",
+      "notes": "Produces a bounded repository snapshot and excludes Git internals from the semantic tree."
+    },
+    {
+      "capability": "intent.compile",
+      "provider": "autocompiler.intent",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "builtin",
+      "contract_tests": ["tests/test_intent.py"],
+      "evidence": ["trust-gate:tests.test_intent:passed"],
+      "permissions": [],
+      "rollback": "remove canonical registration; no user resource mutation is owned",
+      "notes": "Compiles narrow supported Portuguese intent into an explicit deterministic recipe and fails closed on unknown intent."
+    },
+    {
+      "capability": "filesystem.read",
+      "provider": "python-stdlib-filesystem",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "builtin",
+      "contract_tests": ["tests/test_ir_compiler.py", "tests/test_standalone.py"],
+      "evidence": ["trust-gate:tests.test_ir_compiler:passed", "trust-gate:tests.test_standalone:passed"],
+      "permissions": ["filesystem.read"],
+      "rollback": "remove canonical registration; provider is part of the Python runtime",
+      "notes": "Real file scanning/filtering and independent artifact execution have been verified."
+    },
+    {
+      "capability": "filesystem.write",
+      "provider": "python-stdlib-filesystem",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "builtin",
+      "contract_tests": ["tests/test_planner_runtime.py", "tests/test_ir_compiler.py", "tests/test_standalone.py"],
+      "evidence": ["trust-gate:tests.test_planner_runtime:passed", "trust-gate:tests.test_ir_compiler:passed", "trust-gate:tests.test_standalone:passed"],
+      "permissions": ["filesystem.write"],
+      "rollback": "remove canonical registration; written user artifacts remain governed by their own automation contract",
+      "notes": "Real write/copy operations are verified; permission remains recipe/resource scoped."
+    },
+    {
+      "capability": "durable_state",
+      "provider": "sqlite",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "builtin",
+      "contract_tests": ["tests/test_ir_compiler.py", "tests/test_standalone.py"],
+      "evidence": ["trust-gate:tests.test_ir_compiler:passed", "trust-gate:tests.test_standalone:passed"],
+      "permissions": ["filesystem.write"],
+      "rollback": "remove canonical registration; state files remain owned by the consuming automation",
+      "notes": "SQLite state is written and reread by generated automations. JSONL is also proven as an alternate target but is not promoted as the canonical provider here."
+    },
+    {
+      "capability": "run_python",
+      "provider": "python",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "builtin",
+      "contract_tests": ["tests/test_standalone.py", "tests/test_ir_compiler.py"],
+      "evidence": ["trust-gate:tests.test_standalone:passed", "trust-gate:tests.test_ir_compiler:passed"],
+      "permissions": ["process.execute"],
+      "rollback": "remove canonical registration; AutoCompiler does not own the user's Python installation",
+      "notes": "Generated Python artifacts execute in a separate process without importing AutoCompiler."
+    },
+    {
+      "capability": "automation.compile",
+      "provider": "autocompiler.compiler",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "builtin",
+      "contract_tests": ["tests/test_ir_compiler.py"],
+      "evidence": ["trust-gate:tests.test_ir_compiler:passed"],
+      "permissions": ["filesystem.write"],
+      "rollback": "remove canonical registration; generated artifacts are independent outputs",
+      "notes": "One provider-neutral IR is compiled to multiple targets whose artifacts execute without the AutoCompiler runtime."
+    },
+    {
+      "capability": "automation.execute",
+      "provider": "autocompiler.runtime",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "builtin",
+      "contract_tests": ["tests/test_planner_runtime.py"],
+      "evidence": ["trust-gate:tests.test_planner_runtime:passed"],
+      "permissions": [],
+      "rollback": "remove canonical registration; execution side effects remain governed by recipe permissions",
+      "notes": "Deterministic recipe execution is proven without recurring AI. IR flow execution by autocompiler.engine remains a separate intrinsic engine contract. Runtime permissions remain dynamic and recipe-scoped."
+    },
+    {
+      "capability": "canvas.project",
+      "provider": "autocompiler.canvas_projector",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "builtin",
+      "contract_tests": ["tests/test_canvas_projector.py", "tests/test_canvas_protocol.py"],
+      "evidence": ["trust-gate:tests.test_canvas_projector:passed", "trust-gate:tests.test_canvas_protocol:passed"],
+      "permissions": ["filesystem.read", "filesystem.write"],
+      "rollback": "remove canonical registration; existing human Canvas nodes and edges are not owned",
+      "notes": "Projects repository/environment state into JSON Canvas while preserving human nodes, edges and managed-card positions."
+    },
+    {
+      "capability": "vault.read",
+      "provider": "obsidian-local-vault",
+      "version": "0.1.0",
+      "trust": "validated",
+      "availability": "resource_bound",
+      "contract_tests": ["tests/test_vault_provider.py"],
+      "evidence": ["trust-gate:tests.test_vault_provider:passed", "local-real:vault-contract:write-reread=true;search-proof=true;path-escape-blocked=true"],
+      "permissions": ["filesystem.vault"],
+      "rollback": "remove local capability registration and resource binding; never delete vault content",
+      "notes": "Canonical contract is validated, but a concrete Vault root must be locally authorized and verified before reuse."
+    },
+    {
+      "capability": "vault.write",
+      "provider": "obsidian-local-vault",
+      "version": "0.1.0",
+      "trust": "validated",
+      "availability": "resource_bound",
+      "contract_tests": ["tests/test_vault_provider.py"],
+      "evidence": ["trust-gate:tests.test_vault_provider:passed", "local-real:vault-contract:write-reread=true;search-proof=true;path-escape-blocked=true"],
+      "permissions": ["filesystem.vault"],
+      "rollback": "remove local capability registration and resource binding; never delete vault content",
+      "notes": "Write is confined to the authorized Vault root and refuses overwrite by default."
+    },
+    {
+      "capability": "vault.search",
+      "provider": "obsidian-local-vault",
+      "version": "0.1.0",
+      "trust": "validated",
+      "availability": "resource_bound",
+      "contract_tests": ["tests/test_vault_provider.py"],
+      "evidence": ["trust-gate:tests.test_vault_provider:passed", "local-real:vault-contract:write-reread=true;search-proof=true;path-escape-blocked=true"],
+      "permissions": ["filesystem.vault"],
+      "rollback": "remove local capability registration and resource binding; never delete vault content",
+      "notes": "Search is limited to the authorized Vault and defaults to Markdown/Canvas content."
+    }
+  ]
+}

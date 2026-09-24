@@ -32,3 +32,4 @@ D-030,discovery,"A pinned external standalone provider can be acquired over HTTP
 D-031,discovery,"Provider rollback respects ownership and consumers: the validated E-030 path removes the AutoCompiler-owned provider after its consumer is released.",confirmed,very-high
 D-032,process,"A generated documentation commit changed the PR head while validation was running; CI status must be bound to the exact immutable commit being merged, and documentation rendering must not race validation.",confirmed,very-high
 D-033,process,"An experiment may be marked validated only after the canonical Trust Gate has been observed green for the exact candidate commit; implementation alone is not validation.",confirmed,very-high
+D-034,architecture,"Validated experiments should crystallize into canonical capabilities; capability trust must remain separate from current resource availability, especially for resource-bound providers.",confirmed,very-high
