@@ -42,7 +42,7 @@ def main() -> int:
         return 2
 
     inventory = discover()
-    planned = plan(intent, [Requirement("state")], inventory)
+    planned = plan(intent, [Requirement("durable_state")], inventory)
     if planned.missing:
         print(json.dumps({"ok": False, "missing": planned.missing}, indent=2))
         return 3

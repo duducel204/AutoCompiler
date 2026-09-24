@@ -105,6 +105,7 @@ Full trail: [docs/ORIGIN.md](docs/ORIGIN.md)
 | D-032 | process | A generated documentation commit changed the PR head while validation was running; CI status must be bound to the exact immutable commit being merged, and documentation rendering must not race validation. | CONFIRMED: confirmed | very-high |
 | D-033 | process | An experiment may be marked validated only after the canonical Trust Gate has been observed green for the exact candidate commit; implementation alone is not validation. | CONFIRMED: confirmed | very-high |
 | D-034 | architecture | Validated experiments should crystallize into canonical capabilities; capability trust must remain separate from current resource availability, especially for resource-bound providers. | CONFIRMED: confirmed | very-high |
+| D-035 | architecture | Canonical capability memory must be consumed automatically by normal planning; merely detected resources cannot bypass validation, while validated local bindings can extend the reusable resource graph. | CONFIRMED: confirmed | very-high |
 <!-- DISCOVERIES_TABLE_END -->
 
 ## 4. Resource map
@@ -304,10 +305,10 @@ The roadmap prioritizes questions and experiments, not implementation momentum.
 | E-001 | Origin | Research map | DONE: implemented | P0 | 2/10 | Can the repository preserve origin discoveries resources hypotheses and tests separately? |
 | E-002 | Foundation | Dynamic README | DONE: implemented | P0 | 3/10 | Can structured state remain the source of truth? |
 | E-003 | Exploration | Capability inventory | OPEN: validated | P0 | 4/10 | What useful zero or low-cost capabilities can one ordinary Windows PC expose? |
-| E-004 | Exploration | Local zero-cloud automation | OPEN: partial | P0 | 4/10 | Can one useful automation run entirely with native or local tools? |
+| E-004 | Exploration | Local zero-cloud automation | OPEN: validated | P0 | 4/10 | Can one useful automation run entirely with native or local tools? |
 | E-005 | Exploration | GitHub-only automation | PLANNED: planned | P1 | 4/10 | What can GitHub provide without our own server? |
 | E-006 | Exploration | Sheets plus Apps Script | PLANNED: planned | P1 | 4/10 | Can Sheets serve as lightweight control or state while Apps Script triggers work? |
-| E-007 | Architecture | Portable intent representation | ACTIVE: active | P0 | 5/10 | Do we need an IR and what is its minimum useful shape? |
+| E-007 | Architecture | Portable intent representation | OPEN: validated | P0 | 5/10 | Do we need an IR and what is its minimum useful shape? |
 | E-008 | Architecture | Planner proof | OPEN: partial | P0 | 6/10 | Can the system choose among paths using cost privacy reliability and capability? |
 | E-009 | Architecture | Runtime-independence proof | OPEN: validated | P0 | 5/10 | Can generated automation survive removal of the project tool? |
 | E-010 | AI | Zero-token repeat | OPEN: validated | P0 | 5/10 | Can generated deterministic work repeat with zero inference? |
@@ -331,8 +332,10 @@ The roadmap prioritizes questions and experiments, not implementation momentum.
 | E-028 | Foundation | Canonical Trust Gate | OPEN: validated | P0 | 6/10 | Can one cross-platform gate become the canonical repository validation contract? |
 | E-029 | Lifecycle | Environment manifest ownership | OPEN: partial | P0 | 7/10 | Can AutoCompiler distinguish acquired providers from user-owned resources and track consumers safely? |
 | E-030 | Provisioning | External real provider acquisition | OPEN: validated | P0 | 8/10 | Can a pinned free external provider be acquired with provenance authorization verification ownership and rollback? |
+| E-031 | Architecture | Canonical Capability Registry | OPEN: validated | P0 | 5/10 | Can validated experiment evidence be crystallized into reusable canonical capabilities without confusing trust with current availability? |
+| E-032 | Architecture | Automatic canonical capability consumption | OPEN: validated | P0 | 6/10 | Can normal planning automatically consume canonical capabilities and validated local resource bindings instead of a duplicated manual provider list? |
 
-**Experiments tracked:** 30 · **Implemented:** 2
+**Experiments tracked:** 32 · **Implemented:** 2
 <!-- ROADMAP_TABLE_END -->
 
 ## 13. What is not decided
@@ -388,6 +391,7 @@ The repository now maintains a canonical evidence-backed capability registry:
 - `data/canonical_capabilities.json`
 - `src/autocompiler/canonical_capabilities.py`
 - [docs/CAPABILITY-AUDIT-2026-09-24.md](docs/CAPABILITY-AUDIT-2026-09-24.md)
+- [docs/CANONICAL-MEMORY.md](docs/CANONICAL-MEMORY.md)
 
 Current audit result:
 
@@ -406,6 +410,8 @@ experiment → evidence → canonical capability → availability check → reus
 ```
 
 Detection, mocked planning, or a temporary acquired provider are not sufficient by themselves for canonical promotion.
+
+Normal planning now consumes this memory automatically through a unified resource graph: validated canonical builtins + validated local resource bindings + live resources explicitly proven usable. A merely detected resource does not silently become execution authority.
 
 ## 17. WhatsApp as the first real application
 

@@ -14,9 +14,9 @@ from autocompiler.runtime import execute
 
 def main() -> int:
     inventory = discover()
-    requirements = [Requirement("run_python"), Requirement("state")]
+    requirements = [Requirement("run_python"), Requirement("durable_state")]
     planned = plan(
-        "Create a local proof file using discovered capabilities and record execution state.",
+        "Create a local proof file using canonical capabilities and record execution state.",
         requirements,
         inventory,
     )

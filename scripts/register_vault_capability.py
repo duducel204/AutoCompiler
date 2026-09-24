@@ -50,6 +50,7 @@ def main() -> None:
             ("tests/test_vault_provider.py",),
             permissions=contract.permissions,
             rollback="remove local capability registration; no vault content is owned",
+            binding={"root": str(provider.root)},
         )
         catalog.promote(
             contract.capability,
