@@ -108,3 +108,101 @@ The automation must not hard-code one vendor into the flow.
 Do not enable real client messaging yet.
 
 The next increment is to implement one candidate WhatsApp provider behind the existing capability contract, validate receive/send with evidence, and only then promote it to reusable status.
+
+
+## Visual projection in Obsidian
+
+A Canvas representation was generated from the same CSV and stored in the user's local Vault as an operational visualization.
+
+The repository does not depend on that machine-specific path. Instead, the reproducible generator is versioned here:
+
+`scripts/build_whatsapp_canvas.py`
+
+Example:
+
+```powershell
+python scripts/build_whatsapp_canvas.py --output "C:\path\to\vault\Automacao-WhatsApp.canvas"
+```
+
+The Canvas groups the domain into:
+
+- conversation flow;
+- rules and safeguards;
+- knowledge base;
+- catalog/components;
+- AutoCompiler execution layer.
+
+The execution layer explicitly shows:
+
+```text
+CSV blueprint
+     ↓
+WhatsAppFlowRuntime
+     ↓
+Capability Resolver
+     ├── durable_state → SQLite → REUSE
+     ├── messaging.whatsapp.receive → UNRESOLVED
+     ├── messaging.whatsapp.send → UNRESOLVED
+     └── ai.interpret → OPTIONAL
+```
+
+The visual artifact is therefore a projection of repository state, not a second source of truth.
+
+## Evidence from 2026-09-24
+
+The first local proof ran on Windows and confirmed:
+
+1. a conversation starts at `AT-001`;
+2. a valid user message advances to `AT-002`;
+3. conversation state persists in SQLite;
+4. an explicit request for a human routes to `AT-090`;
+5. the conversation remains paused while human handling is pending;
+6. duplicate message IDs are ignored;
+7. the runtime refuses to claim a real WhatsApp provider when none is validated.
+
+The canonical Trust Gate was extended with `tests.test_whatsapp_automation` and passed with all previous checks plus the B1 build.
+
+A Windows-specific SQLite lifecycle issue was found during this work: connections must be explicitly committed and closed before temporary state can be cleaned up. The runtime now performs that lifecycle explicitly.
+
+## Architectural conclusion
+
+The WhatsApp flow is no longer merely documentation or a Canvas design. Its deterministic conversation engine is now an AutoCompiler application.
+
+What is already operational:
+
+```text
+CSV → blueprint → runtime → state → routing → response
+```
+
+What remains outside the validated boundary:
+
+```text
+real inbound WhatsApp message
+real outbound WhatsApp message
+```
+
+Those two missing edges are intentionally represented as semantic capability gaps instead of being hard-coded to a vendor.
+
+This preserves the core AutoCompiler rule:
+
+> ask for the capability first; select or acquire the provider second.
+
+## Relationship to the wider AutoCompiler direction
+
+This experiment provides a concrete domain example of:
+
+```text
+intent / domain blueprint
+        ↓
+required capabilities
+        ↓
+resource graph
+        ↓
+reuse / acquire / unresolved
+        ↓
+execution
+        ↓
+verification and evidence
+```
+
+It also creates a clean future boundary for AI interpretation. Gemini or another model may interpret ambiguous human language, but deterministic state, business rules, pricing, payment validation and provider truth must remain outside unrestricted model inference.
