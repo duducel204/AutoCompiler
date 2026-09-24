@@ -376,6 +376,42 @@ A new idea should normally enter as a hypothesis, not silently overwrite prior r
 9. Record why a decision changed.
 10. Do not confuse the latest hypothesis with the original objective.
 
+## 16. WhatsApp as the first real application
+
+The repository now contains a concrete application of the capability model to a structured WhatsApp service flow.
+
+The source blueprint is:
+
+`examples/whatsapp/atendimento_servicos_digitais.csv`
+
+It defines configuration, 19 conversation states, 17 business rules, 17 knowledge-base entries and 20 catalog/component entries.
+
+The first runtime is implemented in:
+
+`src/autocompiler/whatsapp_automation.py`
+
+Current capability resolution:
+
+```text
+durable_state                → REUSE (SQLite)
+messaging.whatsapp.receive   → UNRESOLVED
+messaging.whatsapp.send      → UNRESOLVED
+ai.interpret                 → OPTIONAL
+```
+
+This means the AutoCompiler conversation engine already runs and persists state locally, but the repository does **not** claim that a real WhatsApp transport is installed.
+
+The design deliberately keeps the flow independent from one provider. A future Meta Cloud API or other adapter must satisfy the semantic capabilities above and pass the normal candidate → evidence → validated lifecycle before reuse.
+
+Documentation and reproducible Canvas projection:
+
+- [docs/WHATSAPP-AUTOMATION.md](docs/WHATSAPP-AUTOMATION.md)
+- `scripts/whatsapp_demo.py`
+- `scripts/build_whatsapp_canvas.py`
+- `tests/test_whatsapp_automation.py`
+
+This is also the first concrete proof that a domain automation can consume AutoCompiler capabilities without hard-coding the underlying provider.
+
 ## Status
 
 This repository is currently in **exploration / architecture research**.
