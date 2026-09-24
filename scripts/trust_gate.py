@@ -26,6 +26,8 @@ TESTS=[
  "tests.test_canvas_bridge",
  "tests.test_canvas_projector",
  "tests.test_whatsapp_automation",
+ "tests.test_vault_provider",
+ "tests.test_canonical_capabilities",
 ]
 
 def run(cmd):

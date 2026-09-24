@@ -101,7 +101,10 @@ Full trail: [docs/ORIGIN.md](docs/ORIGIN.md)
 | D-028 | architecture | Acquisition is a capability-gap strategy rather than a direct responsibility of a skill; provider acquisition requires provenance, verification, authorization and rollback contracts. | CONFIRMED: confirmed | very-high |
 | D-029 | hypothesis | The strongest current product thesis is that AutoCompiler transforms an intention into installed computational capability while preferring reuse and minimum environment mutation. | ACTIVE: active | very-high |
 | D-030 | discovery | A pinned external standalone provider can be acquired over HTTPS, verified by SHA-256 and executable identity, registered as AutoCompiler-owned, consumed by an independent artifact, and removed without administrator privileges. | CONFIRMED: confirmed | very-high |
-| D-031 | discovery | Provider rollback must respect ownership and consumers: AutoCompiler may remove an AutoCompiler-owned provider only when the relevant consumer relationship permits it. | CONFIRMED: confirmed | very-high |
+| D-031 | discovery | Provider rollback respects ownership and consumers: the validated E-030 path removes the AutoCompiler-owned provider after its consumer is released. | CONFIRMED: confirmed | very-high |
+| D-032 | process | A generated documentation commit changed the PR head while validation was running; CI status must be bound to the exact immutable commit being merged, and documentation rendering must not race validation. | CONFIRMED: confirmed | very-high |
+| D-033 | process | An experiment may be marked validated only after the canonical Trust Gate has been observed green for the exact candidate commit; implementation alone is not validation. | CONFIRMED: confirmed | very-high |
+| D-034 | architecture | Validated experiments should crystallize into canonical capabilities; capability trust must remain separate from current resource availability, especially for resource-bound providers. | CONFIRMED: confirmed | very-high |
 <!-- DISCOVERIES_TABLE_END -->
 
 ## 4. Resource map
@@ -324,7 +327,7 @@ The roadmap prioritizes questions and experiments, not implementation momentum.
 | E-024 | Benchmark | n8n replacement B3 | ACTIVE: active | P0 | 7/10 | Can reusable IR cover webhook condition branching and action semantics? |
 | E-025 | Architecture | Environment resolution and provisioning | OPEN: validated | P0 | 8/10 | Can AutoCompiler resolve a missing capability through a controlled provider acquisition path? |
 | E-026 | Safety | Plan Apply Verify boundary | OPEN: validated | P0 | 7/10 | Can planning remain read-only while environment mutation requires explicit authorization and post-change verification? |
-| E-027 | Safety | Acquisition provenance | OPEN: partial | P0 | 8/10 | Can provider acquisition require source version platform architecture checksum license scope rollback and verification metadata? |
+| E-027 | Safety | Acquisition provenance | OPEN: validated | P0 | 8/10 | Can provider acquisition require source version platform architecture checksum license scope rollback and verification metadata? |
 | E-028 | Foundation | Canonical Trust Gate | OPEN: validated | P0 | 6/10 | Can one cross-platform gate become the canonical repository validation contract? |
 | E-029 | Lifecycle | Environment manifest ownership | OPEN: partial | P0 | 7/10 | Can AutoCompiler distinguish acquired providers from user-owned resources and track consumers safely? |
 | E-030 | Provisioning | External real provider acquisition | OPEN: validated | P0 | 8/10 | Can a pinned free external provider be acquired with provenance authorization verification ownership and rollback? |
@@ -376,7 +379,35 @@ A new idea should normally enter as a hypothesis, not silently overwrite prior r
 9. Record why a decision changed.
 10. Do not confuse the latest hypothesis with the original objective.
 
-## 16. WhatsApp as the first real application
+## 16. Canonical capabilities
+
+Experiments that have already answered their research question should stop living only as tests.
+
+The repository now maintains a canonical evidence-backed capability registry:
+
+- `data/canonical_capabilities.json`
+- `src/autocompiler/canonical_capabilities.py`
+- [docs/CAPABILITY-AUDIT-2026-09-24.md](docs/CAPABILITY-AUDIT-2026-09-24.md)
+
+Current audit result:
+
+```text
+13 canonical capabilities
+├── 10 validated builtin
+└── 3 validated resource-bound
+```
+
+The registry deliberately separates **trust** from **availability**. A resource-bound capability such as `vault.write` can have a validated contract while remaining unavailable until a concrete Vault root is locally authorized and verified.
+
+This creates the intended lifecycle:
+
+```text
+experiment → evidence → canonical capability → availability check → reuse
+```
+
+Detection, mocked planning, or a temporary acquired provider are not sufficient by themselves for canonical promotion.
+
+## 17. WhatsApp as the first real application
 
 The repository now contains a concrete application of the capability model to a structured WhatsApp service flow.
 
