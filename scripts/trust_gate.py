@@ -24,6 +24,7 @@ TESTS=[
  "tests.test_git_acquisition",
  "tests.test_canvas_protocol",
  "tests.test_canvas_bridge",
+ "tests.test_canvas_projector",
 ]
 
 def run(cmd):
