@@ -1,7 +1,7 @@
 import json, sqlite3, subprocess, sys, tempfile, unittest
 from pathlib import Path
 from src.autocompiler.compiler import compile_ir
-from src.autocompiler.ir import validate_ir
+from src.autocompiler.ir import validate_ir, load_ir
 
 class IRCompilerTest(unittest.TestCase):
     def make_ir(self, root: Path, state_file: str):
@@ -48,6 +48,44 @@ class IRCompilerTest(unittest.TestCase):
                 else:
                     row=json.loads((out/"history.jsonl").read_text(encoding="utf-8").splitlines()[0])
                     self.assertEqual(row["status"],"ok")
+
+    def test_schema_0_3_w01_instant_workflow_valid(self):
+        w01_path = Path("examples/w01-instant-workflow.ir.json")
+        ir = load_ir(w01_path)
+        validation = validate_ir(ir)
+        self.assertEqual(ir["schema_version"], "0.3")
+        self.assertIsInstance(validation.required_capabilities, list)
+
+    def test_schema_0_3_w10_persistent_workflow_valid(self):
+        w10_path = Path("examples/w10-persistent-workflow.ir.json")
+        ir = load_ir(w10_path)
+        validation = validate_ir(ir)
+        self.assertEqual(ir["schema_version"], "0.3")
+        self.assertIn("durable_state", validation.required_capabilities)
+        step_types = [step.get("type") for step in ir["steps"]]
+        self.assertIn("wait", step_types)
+        self.assertIn("continue", step_types)
+
+    def test_schema_malformed_workflows_rejected(self):
+        # Unsupported schema version
+        with self.assertRaises(ValueError):
+            validate_ir({"schema_version": "99.0", "name": "bad", "trigger": {"type": "manual"}, "steps": [{"id": "s1", "type": "get"}]})
+
+        # Missing name
+        with self.assertRaises(ValueError):
+            validate_ir({"schema_version": "0.3", "name": "", "trigger": {"type": "manual"}, "steps": [{"id": "s1", "type": "get"}]})
+
+        # Missing trigger type
+        with self.assertRaises(ValueError):
+            validate_ir({"schema_version": "0.3", "name": "bad", "trigger": {}, "steps": [{"id": "s1", "type": "get"}]})
+
+        # Unsupported trigger type
+        with self.assertRaises(ValueError):
+            validate_ir({"schema_version": "0.3", "name": "bad", "trigger": {"type": "magic"}, "steps": [{"id": "s1", "type": "get"}]})
+
+        # Unsupported skill/type in step
+        with self.assertRaises(ValueError):
+            validate_ir({"schema_version": "0.3", "name": "bad", "trigger": {"type": "manual"}, "steps": [{"id": "s1", "type": "unknown_primitive"}]})
 
 if __name__=="__main__":
     unittest.main()
