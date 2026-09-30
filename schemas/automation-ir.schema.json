@@ -49,6 +49,7 @@
               "act",
               "state",
               "wait",
+              "continue",
               "notify"
             ]
           },
