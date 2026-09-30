@@ -1,0 +1,57 @@
+{
+  "schema_version": "0.3",
+  "name": "w01-instant-workflow-example",
+  "description": "Provider-neutral instant workflow (W-01)",
+  "trigger": {
+    "type": "webhook",
+    "path": "/api/v1/event"
+  },
+  "variables": {
+    "channel": "admin-alerts"
+  },
+  "steps": [
+    {
+      "id": "get_payload",
+      "type": "get",
+      "with": {
+        "source": "trigger.body"
+      }
+    },
+    {
+      "id": "transform_data",
+      "type": "transform",
+      "with": {
+        "from": "get_payload",
+        "mapping": {
+          "status": "active",
+          "summary": "get_payload.message"
+        }
+      }
+    },
+    {
+      "id": "check_condition",
+      "type": "if_else",
+      "if": "transform_data.summary != ''",
+      "then": [
+        {
+          "id": "send_alert",
+          "type": "notify",
+          "with": {
+            "channel": "{{ variables.channel }}",
+            "message": "transform_data.summary"
+          }
+        }
+      ],
+      "else": [
+        {
+          "id": "log_skip",
+          "type": "state",
+          "with": {
+            "action": "record",
+            "status": "skipped"
+          }
+        }
+      ]
+    }
+  ]
+}
