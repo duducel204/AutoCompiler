@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.3",
+  "name": "w10-persistent-follow-up",
+  "description": "Provider-neutral persistent workflow that saves state, waits, resumes, checks status, and follows up.",
+  "trigger": {
+    "type": "event",
+    "event": "lead.created"
+  },
+  "variables": {
+    "follow_up_after": "P3D",
+    "max_retries": 3
+  },
+  "steps": [
+    {
+      "id": "send_initial_action",
+      "type": "act",
+      "with": {
+        "action": "contact",
+        "target": "trigger.lead_id"
+      },
+      "error_policy": {
+        "retry": {
+          "max_attempts": 3,
+          "backoff_seconds": 5
+        },
+        "timeout_seconds": 30,
+        "fallback": {
+          "action": "notify_failure"
+        }
+      }
+    },
+    {
+      "id": "save_pending_state",
+      "type": "state",
+      "with": {
+        "action": "set",
+        "key": "trigger.lead_id",
+        "status": "waiting_for_response"
+      }
+    },
+    {
+      "id": "wait_for_follow_up",
+      "type": "wait",
+      "with": {
+        "duration": "{{ variables.follow_up_after }}",
+        "resume_token": "follow_up_due"
+      }
+    },
+    {
+      "id": "resume_follow_up",
+      "type": "continue",
+      "with": {
+        "from": "follow_up_due"
+      }
+    },
+    {
+      "id": "check_current_state",
+      "type": "check",
+      "with": {
+        "source": "state",
+        "key": "trigger.lead_id",
+        "field": "status"
+      }
+    },
+    {
+      "id": "follow_up_if_unresolved",
+      "type": "if_else",
+      "if": "check_current_state == 'waiting_for_response'",
+      "then": [
+        {
+          "id": "send_follow_up",
+          "type": "act",
+          "with": {
+            "action": "follow_up",
+            "target": "trigger.lead_id"
+          }
+        },
+        {
+          "id": "save_follow_up_state",
+          "type": "state",
+          "with": {
+            "action": "set",
+            "key": "trigger.lead_id",
+            "status": "follow_up_sent"
+          }
+        }
+      ],
+      "else": [
+        {
+          "id": "record_resolved",
+          "type": "state",
+          "with": {
+            "action": "set",
+            "key": "trigger.lead_id",
+            "status": "resolved"
+          }
+        }
+      ]
+    }
+  ],
+  "state": {
+    "type": "persistent"
+  }
+}
