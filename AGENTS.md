@@ -83,3 +83,8 @@ When implementing `docs/PRODUCT_ROADMAP.md`:
 - keep each task focused enough for independent review;
 - update `docs/BASIC_1_0_COVERAGE.md` when implementation changes benchmark coverage;
 - return the task completion report required by the roadmap.
+
+
+## Roadmap execution skill
+
+For implementation tasks identified as `J-XXX`, use the reusable procedure in `skills/execute-roadmap-task/SKILL.md`. The skill operationalizes this file and the canonical roadmap; it does not override product intent, decisions, coverage definitions, or task-specific Definition of Done.
