@@ -10,6 +10,34 @@ This repository exists first to preserve and test the idea space that started wi
 
 The current strongest thesis is that the answer may **not** be another permanent automation platform. AutoCompiler is converging on a layer that turns an intention into installed computational capability: discover and reuse what the environment already has, resolve genuine capability gaps with minimum mutation, obtain authorization before protected changes, verify the result, and compile user-owned automation that can survive without AutoCompiler.
 
+
+## Canonical product intent
+
+The current product intent is defined in [docs/PRODUCT_INTENT.md](docs/PRODUCT_INTENT.md).
+
+In practical terms, AutoCompiler should let an ordinary user:
+
+```text
+download one package
+→ inspect and prepare the computer
+→ reuse what already exists
+→ complete only real capability gaps
+→ describe or assemble WHEN / IF / THEN / ELSE / AFTER logic
+→ review permissions, AI use and recurring cost
+→ authorize
+→ compile/install
+→ run preferably as deterministic user-owned automation
+```
+
+A visual Canvas, desktop framework, Python runtime, connector library, GitHub integration or AI provider may help deliver this experience, but none of them defines the product by itself.
+
+The intended split is:
+
+- **Basic:** common automations should work without requiring the user to become a developer.
+- **Builder:** when the requested automation exceeds the validated baseline, AutoCompiler helps extend capabilities, providers, integrations and logic.
+
+Repository decisions and roadmaps must remain subordinate to the canonical product intent.
+
 ## 1. The original problem
 
 We want useful automation without automatically accepting:
