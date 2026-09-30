@@ -19,6 +19,16 @@ class IRCompilerTest(unittest.TestCase):
             ],"state":{"file":state_file}
         }
 
+    def make_w03_ir(self, state_file: str):
+        return {
+            "schema_version": "0.1", "name": "w03-api-snapshot", "trigger": {"type": "schedule"},
+            "steps": [
+                {"id": "fetch", "skill": "http.request", "with": {"url": "http://127.0.0.1:8080/data", "method": "GET"}, "permissions": [{"mode": "network", "path": "http://127.0.0.1:8080/data"}]},
+                {"id": "map", "skill": "data.map", "with": {"fields": {"snapshot_val": "$fetch.value"}}},
+                {"id": "save", "skill": "state.record", "with": {"from": "map"}, "permissions": [{"mode": "write", "path": "state"}]}
+            ], "state": {"file": state_file}
+        }
+
     def test_b1_same_ir_semantics_two_targets(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)
@@ -48,6 +58,16 @@ class IRCompilerTest(unittest.TestCase):
                 else:
                     row=json.loads((out/"history.jsonl").read_text(encoding="utf-8").splitlines()[0])
                     self.assertEqual(row["status"],"ok")
+
+    def test_w03_compile_and_execute(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            ir = self.make_w03_ir("history.db")
+            out = root / "w03_out"
+            manifest = compile_ir(ir, "python-sqlite", out)
+            self.assertEqual(manifest["automation"], "w03-api-snapshot")
+            self.assertFalse(manifest["autocompiler_required_after_compile"])
+            self.assertTrue((out / "manifest.json").exists())
 
 if __name__=="__main__":
     unittest.main()
