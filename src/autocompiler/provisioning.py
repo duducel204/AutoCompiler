@@ -1,7 +1,8 @@
 from __future__ import annotations
 from dataclasses import dataclass, asdict
-from typing import Callable
+from typing import Callable, Any
 from .acquisition import AcquisitionArtifact
+from .providers import get_provider_for_capability
 
 @dataclass(frozen=True)
 class AcquisitionRecipe:
@@ -35,6 +36,64 @@ class CapabilityRegistry:
     def __init__(self, recipes: list[AcquisitionRecipe] | None = None):
         self.recipes = recipes or []
 
+    def explain_capability(self, capability: str, resource_graph: dict) -> dict[str, Any]:
+        """Provide an explicit explanation of why a capability is available or unavailable."""
+        existing = [
+            item
+            for item in resource_graph.get("resources", [])
+            if item.get("capability") == capability
+        ]
+        usable = [item for item in existing if item.get("state") == "usable"]
+        detected = [item for item in existing if item.get("state") == "detected"]
+
+        if usable:
+            chosen = sorted(usable, key=lambda x: x["provider"])[0]
+            return {
+                "capability": capability,
+                "available": True,
+                "state": "usable",
+                "provider": chosen["provider"],
+                "reason": f"Usable provider '{chosen['provider']}' satisfies capability.",
+            }
+
+        if detected:
+            return {
+                "capability": capability,
+                "available": False,
+                "state": "detected",
+                "provider": detected[0]["provider"],
+                "reason": f"Provider '{detected[0]['provider']}' was detected but is not authorized/usable.",
+            }
+
+        recipes = [r for r in self.recipes if r.capability == capability]
+        if recipes:
+            return {
+                "capability": capability,
+                "available": False,
+                "state": "acquirable",
+                "provider": recipes[0].provider,
+                "reason": f"Capability gap can be resolved via acquisition recipe for '{recipes[0].provider}'.",
+            }
+
+        # Check if stdlib / builtin provider instance exists
+        builtin_provider = get_provider_for_capability(capability)
+        if builtin_provider:
+            return {
+                "capability": capability,
+                "available": True,
+                "state": "usable",
+                "provider": builtin_provider.provider_name,
+                "reason": f"Builtin provider '{builtin_provider.provider_name}' satisfies capability.",
+            }
+
+        return {
+            "capability": capability,
+            "available": False,
+            "state": "missing",
+            "provider": "",
+            "reason": "No permitted provider or acquisition recipe found in current environment.",
+        }
+
     def resolve(self, requirements: list[str], resource_graph: dict, constraints: dict | None = None) -> ExecutionPlan:
         constraints = constraints or {}
         existing = {}
@@ -54,7 +113,7 @@ class CapabilityRegistry:
                         capability,
                         "reuse",
                         chosen["provider"],
-                        "Existing usable provider satisfies capability.",
+                        f"Existing usable provider '{chosen['provider']}' satisfies capability.",
                         binding=chosen.get("binding"),
                     )
                 )
@@ -69,7 +128,8 @@ class CapabilityRegistry:
                 r.artifact.validate()
                 out.append(Resolution(capability, "acquire", r.provider, "Capability gap resolved by verified acquisition contract.", r))
             else:
-                out.append(Resolution(capability, "unresolved", "", "No permitted provider or acquisition recipe found."))
+                explanation = self.explain_capability(capability, resource_graph)
+                out.append(Resolution(capability, "unresolved", explanation.get("provider", ""), explanation["reason"]))
         permissions = sorted({"environment.modify" for x in out if x.action == "acquire"})
         return ExecutionPlan(out, permissions)
 
