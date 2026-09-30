@@ -112,3 +112,26 @@ INTENTION
 ```
 
 The next falsification point is external reality: resolve a genuine missing capability using a pinned, free external provider with complete provenance and rollback, then prove that an independently generated automation can use it.
+
+
+## Accepted product decisions — canonical product intent
+
+### D-016 — One-package onboarding, adaptive internals
+The user-facing onboarding target is one AutoCompiler package. Internally, AutoCompiler should inspect the machine, reuse usable resources, and complete only genuine capability gaps rather than blindly bundling or installing every possible runtime and tool.
+
+### D-017 — AutoCompiler must provide an Automation Base
+A new installation should aim to make common automation possible, not merely report capabilities. The semantic baseline includes local file operations, scheduling, conditions, loops, text processing, local state, HTTP, notifications, authorized execution, logging and related validated providers.
+
+### D-018 — Causal logic is the primary non-technical model
+For ordinary users, automation should be expressible primarily as causal logic such as WHEN → CHECK/GET → IF → THEN/ELSE → AFTER → SAVE/NOTIFY/ACT. A Canvas may visualize and edit this model but is not itself the product definition.
+
+### D-019 — Natural language creates drafts; deterministic execution is preferred
+AI may interpret intent and generate an automation plan or implementation. Once behavior can be expressed reliably as deterministic logic, repeated execution should use that deterministic path rather than recurring inference.
+
+### D-020 — Basic and Builder are distinct product layers
+AutoCompiler Basic targets common automations through templates, natural language and causal editing. AutoCompiler Builder extends the system with new capabilities, providers, APIs, scripts, complex skills, debugging and repair when the baseline is insufficient.
+
+### D-021 — Product intent outranks implementation choices
+Desktop framework, Canvas library, embedded runtime, connector catalog, AI provider and initial platform coverage are replaceable implementation choices unless separately accepted as decisions. They must not silently redefine the product.
+
+Canonical reference: `docs/PRODUCT_INTENT.md`.
