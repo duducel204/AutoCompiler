@@ -3,10 +3,13 @@
 Before proposing architecture, implementation, product roadmap, packaging, UI, connector strategy, or broad refactors, read:
 
 1. `docs/PRODUCT_INTENT.md`
-2. `docs/DECISIONS.md`
-3. `docs/ORIGIN.md`
-4. `README.md`
-5. relevant structured state under `data/`
+2. `docs/AUTOMATION_GRAMMAR.md`
+3. `docs/BASIC_1_0_COVERAGE.md`
+4. `docs/DECISIONS.md`
+5. `docs/ORIGIN.md`
+6. `README.md`
+7. `docs/PRODUCT_ROADMAP.md`
+8. relevant structured state under `data/`
 
 ## Authority
 
@@ -69,3 +72,14 @@ For a major architecture or roadmap proposal, identify:
 7. whether generated automation can remain independent after compilation.
 
 If a proposal changes a product invariant, update `docs/PRODUCT_INTENT.md` and `docs/DECISIONS.md` explicitly rather than encoding the change only in code or a roadmap.
+
+
+## Roadmap execution discipline
+
+When implementing `docs/PRODUCT_ROADMAP.md`:
+
+- execute tasks in order unless the roadmap explicitly permits otherwise;
+- do not begin the next task until the current Definition of Done is satisfied or the task is explicitly recorded as BLOCKED;
+- keep each task focused enough for independent review;
+- update `docs/BASIC_1_0_COVERAGE.md` when implementation changes benchmark coverage;
+- return the task completion report required by the roadmap.
