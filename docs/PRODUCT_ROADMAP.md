@@ -1,6 +1,6 @@
 # AutoCompiler — Product Transformation Roadmap & Execution Plan
 
-This document outlines the execution plan and architectural roadmap to transition **AutoCompiler** from a research prototype into a production-ready, consumer/enterprise local automation product.
+This document outlines the execution plan, task queue, and architectural roadmap to transition **AutoCompiler** from a research prototype into a production-ready, consumer/enterprise local automation product.
 
 ---
 
@@ -9,98 +9,102 @@ This document outlines the execution plan and architectural roadmap to transitio
 AutoCompiler's core thesis is validated:
 > **An intent can be compiled into native, self-contained automation artifacts that run locally with 0 recurring AI inference costs, without a permanent server or SaaS vendor lock-in.**
 
-To turn this research framework into a viable product competing with or complementing n8n and Zapier, we must bridge five gaps:
-1. **User Experience & Visual Editor (Desktop UI)**
-2. **Security, Credentials Vault & Execution Sandboxing**
-3. **Real-world Connectors & 1-click OAuth2**
-4. **Zero-install Desktop Packaging (Tauri/Electron + Embedded Python)**
-5. **Observability, OS Notifications & AI-assisted Self-healing**
+To turn this research framework into a viable product competing with or complementing n8n and Zapier, execution is structured into explicit, sequential jobs (`J-001` through `J-005`).
 
 ---
 
-## 2. Documentation Architecture (What Needs Documentation)
+## 2. Product Transformation Job Queue & Governance
 
-To support productization, the following documentation artifacts must be created and maintained:
-
-| Document | Purpose | Target Audience |
-|---|---|---|
-| `docs/PRODUCT_ROADMAP.md` | Master execution plan and product milestones | Maintainers & Product Team |
-| `docs/DESKTOP_ARCHITECTURE.md` | Tauri/Electron + embedded Python IPC & lifecycle | Core Developers |
-| `docs/SECURITY_AND_SANDBOXING.md` | OS Keyring integration, permissions model & venv isolation | Security Auditors & Developers |
-| `docs/CONNECTOR_DEVELOPMENT.md` | Guide for building reusable connectors, OAuth2 flows, and skills | Community & Integrators |
-| `docs/CANVAS_UI_SPEC.md` | Visual canvas protocol, event schema, and node interaction specs | Frontend Engineers |
-
----
-
-## 3. Technical Execution Roadmap
+Each job in the queue must be executed sequentially. An agent must **NOT** advance to job `J-(N+1)` until job `J-N` satisfies its **Definition of Done (DoD)** and delivers a formal completion report.
 
 ```text
-Phase 1: Desktop Foundation (M1)
-   └── Desktop App Packaging + Embedded Python Runtime
-
-Phase 2: Visual Canvas & UX (M2)
-   └── Visual Workflow Editor + Prompt-to-Workflow + Plan/Apply Modal
-
-Phase 3: Security & Sandboxing (M3)
-   └── OS Credential Manager + Venv Isolation + Granular Permissions
-
-Phase 4: Connectors & OAuth2 (M4)
-   └── Core Connectors (Google, WhatsApp, Webhooks, SQL) + 1-click OAuth2
-
-Phase 5: Observability & Self-Healing (M5)
-   └── OS Notifications + Execution Logs + AI-assisted Repair
+[J-001] Governance & Roadmap Setup (Current)
+   ↓
+[J-002] Desktop Foundation & Zero-Install Packaging
+   ↓
+[J-003] Visual Canvas & Prompt-to-Workflow UX
+   ↓
+[J-004] Security, Credentials Vault & Sandboxing
+   ↓
+[J-005] Connectors & Observability Engine
 ```
 
-### Phase 1: Desktop Foundation & Zero-Install Packaging (Month 1)
-- **Goal**: Package AutoCompiler as a single-click desktop executable.
-- **Deliverables**:
-  - Desktop application shell using **Tauri 2.0** (Rust + web frontend) or **Electron**.
-  - Embedded Python 3.12 standalone runtime bundle (no system Python dependency required).
-  - Inter-Process Communication (IPC) bridge between Desktop UI and `autocompiler` engine.
-  - Cross-platform builds (`.exe` for Windows, `.dmg` for macOS, `.AppImage` for Linux).
+---
 
-### Phase 2: Visual Canvas & Prompt-to-Workflow UX (Month 2)
-- **Goal**: Provide an intuitive visual interface for non-technical and technical users.
-- **Deliverables**:
-  - Interactive Canvas node editor built on `autocompiler/local_canvas.py` and React Flow.
-  - Conversational input bar (*"Type intent in natural language..."*) that generates a visual flow draft.
-  - Clear **Plan / Authorize / Apply / Verify** modal showing exactly what permissions and files will be accessed before execution.
-  - Automation Management Dashboard (list active automations, view scheduled runs, toggle status).
+## 3. Detailed Job Specifications
 
-### Phase 3: Security, Credentials Vault & Execution Sandboxing (Month 3)
-- **Goal**: Ensure user credentials and execution environments are completely secure.
+### Job J-001: Agent Governance & Product Execution Roadmap Setup
+- **Objective**: Establish agent governance guidelines (`AGENTS.md`) and structure the product transformation roadmap with explicit Job IDs and Definition of Done criteria.
 - **Deliverables**:
-  - Integration with OS Keyrings (Windows Credential Manager, macOS Keychain, Linux Secret Service) for token encryption.
-  - Isolated execution sandboxes (`venv` per compiled automation or restricted user directory scope).
-  - Granular permission prompts (Network, Filesystem, External Shell).
-  - Security audit log for all environment mutations and executions.
+  - `AGENTS.md` containing agent operational directives, Trust Gate contracts, and DoD rules.
+  - `docs/PRODUCT_ROADMAP.md` updated with structured Job IDs (`J-001` to `J-005`).
+- **Definition of Done (DoD)**:
+  - [x] `AGENTS.md` exists and defines single-job execution rules.
+  - [x] `docs/PRODUCT_ROADMAP.md` contains structured jobs with DoD criteria.
+  - [x] All tests and `python3 scripts/trust_gate.py` pass.
+  - [x] A formal completion report for J-001 is delivered.
 
-### Phase 4: Core Connectors & 1-Click OAuth2 (Month 4)
-- **Goal**: Enable rich integrations with mainstream cloud and local services.
+### Job J-002: Desktop Foundation & Zero-Install Packaging
+- **Objective**: Design and document the desktop packaging and embedded Python execution architecture.
 - **Deliverables**:
-  - Built-in connectors: Google Sheets, Google Drive, Gmail, WhatsApp (Meta Cloud API / Evolution API), Telegram, Slack, Webhooks, PostgreSQL, SQLite.
-  - Native OAuth2 callback server embedded in the Desktop App for 1-click account linking.
-  - Connector SDK & documentation (`docs/CONNECTOR_DEVELOPMENT.md`) for community skill contributions.
+  - Desktop shell architecture specification (Tauri 2.0 / Electron + embedded Python 3.12 bundle).
+  - Cross-platform packaging strategy (`.exe`, `.dmg`, `.AppImage`).
+- **Definition of Done (DoD)**:
+  - [ ] Desktop architecture specification documented and verified.
+  - [ ] Trust Gate (`python3 scripts/trust_gate.py`) passes.
+  - [ ] Formal completion report for J-002 delivered.
 
-### Phase 5: Observability, OS Notifications & AI Self-Healing (Month 5)
-- **Goal**: Ensure long-term reliability and effortless maintenance for users.
+### Job J-003: Visual Canvas & Prompt-to-Workflow UX
+- **Objective**: Design the interactive visual editor and conversational workflow generator.
 - **Deliverables**:
-  - Native OS notifications on job failure or required user approval.
-  - Local SQLite execution history and structured trace log viewer.
-  - **AI Self-healing Assistant**: On workflow error (e.g., API structure change or missing file), prompt user with an AI-generated repair plan and single-click patch approval.
+  - Visual Canvas node editor specification based on `autocompiler/local_canvas.py`.
+  - Plan/Apply authorization modal specification.
+- **Definition of Done (DoD)**:
+  - [ ] Canvas UI specification documented and verified.
+  - [ ] Trust Gate (`python3 scripts/trust_gate.py`) passes.
+  - [ ] Formal completion report for J-003 delivered.
+
+### Job J-004: Security, Credentials Vault & Sandboxing
+- **Goal**: Define secure credential storage and execution isolation.
+- **Deliverables**:
+  - Integration specification with OS Keyrings (Windows Credential Manager, macOS Keychain, Linux Secret Service).
+  - Isolated execution environment (`venv` per automation) specification.
+- **Definition of Done (DoD)**:
+  - [ ] Security and vault specification documented and verified.
+  - [ ] Trust Gate (`python3 scripts/trust_gate.py`) passes.
+  - [ ] Formal completion report for J-004 delivered.
+
+### Job J-005: Connectors & Observability Engine
+- **Goal**: Define mainstream connectors, 1-click OAuth2, and AI-assisted self-healing.
+- **Deliverables**:
+  - Connector SDK specification (Google, WhatsApp, Webhooks, SQL).
+  - Execution trace and AI self-healing assistant specification.
+- **Definition of Done (DoD)**:
+  - [ ] Connector and observability specification documented and verified.
+  - [ ] Trust Gate (`python3 scripts/trust_gate.py`) passes.
+  - [ ] Formal completion report for J-005 delivered.
 
 ---
 
-## 4. Licensing & Distribution Strategy
+## 4. Required Completion Report Format
 
-- **Open Core Model**:
-  - **Core Compiler Engine & Local Desktop App**: Open source (MIT / Apache 2.0) for personal and local use.
-  - **Enterprise Extensions**: Paid license for team collaboration, multi-machine mesh synchronization, and centralized audit compliance.
+When job `J-xxx` is completed, the agent must present the report:
 
----
+```markdown
+### Relatório de Conclusão de Tarefa: [JOB_ID]
 
-## 5. Success Metrics
+- **ID da Tarefa**: [JOB_ID]
+- **Título**: [Título da Tarefa]
+- **Status**: CONCLUÍDO (Passou na Definition of Done)
 
-1. **Zero System Setup Friction**: User can download `.exe`/`.dmg`, install, and run their first automation in under 2 minutes.
-2. **0 Recurring Token Cost**: 100% of repeated executions run deterministically with 0 LLM API calls.
-3. **100% Runtime Autonomy**: Compiled automations continue running via OS schedulers even if the AutoCompiler UI is closed.
+#### Deliverables Entregues:
+- Item 1...
+- Item 2...
+
+#### Validação de Qualidade (Trust Gate):
+- `python3 scripts/trust_gate.py`: PASS
+- `pytest`: All tests passing
+
+#### Próximo Passo Liberado:
+- [Próximo JOB_ID liberado para execução]
+```
