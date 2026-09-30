@@ -1,0 +1,59 @@
+{
+  "schema_version": "0.3",
+  "name": "w10-persistent-workflow-example",
+  "description": "Provider-neutral persistent workflow with error policy (W-10)",
+  "trigger": {
+    "type": "schedule",
+    "every": "day",
+    "at": "08:00"
+  },
+  "variables": {
+    "max_retries": 3,
+    "state_db": "history.db"
+  },
+  "steps": [
+    {
+      "id": "check_pending",
+      "type": "get",
+      "with": {
+        "resource": "pending_queue"
+      }
+    },
+    {
+      "id": "process_items",
+      "type": "foreach",
+      "items": "check_pending.items",
+      "do": [
+        {
+          "id": "execute_action",
+          "type": "act",
+          "with": {
+            "target": "item.id"
+          },
+          "error_policy": {
+            "retry": {
+              "max_attempts": 3,
+              "backoff_seconds": 5
+            },
+            "timeout_seconds": 30,
+            "fallback": {
+              "action": "notify_failure"
+            }
+          }
+        },
+        {
+          "id": "record_history",
+          "type": "state",
+          "with": {
+            "item_id": "item.id",
+            "status": "completed"
+          }
+        }
+      ]
+    }
+  ],
+  "state": {
+    "type": "persistent",
+    "file": "{{ variables.state_db }}"
+  }
+}

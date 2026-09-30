@@ -1,38 +1,102 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.invalid/autocompiler/automation-ir.schema.json",
-  "title": "AutoCompiler Automation IR",
+  "title": "AutoCompiler Automation IR Schema 0.3",
   "type": "object",
-  "required": ["version", "name", "trigger", "steps"],
+  "required": ["schema_version", "name", "trigger", "steps"],
   "properties": {
-    "version": { "type": "string" },
+    "schema_version": {
+      "type": "string",
+      "enum": ["0.1", "0.2", "0.3"]
+    },
     "name": { "type": "string", "minLength": 1 },
     "description": { "type": "string" },
+    "variables": {
+      "type": "object",
+      "additionalProperties": true
+    },
     "trigger": {
       "type": "object",
       "required": ["type"],
       "properties": {
-        "type": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["manual", "schedule", "webhook", "event"]
+        },
         "every": { "type": "string" },
-        "at": { "type": "string" }
+        "at": { "type": "string" },
+        "path": { "type": "string" }
       },
       "additionalProperties": true
     },
-    "capabilities": { "type": "object", "additionalProperties": true },
     "steps": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "action"],
+        "required": ["id"],
         "properties": {
           "id": { "type": "string", "minLength": 1 },
-          "action": { "type": "string", "minLength": 1 }
+          "type": {
+            "type": "string",
+            "enum": [
+              "get",
+              "check",
+              "transform",
+              "if_else",
+              "switch",
+              "foreach",
+              "act",
+              "state",
+              "wait",
+              "notify"
+            ]
+          },
+          "skill": { "type": "string" },
+          "action": { "type": "string" },
+          "with": { "type": "object" },
+          "if": { "type": "string" },
+          "then": { "type": "array" },
+          "else": { "type": "array" },
+          "cases": { "type": "object" },
+          "items": { "type": "string" },
+          "do": { "type": "array" },
+          "error_policy": {
+            "type": "object",
+            "properties": {
+              "retry": {
+                "type": "object",
+                "properties": {
+                  "max_attempts": { "type": "integer", "minimum": 1 },
+                  "backoff_seconds": { "type": "number", "minimum": 0 }
+                }
+              },
+              "timeout_seconds": { "type": "number", "minimum": 0 },
+              "fallback": { "type": "object" }
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "mode": { "type": "string" },
+                "path": { "type": "string" }
+              }
+            }
+          }
         },
         "additionalProperties": true
       }
     },
-    "state": { "type": "object", "additionalProperties": true },
+    "state": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "file": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
     "policy": { "type": "object", "additionalProperties": true }
   },
   "additionalProperties": true
