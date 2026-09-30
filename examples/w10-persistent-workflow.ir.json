@@ -1,59 +1,104 @@
 {
   "schema_version": "0.3",
-  "name": "w10-persistent-workflow-example",
-  "description": "Provider-neutral persistent workflow with error policy (W-10)",
+  "name": "w10-persistent-follow-up",
+  "description": "Provider-neutral persistent workflow that saves state, waits, resumes, checks status, and follows up.",
   "trigger": {
-    "type": "schedule",
-    "every": "day",
-    "at": "08:00"
+    "type": "event",
+    "event": "lead.created"
   },
   "variables": {
-    "max_retries": 3,
-    "state_db": "history.db"
+    "follow_up_after": "P3D",
+    "max_retries": 3
   },
   "steps": [
     {
-      "id": "check_pending",
-      "type": "get",
+      "id": "send_initial_action",
+      "type": "act",
       "with": {
-        "resource": "pending_queue"
+        "action": "contact",
+        "target": "trigger.lead_id"
+      },
+      "error_policy": {
+        "retry": {
+          "max_attempts": 3,
+          "backoff_seconds": 5
+        },
+        "timeout_seconds": 30,
+        "fallback": {
+          "action": "notify_failure"
+        }
       }
     },
     {
-      "id": "process_items",
-      "type": "foreach",
-      "items": "check_pending.items",
-      "do": [
+      "id": "save_pending_state",
+      "type": "state",
+      "with": {
+        "action": "set",
+        "key": "trigger.lead_id",
+        "status": "waiting_for_response"
+      }
+    },
+    {
+      "id": "wait_for_follow_up",
+      "type": "wait",
+      "with": {
+        "duration": "{{ variables.follow_up_after }}",
+        "resume_token": "follow_up_due"
+      }
+    },
+    {
+      "id": "resume_follow_up",
+      "type": "continue",
+      "with": {
+        "from": "follow_up_due"
+      }
+    },
+    {
+      "id": "check_current_state",
+      "type": "check",
+      "with": {
+        "source": "state",
+        "key": "trigger.lead_id",
+        "field": "status"
+      }
+    },
+    {
+      "id": "follow_up_if_unresolved",
+      "type": "if_else",
+      "if": "check_current_state == 'waiting_for_response'",
+      "then": [
         {
-          "id": "execute_action",
+          "id": "send_follow_up",
           "type": "act",
           "with": {
-            "target": "item.id"
-          },
-          "error_policy": {
-            "retry": {
-              "max_attempts": 3,
-              "backoff_seconds": 5
-            },
-            "timeout_seconds": 30,
-            "fallback": {
-              "action": "notify_failure"
-            }
+            "action": "follow_up",
+            "target": "trigger.lead_id"
           }
         },
         {
-          "id": "record_history",
+          "id": "save_follow_up_state",
           "type": "state",
           "with": {
-            "item_id": "item.id",
-            "status": "completed"
+            "action": "set",
+            "key": "trigger.lead_id",
+            "status": "follow_up_sent"
+          }
+        }
+      ],
+      "else": [
+        {
+          "id": "record_resolved",
+          "type": "state",
+          "with": {
+            "action": "set",
+            "key": "trigger.lead_id",
+            "status": "resolved"
           }
         }
       ]
     }
   ],
   "state": {
-    "type": "persistent",
-    "file": "{{ variables.state_db }}"
+    "type": "persistent"
   }
 }
