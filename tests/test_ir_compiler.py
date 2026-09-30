@@ -62,6 +62,9 @@ class IRCompilerTest(unittest.TestCase):
         validation = validate_ir(ir)
         self.assertEqual(ir["schema_version"], "0.3")
         self.assertIn("durable_state", validation.required_capabilities)
+        step_types = [step.get("type") for step in ir["steps"]]
+        self.assertIn("wait", step_types)
+        self.assertIn("continue", step_types)
 
     def test_schema_malformed_workflows_rejected(self):
         # Unsupported schema version
