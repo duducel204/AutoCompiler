@@ -25,6 +25,7 @@ SUPPORTED_SKILLS = {
     "act": {"requires": [], "permissions": []},
     "state": {"requires": ["durable_state"], "permissions": ["write"]},
     "wait": {"requires": [], "permissions": []},
+    "continue": {"requires": [], "permissions": []},
     "notify": {"requires": [], "permissions": []},
 }
 
