@@ -164,6 +164,42 @@
       "notes": "CSV writing via stdlib csv module."
     },
     {
+      "capability": "xlsx.read",
+      "provider": "python-stdlib-xlsx",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "builtin",
+      "contract_tests": ["tests/test_capability_contracts.py"],
+      "evidence": ["trust-gate:tests.test_capability_contracts:passed"],
+      "permissions": ["filesystem.read"],
+      "rollback": "remove canonical registration",
+      "notes": "XLSX reading via stdlib zipfile and xml parsing."
+    },
+    {
+      "capability": "xlsx.write",
+      "provider": "python-stdlib-xlsx",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "builtin",
+      "contract_tests": ["tests/test_capability_contracts.py"],
+      "evidence": ["trust-gate:tests.test_capability_contracts:passed"],
+      "permissions": ["filesystem.write"],
+      "rollback": "remove canonical registration",
+      "notes": "XLSX writing via stdlib zipfile and xml generation."
+    },
+    {
+      "capability": "schedule",
+      "provider": "autocompiler.schedule",
+      "version": "1.0.0",
+      "trust": "validated",
+      "availability": "resource_bound",
+      "contract_tests": ["tests/test_capability_contracts.py"],
+      "evidence": ["trust-gate:tests.test_capability_contracts:passed"],
+      "permissions": ["schedule.manage"],
+      "rollback": "remove canonical registration",
+      "notes": "Schedule provider contract for Windows Task Scheduler and Cron task generation."
+    },
+    {
       "capability": "pdf.detect",
       "provider": "autocompiler.pdf_detector",
       "version": "1.0.0",

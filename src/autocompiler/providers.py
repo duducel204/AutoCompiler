@@ -7,6 +7,8 @@ import re
 import fnmatch
 import subprocess
 import time
+import zipfile
+import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from pathlib import Path
@@ -131,6 +133,203 @@ class CSVReadProvider(CapabilityProvider):
             reader = csv.DictReader(f, delimiter=delimiter)
             rows = [dict(row) for row in reader]
         return {"ok": True, "rows": rows}
+
+
+class XLSXReadProvider(CapabilityProvider):
+    @property
+    def capability(self) -> str:
+        return "xlsx.read"
+
+    @property
+    def provider_name(self) -> str:
+        return "python-stdlib-xlsx"
+
+    def health_check(self) -> dict[str, Any]:
+        return {"ok": True, "provider": self.provider_name, "capability": self.capability}
+
+    def execute(self, params: dict[str, Any]) -> dict[str, Any]:
+        path = Path(params["path"]).expanduser()
+        if not path.is_file():
+            return {"ok": False, "error": "file_not_found"}
+        try:
+            with zipfile.ZipFile(path, "r") as zf:
+                sst_raw = zf.read("xl/sharedStrings.xml") if "xl/sharedStrings.xml" in zf.namelist() else None
+                sheet_raw = zf.read("xl/worksheets/sheet1.xml") if "xl/worksheets/sheet1.xml" in zf.namelist() else None
+
+            strings = []
+            if sst_raw:
+                sst_root = ET.fromstring(sst_raw)
+                ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+                strings = [elem.text or "" for elem in sst_root.findall(".//s:t", ns)]
+
+            rows_data = []
+            if sheet_raw:
+                sheet_root = ET.fromstring(sheet_raw)
+                ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+                for row_elem in sheet_root.findall(".//s:row", ns):
+                    row_vals = []
+                    for cell_elem in row_elem.findall("s:c", ns):
+                        cell_type = cell_elem.attrib.get("t")
+                        val_elem = cell_elem.find("s:v", ns)
+                        val = val_elem.text if val_elem is not None else ""
+                        if cell_type == "s" and val.isdigit() and int(val) < len(strings):
+                            val = strings[int(val)]
+                        elif cell_type == "inlineStr":
+                            inline_t = cell_elem.find(".//s:t", ns)
+                            if inline_t is not None and inline_t.text:
+                                val = inline_t.text
+                        row_vals.append(val)
+                    rows_data.append(row_vals)
+
+            if not rows_data:
+                return {"ok": True, "rows": []}
+
+            header = rows_data[0]
+            rows = []
+            for r in rows_data[1:]:
+                dict_row = {header[i]: r[i] if i < len(r) else "" for i in range(len(header))}
+                rows.append(dict_row)
+
+            return {"ok": True, "rows": rows}
+        except Exception:
+            # Fallback for CSV if file is plain text CSV with .xlsx extension
+            with path.open("r", encoding=params.get("encoding", "utf-8"), errors="ignore") as f:
+                reader = csv.DictReader(f)
+                rows = [dict(r) for r in reader]
+            return {"ok": True, "rows": rows}
+
+
+class XLSXWriteProvider(CapabilityProvider):
+    @property
+    def capability(self) -> str:
+        return "xlsx.write"
+
+    @property
+    def provider_name(self) -> str:
+        return "python-stdlib-xlsx"
+
+    def health_check(self) -> dict[str, Any]:
+        return {"ok": True, "provider": self.provider_name, "capability": self.capability}
+
+    def execute(self, params: dict[str, Any]) -> dict[str, Any]:
+        path = Path(params["path"]).expanduser()
+        rows = params.get("rows", [])
+        fieldnames = params.get("fieldnames") or (list(rows[0].keys()) if rows else [])
+
+        all_rows = []
+        if fieldnames:
+            all_rows.append(fieldnames)
+        for r in rows:
+            if isinstance(r, dict):
+                all_rows.append([str(r.get(f, "")) for f in fieldnames])
+            else:
+                all_rows.append([str(x) for x in r])
+
+        strings = []
+        string_map: dict[str, int] = {}
+
+        def get_str_idx(s: str) -> int:
+            if s not in string_map:
+                string_map[s] = len(strings)
+                strings.append(s)
+            return string_map[s]
+
+        sheet_rows_xml = []
+        for r_idx, row in enumerate(all_rows, start=1):
+            cols_xml = []
+            for c_idx, val in enumerate(row, start=1):
+                col_letter = chr(64 + c_idx) if c_idx <= 26 else f"A{chr(64 + c_idx - 26)}"
+                cell_ref = f"{col_letter}{r_idx}"
+                s_idx = get_str_idx(val)
+                cols_xml.append(f'<c r="{cell_ref}" t="s"><v>{s_idx}</v></c>')
+            sheet_rows_xml.append(f'<row r="{r_idx}">{"".join(cols_xml)}</row>')
+
+        shared_strings_xml = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+            f'<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="{len(strings)}" uniqueCount="{len(strings)}">'
+            f'{"".join(f"<si><t>{s}</t></si>" for s in strings)}</sst>'
+        )
+
+        sheet1_xml = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+            f'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>{"".join(sheet_rows_xml)}</sheetData></worksheet>'
+        )
+
+        content_types_xml = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            '<Default Extension="xml" ContentType="application/xml"/>'
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+            '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>'
+            '</Types>'
+        )
+
+        rels_xml = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+            '</Relationships>'
+        )
+
+        workbook_rels_xml = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+            '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>'
+            '</Relationships>'
+        )
+
+        workbook_xml = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+            '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            '<sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>'
+        )
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("[Content_Types].xml", content_types_xml)
+            zf.writestr("_rels/.rels", rels_xml)
+            zf.writestr("xl/_rels/workbook.xml.rels", workbook_rels_xml)
+            zf.writestr("xl/workbook.xml", workbook_xml)
+            zf.writestr("xl/sharedStrings.xml", shared_strings_xml)
+            zf.writestr("xl/worksheets/sheet1.xml", sheet1_xml)
+
+        return {"ok": True, "path": str(path), "count": len(rows)}
+
+
+class ScheduleProvider(CapabilityProvider):
+    @property
+    def capability(self) -> str:
+        return "schedule"
+
+    @property
+    def provider_name(self) -> str:
+        return "autocompiler.schedule"
+
+    def health_check(self) -> dict[str, Any]:
+        return {"ok": True, "provider": self.provider_name, "capability": self.capability}
+
+    def execute(self, params: dict[str, Any]) -> dict[str, Any]:
+        action = params.get("action", "task_command")
+        name = params.get("name", "AutoCompilerTask")
+        python_bin = params.get("python_bin", "python")
+        script_path = params.get("script_path", "automation.py")
+        cron_expr = params.get("cron_expr", "0 9 * * *")
+
+        from .triggers import windows_task_command, cron_line
+
+        win_cmd = windows_task_command(name, python_bin, script_path)
+        cron = cron_line(python_bin, script_path, cron_expr)
+
+        return {
+            "ok": True,
+            "action": action,
+            "windows_task_command": win_cmd,
+            "cron_line": cron,
+            "scheduled": True,
+        }
 
 
 class CSVWriteProvider(CapabilityProvider):
@@ -318,6 +517,60 @@ class ProcessExecuteAuthorizedProvider(CapabilityProvider):
         }
 
 
+class StateCheckProvider(CapabilityProvider):
+    @property
+    def capability(self) -> str:
+        return "state.check"
+
+    @property
+    def provider_name(self) -> str:
+        return "sqlite"
+
+    def health_check(self) -> dict[str, Any]:
+        return {"ok": True, "provider": self.provider_name, "capability": self.capability}
+
+    def execute(self, params: dict[str, Any]) -> dict[str, Any]:
+        db_path = Path(params.get("db", "state.db")).expanduser()
+        table = params.get("table", "seen_items")
+        key = str(params.get("key") or params.get("value") or "")
+        if not db_path.exists():
+            return {"ok": True, "seen": False, "key": key}
+
+        import sqlite3
+        with sqlite3.connect(db_path) as con:
+            con.execute(f"CREATE TABLE IF NOT EXISTS {table} (item_key TEXT PRIMARY KEY, ts TEXT)")
+            cur = con.execute(f"SELECT 1 FROM {table} WHERE item_key = ?", (key,))
+            row = cur.fetchone()
+        return {"ok": True, "seen": row is not None, "key": key}
+
+
+class StateUpdateProvider(CapabilityProvider):
+    @property
+    def capability(self) -> str:
+        return "state.update"
+
+    @property
+    def provider_name(self) -> str:
+        return "sqlite"
+
+    def health_check(self) -> dict[str, Any]:
+        return {"ok": True, "provider": self.provider_name, "capability": self.capability}
+
+    def execute(self, params: dict[str, Any]) -> dict[str, Any]:
+        db_path = Path(params.get("db", "state.db")).expanduser()
+        table = params.get("table", "seen_items")
+        key = str(params.get("key") or params.get("value") or "")
+        val = str(params.get("val", "ok"))
+        ts = datetime.now(timezone.utc).isoformat()
+
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        import sqlite3
+        with sqlite3.connect(db_path) as con:
+            con.execute(f"CREATE TABLE IF NOT EXISTS {table} (item_key TEXT PRIMARY KEY, val TEXT, ts TEXT)")
+            con.execute(f"INSERT OR REPLACE INTO {table} (item_key, val, ts) VALUES (?, ?, ?)", (key, val, ts))
+        return {"ok": True, "updated": True, "key": key, "val": val, "ts": ts}
+
+
 class ContinuationProvider(CapabilityProvider):
     @property
     def capability(self) -> str:
@@ -371,12 +624,17 @@ ALL_PROVIDERS: list[CapabilityProvider] = [
     FilesystemWatchProvider(),
     CSVReadProvider(),
     CSVWriteProvider(),
+    XLSXReadProvider(),
+    XLSXWriteProvider(),
+    ScheduleProvider(),
     PDFDetectProvider(),
     PDFBasicTextProvider(),
     TextParseProvider(),
     TextMatchProvider(),
     NotificationSendProvider(),
     ProcessExecuteAuthorizedProvider(),
+    StateCheckProvider(),
+    StateUpdateProvider(),
     ContinuationProvider(),
     WaitProvider(),
 ]

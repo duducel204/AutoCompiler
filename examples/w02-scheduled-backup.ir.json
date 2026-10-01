@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.3",
+  "name": "W-02 Scheduled Backup",
+  "trigger": {
+    "type": "schedule",
+    "cron": "0 1 * * *"
+  },
+  "steps": [
+    {
+      "id": "scan_files",
+      "skill": "filesystem.scan",
+      "with": {
+        "path": "$event.source_folder",
+        "glob": "*"
+      }
+    },
+    {
+      "id": "copy_backup",
+      "skill": "filesystem.copy",
+      "with": {
+        "from": "scan_files",
+        "destination": "$event.backup_folder"
+      }
+    },
+    {
+      "id": "record_backup",
+      "skill": "state.update",
+      "with": {
+        "key": "$event.backup_id",
+        "val": "completed",
+        "file": "backup_history.db"
+      }
+    }
+  ]
+}

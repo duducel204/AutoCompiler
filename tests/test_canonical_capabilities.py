@@ -28,6 +28,9 @@ EXPECTED = {
     "json.transform",
     "csv.read",
     "csv.write",
+    "xlsx.read",
+    "xlsx.write",
+    "schedule",
     "pdf.detect",
     "pdf.basic_text",
     "http.request",
@@ -68,7 +71,7 @@ class CanonicalCapabilitiesTests(unittest.TestCase):
         names = {item["capability"] for item in graph["resources"]}
         self.assertEqual(
             names,
-            EXPECTED - {"vault.read", "vault.write", "vault.search"},
+            EXPECTED - {"vault.read", "vault.write", "vault.search", "schedule"},
         )
         plan = CapabilityRegistry().resolve(
             ["environment.discover", "filesystem.write", "automation.compile"],
@@ -80,7 +83,7 @@ class CanonicalCapabilitiesTests(unittest.TestCase):
         bound = resource_bound_capabilities()
         self.assertEqual(
             {item["capability"] for item in bound},
-            {"vault.read", "vault.write", "vault.search"},
+            {"vault.read", "vault.write", "vault.search", "schedule"},
         )
         graph = canonical_resource_graph()
         plan = CapabilityRegistry().resolve(["vault.write"], graph)
