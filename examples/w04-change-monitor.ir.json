@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.3",
+  "name": "W-04 Change Monitor",
+  "trigger": {
+    "type": "schedule",
+    "cron": "*/15 * * * *"
+  },
+  "steps": [
+    {
+      "id": "check_previous",
+      "skill": "state.check",
+      "with": {
+        "key": "$event.monitor_key",
+        "file": "monitors.db"
+      }
+    },
+    {
+      "id": "fetch_data",
+      "skill": "http.request",
+      "with": {
+        "url": "$event.target_url",
+        "method": "GET"
+      }
+    },
+    {
+      "id": "update_state",
+      "skill": "state.update",
+      "with": {
+        "key": "$event.monitor_key",
+        "val": "$fetch_data.hash",
+        "file": "monitors.db"
+      }
+    }
+  ]
+}

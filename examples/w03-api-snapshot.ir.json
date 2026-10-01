@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.3",
+  "name": "W-03 API Snapshot",
+  "trigger": {
+    "type": "schedule",
+    "cron": "0 * * * *"
+  },
+  "steps": [
+    {
+      "id": "fetch_api",
+      "skill": "http.request",
+      "with": {
+        "url": "$event.api_url",
+        "method": "GET"
+      }
+    },
+    {
+      "id": "save_xlsx",
+      "skill": "xlsx.write",
+      "with": {
+        "path": "$event.output_xlsx",
+        "rows": "$fetch_api.items"
+      }
+    },
+    {
+      "id": "record_snapshot",
+      "skill": "state.update",
+      "with": {
+        "key": "$event.snapshot_id",
+        "val": "saved",
+        "file": "snapshots.db"
+      }
+    }
+  ]
+}

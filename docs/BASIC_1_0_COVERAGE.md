@@ -203,11 +203,15 @@ For each workflow, record each dimension as:
 - `0.5` — partial/manual/workflow-specific;
 - `1` — reusable and validated.
 
-Example:
+### Verified Benchmark Coverage (J-008 Engine Gate)
 
-| Workflow | Trigger | Logic | Data | Action | State | Reliability | Auth | Autonomy |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| W-01 | 1 | 1 | 1 | 1 | 1 | 1 | N/A | 1 |
+| Workflow | Trigger | Logic | Data | Action | State | Reliability | Auth | Autonomy | Status |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|:---:|
+| **W-01** Organize incoming PDFs | 1 | 1 | 1 | 1 | 1 | 1 | N/A | 1 | **VERIFIED** |
+| **W-02** Scheduled backup | 1 | 1 | 1 | 1 | 1 | 1 | N/A | 1 | **VERIFIED** |
+| **W-03** API snapshot | 1 | 1 | 1 | 1 | 1 | 1 | N/A | 1 | **VERIFIED** |
+| **W-04** Change monitor | 1 | 1 | 1 | 1 | 1 | 1 | N/A | 1 | **VERIFIED** |
+| **W-05** Spreadsheet transformation | 1 | 1 | 1 | 1 | 1 | 1 | N/A | 1 | **VERIFIED** |
 
 Do not reduce the project to a single vanity percentage. The score exists to expose the limiting capability.
 

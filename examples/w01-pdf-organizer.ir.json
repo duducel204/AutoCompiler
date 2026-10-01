@@ -1,0 +1,50 @@
+{
+  "schema_version": "0.3",
+  "name": "W-01 Organize Incoming PDFs",
+  "trigger": {
+    "type": "event",
+    "event": "folder.file_created"
+  },
+  "steps": [
+    {
+      "id": "detect_pdf",
+      "skill": "pdf.detect",
+      "with": {
+        "path": "$event.file_path"
+      }
+    },
+    {
+      "id": "check_is_pdf",
+      "skill": "flow.condition",
+      "with": {
+        "left": "$detect_pdf.is_pdf",
+        "op": "eq",
+        "right": true
+      }
+    },
+    {
+      "id": "extract_text",
+      "skill": "pdf.basic_text",
+      "with": {
+        "path": "$event.file_path"
+      }
+    },
+    {
+      "id": "copy_file",
+      "skill": "filesystem.copy",
+      "with": {
+        "from": ["$event.file_path"],
+        "destination": "$event.target_folder"
+      }
+    },
+    {
+      "id": "record_state",
+      "skill": "state.update",
+      "with": {
+        "key": "$event.file_path",
+        "val": "processed",
+        "file": "pdf_history.db"
+      }
+    }
+  ]
+}

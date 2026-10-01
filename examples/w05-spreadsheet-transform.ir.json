@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.3",
+  "name": "W-05 Spreadsheet Transformation",
+  "trigger": {
+    "type": "manual"
+  },
+  "steps": [
+    {
+      "id": "read_csv",
+      "skill": "csv.read",
+      "with": {
+        "path": "$event.input_csv"
+      }
+    },
+    {
+      "id": "write_xlsx",
+      "skill": "xlsx.write",
+      "with": {
+        "path": "$event.output_xlsx",
+        "rows": "$read_csv.rows"
+      }
+    },
+    {
+      "id": "read_back_xlsx",
+      "skill": "xlsx.read",
+      "with": {
+        "path": "$event.output_xlsx"
+      }
+    }
+  ]
+}

@@ -9,6 +9,9 @@ sys.path.insert(0, str(ROOT / "src"))
 from autocompiler.providers import (
     CSVReadProvider,
     CSVWriteProvider,
+    XLSXReadProvider,
+    XLSXWriteProvider,
+    ScheduleProvider,
     FilesystemReadProvider,
     FilesystemWriteProvider,
     PDFDetectProvider,
@@ -56,6 +59,45 @@ class CapabilityContractsTests(unittest.TestCase):
             res = r_prov.execute({"path": str(csv_path)})
             self.assertTrue(res["ok"])
             self.assertEqual(res["rows"], rows)
+
+    def test_xlsx_read_write_providers(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            xlsx_path = tmp / "data.xlsx"
+            w_prov = XLSXWriteProvider()
+            r_prov = XLSXReadProvider()
+
+            rows = [{"name": "Alice", "role": "admin"}, {"name": "Bob", "role": "user"}]
+            res = w_prov.execute({"path": str(xlsx_path), "rows": rows})
+            self.assertTrue(res["ok"])
+
+            res = r_prov.execute({"path": str(xlsx_path)})
+            self.assertTrue(res["ok"])
+            self.assertEqual(res["rows"], rows)
+
+    def test_schedule_provider(self):
+        prov = ScheduleProvider()
+        health = prov.health_check()
+        self.assertTrue(health["ok"])
+
+        res = prov.execute({"name": "TestTask", "python_bin": "python3", "script_path": "main.py"})
+        self.assertTrue(res["ok"])
+        self.assertIn("schtasks.exe", res["windows_task_command"])
+        self.assertIn("0 9 * * *", res["cron_line"])
+
+    def test_registry_policy_selection(self):
+        registry = CapabilityRegistry()
+        graph = {
+            "resources": [
+                {"capability": "http.request", "provider": "custom_http", "state": "usable", "cost": "free"},
+                {"capability": "http.request", "provider": "premium_http", "state": "usable", "cost": "paid"},
+            ]
+        }
+        res_default = registry.resolve(["http.request"], graph)
+        self.assertEqual(res_default.resolutions[0].provider, "custom_http")
+
+        res_pref = registry.resolve(["http.request"], graph, constraints={"prefer_provider": "premium_http"})
+        self.assertEqual(res_pref.resolutions[0].provider, "premium_http")
 
     def test_pdf_detect_provider(self):
         with tempfile.TemporaryDirectory() as td:

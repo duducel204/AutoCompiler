@@ -107,7 +107,12 @@ class CapabilityRegistry:
                 if item.get("state") == "usable"
             ]
             if candidates:
-                chosen = sorted(candidates, key=lambda x: x["provider"])[0]
+                preferred = constraints.get("prefer_provider")
+                if preferred:
+                    matching = [c for c in candidates if c.get("provider") == preferred]
+                    if matching:
+                        candidates = matching
+                chosen = sorted(candidates, key=lambda x: (x.get("cost", "free"), x["provider"]))[0]
                 out.append(
                     Resolution(
                         capability,
