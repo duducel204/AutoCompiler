@@ -81,6 +81,13 @@ class LocalCanvasTests(unittest.TestCase):
                 "state": {"file": "history.db"},
             }
 
+            # 0. /api/ai/draft
+            req_ai = Request(f"{base_url}/api/ai/draft", data=json.dumps({"prompt": "Organizar PDFs na pasta ./processed_pdfs"}).encode("utf-8"), headers={"Content-Type": "application/json"})
+            with urlopen(req_ai) as resp:
+                ai_res = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(ai_res["ok"])
+            self.assertEqual(ai_res["ir"]["name"], "Organizar PDFs Recebidos")
+
             # 1. /api/workflow/validate
             req = Request(f"{base_url}/api/workflow/validate", data=json.dumps({"ir": ir_w01}).encode("utf-8"), headers={"Content-Type": "application/json"})
             with urlopen(req) as resp:

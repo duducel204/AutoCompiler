@@ -3,9 +3,28 @@
 <style>
 :root{font-family:Segoe UI,Arial,sans-serif;color:#e8edf2;background:#0b0f14}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}.top{padding:12px 18px;border-bottom:1px solid #26313d;display:flex;justify-content:space-between;align-items:center}.layout{display:grid;grid-template-columns:310px 1fr 280px;min-height:0}.side{padding:14px;border-right:1px solid #26313d;background:#10161d;overflow:auto}.side.right{border-right:0;border-left:1px solid #26313d}.canvas{padding:18px;overflow:auto;display:flex;flex-direction:column;gap:18px}.card,.node{border:1px solid #334150;border-radius:12px;background:#121a22;padding:14px}.muted{color:#8fa1b3;font-size:12px}.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.palette button,.actions button{padding:6px 10px;border:1px solid #486078;border-radius:6px;background:#182b3d;color:#fff;cursor:pointer;font-size:13px}.palette button:hover,.actions button:hover{background:#233e54}.flow{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:14px}.block-card{width:100%;max-width:680px;border:1px solid #2f4052;border-radius:10px;background:#16222e;padding:12px;position:relative}.block-header{display:flex;justify-content:space-between;align-items:center;font-weight:bold;margin-bottom:8px}.block-type{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;background:#276fb7;color:#fff}.type-WHEN{background:#8a42ad}.type-GET{background:#1f8272}.type-TRANSFORM{background:#d97706}.type-IF{background:#2563eb}.type-REPEAT{background:#4b5563}.type-ACT{background:#059669}.type-SAVE{background:#0284c7}.type-NOTIFY{background:#b91c1c}.flow-arrow{color:#6aa8e8;font-size:18px;font-weight:bold}.chat{display:flex;gap:8px;margin-top:12px}.chat input{flex:1;padding:8px;border-radius:6px;border:1px solid #334150;background:#0e141a;color:#fff}.stream{border-top:1px solid #26313d;padding:10px 16px;background:#10161d;max-height:180px;overflow:auto;font:12px Consolas,monospace}.event{padding:3px 0}.status-ok{color:#72c792}.status-err{color:#f87171}.field-group{display:flex;flex-direction:column;gap:4px;margin-top:8px}.field-group label{font-size:12px;color:#8fa1b3}.field-group input{padding:6px;border-radius:4px;border:1px solid #334150;background:#0e141a;color:#fff;font-size:12px}@media(max-width:800px){.layout{grid-template-columns:1fr}.side{display:none}}
 </style></head><body><div class="app">
-<header class="top"><div><strong>AutoCompiler Causal Canvas</strong> <span class="muted">(J-010 Templates & Starter Recipes)</span></div><span class="muted" id="repo-head">LOCAL · carregando workspace…</span></header>
+<header class="top"><div><strong>AutoCompiler Causal Canvas</strong> <span class="muted">(J-011 Build-Time AI Draft)</span></div><span class="muted" id="repo-head">LOCAL · carregando workspace…</span></header>
 <div class="layout">
 <aside class="side">
+<strong>Gerar Rascunho com IA (Opcional - J-011)</strong>
+<div class="field-group">
+<label>Sua Intenção em Linguagem Natural</label>
+<textarea id="ai-prompt" style="height:60px;padding:6px;border-radius:4px;border:1px solid #334150;background:#0e141a;color:#fff;font-size:12px" placeholder="Ex: Organize os PDFs recebidos e mova para ./processed_pdfs"></textarea>
+</div>
+<div class="field-group">
+<label>Provider de IA</label>
+<select id="ai-provider" style="padding:6px;border-radius:4px;border:1px solid #334150;background:#0e141a;color:#fff;font-size:12px">
+<option value="deterministic-rules">Deterministic Rules (Zero Tokens / Offline)</option>
+<option value="google-gemini">Google Gemini (Requer Chave do Usuário)</option>
+</select>
+</div>
+<div class="field-group" id="gemini-key-box" style="display:none">
+<label>Sua Chave API Gemini</label>
+<input type="password" id="ai-key" placeholder="AIzaSy...">
+</div>
+<button id="btn-ai-draft" style="width:100%;margin-top:8px;padding:8px;border:1px solid #8a42ad;background:#7e22ce;color:#fff;border-radius:6px;cursor:pointer">✨ Gerar Draft de IR com IA</button>
+
+<hr style="border-color:#26313d;margin:16px 0">
 <strong>Starter Templates (J-010)</strong>
 <div style="margin-top:8px">
 <select id="tmpl-select" style="width:100%;padding:6px;border-radius:6px;background:#0e141a;color:#fff;border:1px solid #334150">
@@ -38,7 +57,7 @@
 </aside>
 
 <main class="canvas">
-<section class="card"><div class="muted">FLUXO CAUSAL MANUAL DE AUTOMAÇÃO</div><h2 id="wf-title" style="margin:4px 0 0 0">Selecione um Template ou Crie um Fluxo</h2><div class="muted" id="wf-desc">Escolha um template inicial na barra lateral ou monte blocos causais sem necessidade de código.</div></section>
+<section class="card"><div class="muted">FLUXO CAUSAL MANUAL DE AUTOMAÇÃO</div><h2 id="wf-title" style="margin:4px 0 0 0">Selecione um Template, Digite uma Intenção ou Crie um Fluxo</h2><div class="muted" id="wf-desc">Os rascunhos de IA não executam ações diretamente: eles geram schemas IR editáveis para revisão e compilação humana.</div></section>
 <section class="card" style="min-height:300px">
 <div id="flow-container" class="flow"></div>
 </section>
@@ -71,7 +90,7 @@ function log(type,msg,isErr=false){
 function renderFlow(){
   flowContainer.innerHTML = '';
   if(!currentIR.steps.length){
-    flowContainer.innerHTML = '<div class="muted" style="padding:40px">Nenhum bloco no fluxo. Selecione um template na barra lateral ou adicione blocos causais.</div>';
+    flowContainer.innerHTML = '<div class="muted" style="padding:40px">Nenhum bloco no fluxo. Digite uma intenção na caixa de IA, selecione um template ou adicione blocos causais.</div>';
     return;
   }
 
@@ -116,6 +135,39 @@ function removeBlock(id){
   renderFlow();
   log('block.removed', `Removido bloco ${id}`);
 }
+
+document.querySelector('#ai-provider').onchange = (e) => {
+  document.querySelector('#gemini-key-box').style.display = e.target.value === 'google-gemini' ? 'flex' : 'none';
+};
+
+document.querySelector('#btn-ai-draft').onclick = async () => {
+  const prompt = document.querySelector('#ai-prompt').value.trim();
+  const provider = document.querySelector('#ai-provider').value;
+  const apiKey = document.querySelector('#ai-key').value;
+  if(!prompt) return;
+
+  log('ai.draft_start', `Enviando intenção para IA [${provider}]...`);
+  try {
+    const r = await fetch('/api/ai/draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompt, provider: provider, api_key: apiKey })
+    });
+    const res = await r.json();
+    if(res.ok && res.ir){
+      currentIR = res.ir;
+      document.querySelector('#wf-title').textContent = currentIR.name;
+      document.querySelector('#wf-desc').textContent = `Draft gerado por IA. Capabilities requeridas: ${(res.required_capabilities || []).join(', ')}. Edite e confirme abaixo.`;
+      renderFlow();
+      log('ai.draft_success', `Draft IR criado com sucesso (${currentIR.steps.length} blocos)`);
+    } else if (res.ambiguous) {
+      document.querySelector('#validation-msg').innerHTML = `<span class="status-err">⚠️ Intenção Ambigua! Perguntas: ${res.questions.join(' ')}</span>`;
+      log('ai.ambiguous', `IA identificou ambiguidade: ${res.questions.join(' ')}`, true);
+    } else {
+      log('ai.error', res.error || res.message || 'Falha ao gerar draft', true);
+    }
+  } catch(e){ log('error', e.message, true); }
+};
 
 async function loadTemplates(){
   try {
@@ -255,5 +307,5 @@ fetch('/api/state').then(r=>r.json()).then(s=>{
 
 loadTemplates();
 renderFlow();
-log('canvas.ready', 'Causal Canvas com suporte a Starter Templates (J-010)');
+log('canvas.ready', 'Causal Canvas com suporte a AI Draft (J-011)');
 </script></body></html>

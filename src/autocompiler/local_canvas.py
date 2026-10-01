@@ -13,6 +13,7 @@ from .catalog import CapabilityCatalog
 from .compiler import compile_ir
 from .engine import execute
 from .git_acquisition import plan_git_capability
+from .ai_draft import draft_intent_to_ir
 from .ir import validate_ir
 from .templates import instantiate_template, list_templates
 from .workspace import repository_snapshot
@@ -148,6 +149,17 @@ class CanvasHandler(BaseHTTPRequestHandler):
             try:
                 result = instantiate_template(tid, params)
                 self._json({"ok": True, **result})
+            except Exception as exc:
+                self._json({"ok": False, "error": str(exc)}, 400)
+            return
+        if path == "/api/ai/draft":
+            body = self._body()
+            prompt = body.get("prompt", "")
+            api_key = body.get("api_key")
+            provider = body.get("provider", "deterministic-rules")
+            try:
+                res = draft_intent_to_ir(prompt, api_key=api_key, provider=provider)
+                self._json(res)
             except Exception as exc:
                 self._json({"ok": False, "error": str(exc)}, 400)
             return
