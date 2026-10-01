@@ -32,6 +32,8 @@ TESTS=[
  "tests.test_state_dedup",
  "tests.test_reliability",
  "tests.test_coverage_w01_w05",
+ "tests.test_templates",
+ "tests.test_ai_draft",
 ]
 
 def run(cmd):
