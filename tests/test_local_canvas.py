@@ -9,6 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import json
 import threading
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from autocompiler.catalog import CapabilityCatalog
@@ -60,7 +61,7 @@ class LocalCanvasTests(unittest.TestCase):
         self.assertEqual(result["status"], "provisioned")
         run.assert_called_once()
 
-    def test_workflow_endpoints_validate_save_load_compile_run(self):
+    def test_workflow_endpoints_require_plan_authorize_apply_verify(self):
         server = ThreadingHTTPServer(("127.0.0.1", 0), CanvasHandler)
         port = server.server_port
         thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -68,56 +69,132 @@ class LocalCanvasTests(unittest.TestCase):
         try:
             base_url = f"http://127.0.0.1:{port}"
 
-            ir_w01 = {
-                "schema_version": "0.1",
-                "name": "W01 Canvas Test",
-                "trigger": {"type": "manual"},
-                "steps": [
-                    {"id": "s1", "skill": "filesystem.scan", "with": {"path": ".", "glob": "*"}},
-                    {"id": "s2", "skill": "filter.extension", "with": {"from": "s1", "extension": ".txt"}},
-                    {"id": "s3", "skill": "filesystem.copy", "with": {"from": "s2", "destination": "./out"}},
-                    {"id": "s4", "skill": "state.record", "with": {"from": "s3"}},
-                ],
-                "state": {"file": "history.db"},
-            }
-
-            # 0. /api/ai/draft
-            req_ai = Request(f"{base_url}/api/ai/draft", data=json.dumps({"prompt": "Organizar PDFs na pasta ./processed_pdfs"}).encode("utf-8"), headers={"Content-Type": "application/json"})
-            with urlopen(req_ai) as resp:
-                ai_res = json.loads(resp.read().decode("utf-8"))
-            self.assertTrue(ai_res["ok"])
-            self.assertEqual(ai_res["ir"]["name"], "Organizar PDFs Recebidos")
-
-            # 1. /api/workflow/validate
-            req = Request(f"{base_url}/api/workflow/validate", data=json.dumps({"ir": ir_w01}).encode("utf-8"), headers={"Content-Type": "application/json"})
-            with urlopen(req) as resp:
-                val_res = json.loads(resp.read().decode("utf-8"))
-            self.assertTrue(val_res["ok"])
-            self.assertIn("filesystem.read", val_res["required_capabilities"])
-
-            # 2. /api/workflow/save
             with tempfile.TemporaryDirectory() as td:
+                source = Path(td) / "incoming"
+                source.mkdir()
+                (source / "demo.txt").write_text("hello", encoding="utf-8")
+                destination = Path(td) / "out"
+                run_out_dir = Path(td) / "compiled"
+
+                ir_w01 = {
+                    "schema_version": "0.1",
+                    "name": "W01 Canvas Test",
+                    "trigger": {"type": "manual"},
+                    "steps": [
+                        {"id": "s1", "skill": "filesystem.scan", "with": {"path": str(source), "glob": "*"}},
+                        {"id": "s2", "skill": "filter.extension", "with": {"from": "s1", "extension": ".txt"}},
+                        {"id": "s3", "skill": "filesystem.copy", "with": {"from": "s2", "destination": str(destination)}},
+                        {"id": "s4", "skill": "state.record", "with": {"from": "s3"}},
+                    ],
+                    "state": {"file": "history.db"},
+                }
+
+                # J-011 remains available but produces only an editable draft.
+                req_ai = Request(
+                    f"{base_url}/api/ai/draft",
+                    data=json.dumps({"prompt": "Organizar PDFs na pasta ./processed_pdfs"}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with urlopen(req_ai) as resp:
+                    ai_res = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(ai_res["ok"])
+
+                # Existing validation/save/load remains functional.
+                req = Request(
+                    f"{base_url}/api/workflow/validate",
+                    data=json.dumps({"ir": ir_w01}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with urlopen(req) as resp:
+                    val_res = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(val_res["ok"])
+                self.assertIn("filesystem.read", val_res["required_capabilities"])
+
                 wf_path = Path(td) / "workflow.ir.json"
-                req = Request(f"{base_url}/api/workflow/save", data=json.dumps({"path": str(wf_path), "ir": ir_w01}).encode("utf-8"), headers={"Content-Type": "application/json"})
+                req = Request(
+                    f"{base_url}/api/workflow/save",
+                    data=json.dumps({"path": str(wf_path), "ir": ir_w01}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
                 with urlopen(req) as resp:
                     save_res = json.loads(resp.read().decode("utf-8"))
                 self.assertTrue(save_res["ok"])
-                self.assertTrue(wf_path.exists())
 
-                # 3. /api/workflow/load
                 with urlopen(f"{base_url}/api/workflow/load?path={wf_path}") as resp:
                     load_res = json.loads(resp.read().decode("utf-8"))
                 self.assertTrue(load_res["ok"])
-                self.assertEqual(load_res["ir"]["name"], "W01 Canvas Test")
 
-                # 4. /api/workflow/compile_and_run
-                run_out_dir = Path(td) / "compiled"
-                req = Request(f"{base_url}/api/workflow/compile_and_run", data=json.dumps({"ir": ir_w01, "target": "python-sqlite", "out_dir": str(run_out_dir)}).encode("utf-8"), headers={"Content-Type": "application/json"})
+                # Old direct execution path is closed.
+                direct = Request(
+                    f"{base_url}/api/workflow/compile_and_run",
+                    data=json.dumps({"ir": ir_w01}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with self.assertRaises(HTTPError) as direct_error:
+                    urlopen(direct)
+                self.assertEqual(direct_error.exception.code, 403)
+
+                # 1. PLAN
+                req = Request(
+                    f"{base_url}/api/workflow/plan",
+                    data=json.dumps({
+                        "ir": ir_w01,
+                        "target": "python-sqlite",
+                        "out_dir": str(run_out_dir),
+                        "source": "canvas",
+                    }).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
                 with urlopen(req) as resp:
-                    run_res = json.loads(resp.read().decode("utf-8"))
-                self.assertTrue(run_res["ok"])
-                self.assertTrue(run_res["compiled"])
-                self.assertTrue(run_res["result"]["ok"])
+                    plan_res = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(plan_res["ok"])
+                plan_id = plan_res["plan"]["plan_id"]
+                self.assertTrue(plan_res["plan"]["protected_mutation"])
+
+                # APPLY before AUTHORIZE is blocked and produces no compiled artifact.
+                req = Request(
+                    f"{base_url}/api/workflow/apply",
+                    data=json.dumps({"plan_id": plan_id}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with self.assertRaises(HTTPError) as unauthorized_error:
+                    urlopen(req)
+                self.assertEqual(unauthorized_error.exception.code, 403)
+                self.assertFalse(run_out_dir.exists())
+
+                # 2. AUTHORIZE exact stored plan
+                req = Request(
+                    f"{base_url}/api/workflow/authorize",
+                    data=json.dumps({"plan_id": plan_id}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with urlopen(req) as resp:
+                    auth_res = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(auth_res["authorized"])
+
+                # 3. APPLY + VERIFY
+                req = Request(
+                    f"{base_url}/api/workflow/apply",
+                    data=json.dumps({"plan_id": plan_id, "ir": {"name": "ignored-tampering"}}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with urlopen(req) as resp:
+                    apply_res = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(apply_res["ok"])
+                self.assertEqual(apply_res["status"], "verified")
+                self.assertTrue(apply_res["verification"]["ir_matches_authorized_plan"])
+                self.assertTrue(apply_res["verification"]["execution_ok"])
+                self.assertTrue((destination / "demo.txt").exists())
+
+                # Authorization is one-shot; the same plan cannot be replayed silently.
+                replay = Request(
+                    f"{base_url}/api/workflow/apply",
+                    data=json.dumps({"plan_id": plan_id}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with self.assertRaises(HTTPError) as replay_error:
+                    urlopen(replay)
+                self.assertEqual(replay_error.exception.code, 403)
         finally:
             server.shutdown()
 

@@ -10,17 +10,17 @@ import sys
 from urllib.parse import parse_qs, urlparse
 
 from .catalog import CapabilityCatalog
-from .compiler import compile_ir
-from .engine import execute
 from .git_acquisition import plan_git_capability
 from .ai_draft import draft_intent_to_ir
 from .ir import validate_ir
 from .templates import instantiate_template, list_templates
+from .workflow_lifecycle import WorkflowPlanStore, apply_workflow_plan, build_workflow_plan
 from .workspace import repository_snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web" / "local-canvas"
 DEFAULT_CATALOG = ROOT / ".autocompiler" / "capabilities.json"
+WORKFLOW_PLANS = WorkflowPlanStore()
 
 
 def snapshot(catalog_path: Path = DEFAULT_CATALOG) -> dict:
@@ -188,33 +188,58 @@ class CanvasHandler(BaseHTTPRequestHandler):
             except Exception as exc:
                 self._json({"ok": False, "error": str(exc)}, 400)
             return
-        if path == "/api/workflow/compile_and_run":
+        if path == "/api/workflow/plan":
             body = self._body()
             ir_data = body.get("ir", {})
             target = body.get("target", "python-sqlite")
-            event = body.get("event", {})
             out_dir = Path(body.get("out_dir", ROOT / "generated" / "canvas_run")).expanduser()
             try:
-                manifest = compile_ir(ir_data, target, out_dir)
-                exec_run = subprocess.run(
-                    [sys.executable, str(out_dir / "automation.py")],
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
+                workflow_plan = build_workflow_plan(
+                    ir_data,
+                    target=target,
+                    out_dir=out_dir,
+                    source=body.get("source", "canvas"),
+                    build_time_ai=bool(body.get("build_time_ai", False)),
+                    ai_provider=body.get("ai_provider"),
                 )
-                run_result = json.loads(exec_run.stdout) if exec_run.returncode == 0 and exec_run.stdout.strip().startswith("{") else {
-                    "ok": exec_run.returncode == 0,
-                    "stdout": exec_run.stdout,
-                    "stderr": exec_run.stderr,
-                }
-                self._json({
-                    "ok": True,
-                    "compiled": True,
-                    "manifest": manifest,
-                    "result": run_result,
-                })
+                WORKFLOW_PLANS.create(ir_data, workflow_plan)
+                self._json({"ok": True, "plan": workflow_plan})
             except Exception as exc:
                 self._json({"ok": False, "error": str(exc)}, 400)
+            return
+        if path == "/api/workflow/authorize":
+            body = self._body()
+            plan_id = str(body.get("plan_id", ""))
+            record = WORKFLOW_PLANS.authorize(plan_id)
+            if record is None:
+                self._json({"ok": False, "status": "unknown_or_consumed_plan"}, 404)
+                return
+            self._json({"ok": True, "plan_id": plan_id, "authorized": True})
+            return
+        if path == "/api/workflow/apply":
+            body = self._body()
+            plan_id = str(body.get("plan_id", ""))
+            record = WORKFLOW_PLANS.get(plan_id)
+            if record is None:
+                self._json({"ok": False, "status": "unknown_plan"}, 404)
+                return
+            if not record.get("authorized"):
+                self._json({"ok": False, "status": "authorization_required"}, 403)
+                return
+            try:
+                result = apply_workflow_plan(record)
+                WORKFLOW_PLANS.mark_applied(plan_id)
+                self._json(result, 200 if result.get("ok") else 409)
+            except Exception as exc:
+                WORKFLOW_PLANS.mark_applied(plan_id)
+                self._json({"ok": False, "status": "apply_failed", "error": str(exc)}, 500)
+            return
+        if path == "/api/workflow/compile_and_run":
+            self._json({
+                "ok": False,
+                "status": "authorization_required",
+                "error": "Direct compile/run is disabled. Generate a plan, authorize that plan, then apply it.",
+            }, 403)
             return
         self._json({"error": "not found"}, 404)
 

@@ -34,6 +34,7 @@ TESTS=[
  "tests.test_coverage_w01_w05",
  "tests.test_templates",
  "tests.test_ai_draft",
+ "tests.test_workflow_lifecycle",
 ]
 
 def run(cmd):

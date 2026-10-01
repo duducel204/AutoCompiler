@@ -35,11 +35,13 @@
 <button id="btn-instantiate" style="width:100%;margin-top:10px;padding:8px;border:1px solid #2563eb;background:#1d4ed8;color:#fff;border-radius:6px;cursor:pointer">Instanciar Template</button>
 
 <hr style="border-color:#26313d;margin:16px 0">
-<strong>Ações Principais</strong>
+<strong>Plan → Authorize → Apply → Verify (J-012)</strong>
 <div class="actions" style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
 <button id="btn-validate">✓ Validar Schema IR</button>
 <button id="btn-save">💾 Salvar Fluxo (workflow.ir.json)</button>
-<button id="btn-run" style="background:#059669;border-color:#10b981">▶ Compilar & Executar</button>
+<button id="btn-plan" style="background:#1d4ed8;border-color:#2563eb">1. Gerar Plano</button>
+<button id="btn-authorize" disabled style="background:#92400e;border-color:#d97706">2. Autorizar este Plano</button>
+<button id="btn-apply" disabled style="background:#047857;border-color:#10b981">3. Aplicar + Verificar</button>
 </div>
 
 <hr style="border-color:#26313d;margin:16px 0">
@@ -57,7 +59,11 @@
 </aside>
 
 <main class="canvas">
-<section class="card"><div class="muted">FLUXO CAUSAL MANUAL DE AUTOMAÇÃO</div><h2 id="wf-title" style="margin:4px 0 0 0">Selecione um Template, Digite uma Intenção ou Crie um Fluxo</h2><div class="muted" id="wf-desc">Os rascunhos de IA não executam ações diretamente: eles geram schemas IR editáveis para revisão e compilação humana.</div></section>
+<section class="card"><div class="muted">FLUXO CAUSAL MANUAL DE AUTOMAÇÃO</div><h2 id="wf-title" style="margin:4px 0 0 0">Selecione um Template, Digite uma Intenção ou Crie um Fluxo</h2><div class="muted" id="wf-desc">IA, templates e edição manual produzem o mesmo IR. Nada é aplicado antes do plano e da autorização.</div></section>
+<section class="card" id="plan-panel">
+<div class="muted">PLANO DE IMPACTO · ainda não gerado</div>
+<div id="plan-content" style="margin-top:8px">Gere o plano para ver arquivos, rede, providers, IA, custo, agendamento e rollback antes de autorizar.</div>
+</section>
 <section class="card" style="min-height:300px">
 <div id="flow-container" class="flow"></div>
 </section>
@@ -72,6 +78,10 @@
 <script>
 const events=document.querySelector('#events'), flowContainer=document.querySelector('#flow-container');
 let templatesData = [];
+let currentPlan = null;
+let currentSource = 'canvas';
+let buildTimeAI = false;
+let currentAIProvider = null;
 let currentIR = {
   schema_version: "0.1",
   name: "Automação Manual Canvas",
@@ -79,6 +89,42 @@ let currentIR = {
   steps: [],
   state: { file: "history.db" }
 };
+
+function resetPlan(reason){
+  currentPlan = null;
+  document.querySelector('#btn-authorize').disabled = true;
+  document.querySelector('#btn-apply').disabled = true;
+  document.querySelector('#plan-content').innerHTML = 'Plano precisa ser gerado para o fluxo atual.';
+  if(reason) log('plan.invalidated', reason);
+}
+
+function planList(title, items, formatter){
+  const values = items || [];
+  const body = values.length ? values.map(formatter).join('<br>') : 'nenhum';
+  return '<div style="margin-top:8px"><strong>'+title+'</strong><div class="muted" style="margin-top:3px">'+body+'</div></div>';
+}
+
+function renderPlan(plan){
+  const ai = plan.ai || {};
+  const schedule = plan.schedule || {};
+  const providers = Object.entries(plan.providers || {});
+  let html = '<div><strong>'+plan.workflow.name+'</strong> · <span class="muted">'+plan.plan_id.slice(0,12)+'</span></div>';
+  html += planList('O que fará', plan.actions, x => x.step+' → '+x.skill);
+  html += planList('Arquivos / pastas', plan.filesystem, x => x.mode+' · '+x.path+' ('+x.reason+')');
+  html += planList('Rede', plan.network, x => x.method+' · '+x.destination);
+  html += planList('Providers', providers, x => x[0]+' → '+x[1]);
+  html += planList('Novo software', plan.new_software, x => x.capability+' → '+x.provider+' · custo '+x.cost);
+  html += '<div style="margin-top:8px"><strong>IA</strong><div class="muted">build-time: '+(ai.build_time?'sim ('+(ai.build_provider||'provider')+')':'não')+' · runtime: '+(ai.runtime?'sim':'não')+'</div></div>';
+  html += '<div style="margin-top:8px"><strong>Custo recorrente</strong><div class="muted">'+plan.recurring_cost.display+'</div></div>';
+  html += '<div style="margin-top:8px"><strong>Background</strong><div class="muted">'+(schedule.background?('sim · cron '+(schedule.cron||'?')):'não · trigger '+schedule.type)+'</div></div>';
+  html += planList('Rollback / remoção', plan.rollback, x => x);
+  if((plan.missing_capabilities||[]).length){
+    html += '<div class="status-err" style="margin-top:10px"><strong>Não aplicável ainda:</strong> capabilities ausentes: '+plan.missing_capabilities.join(', ')+'</div>';
+  } else {
+    html += '<div class="status-ok" style="margin-top:10px"><strong>Pronto para autorização.</strong> Aplicar executará somente este plano armazenado.</div>';
+  }
+  document.querySelector('#plan-content').innerHTML = html;
+}
 
 function log(type,msg,isErr=false){
   const e=document.createElement('div');
@@ -126,12 +172,16 @@ function renderFlow(){
 function addBlock(bType, label, skill){
   const id = 's' + (currentIR.steps.length + 1);
   currentIR.steps.push({ id: id, skill: skill, with: {} });
+  currentSource = 'canvas'; buildTimeAI = false; currentAIProvider = null;
+  resetPlan('fluxo editado manualmente');
   renderFlow();
   log('block.added', `Adicionado bloco ${id} [${skill}]`);
 }
 
 function removeBlock(id){
   currentIR.steps = currentIR.steps.filter(s => s.id !== id);
+  currentSource = 'canvas'; buildTimeAI = false; currentAIProvider = null;
+  resetPlan('bloco removido');
   renderFlow();
   log('block.removed', `Removido bloco ${id}`);
 }
@@ -156,6 +206,10 @@ document.querySelector('#btn-ai-draft').onclick = async () => {
     const res = await r.json();
     if(res.ok && res.ir){
       currentIR = res.ir;
+      currentSource = 'ai';
+      buildTimeAI = true;
+      currentAIProvider = provider;
+      resetPlan('novo draft de IA');
       document.querySelector('#wf-title').textContent = currentIR.name;
       document.querySelector('#wf-desc').textContent = `Draft gerado por IA. Capabilities requeridas: ${(res.required_capabilities || []).join(', ')}. Edite e confirme abaixo.`;
       renderFlow();
@@ -228,6 +282,10 @@ document.querySelector('#btn-instantiate').onclick = async () => {
     const res = await r.json();
     if(res.ok){
       currentIR = res.ir;
+      currentSource = 'template';
+      buildTimeAI = false;
+      currentAIProvider = null;
+      resetPlan('novo template instanciado');
       document.querySelector('#wf-title').textContent = currentIR.name;
       document.querySelector('#wf-desc').textContent = `Template ${tid.toUpperCase()} instanciado com sucesso. Capabilities: ${res.required_capabilities.join(', ')}`;
       renderFlow();
@@ -269,19 +327,65 @@ document.querySelector('#btn-save').onclick = async () => {
   } catch(e) { log('error', e.message, true); }
 };
 
-document.querySelector('#btn-run').onclick = async () => {
-  log('execution.start', 'Compilando e executando automação...');
+document.querySelector('#btn-plan').onclick = async () => {
+  log('plan.start', 'Gerando plano somente-leitura...');
   try {
-    const r = await fetch('/api/workflow/compile_and_run', {
+    const r = await fetch('/api/workflow/plan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ir: currentIR, target: "python-sqlite" })
+      body: JSON.stringify({
+        ir: currentIR,
+        target: "python-sqlite",
+        source: currentSource,
+        build_time_ai: buildTimeAI,
+        ai_provider: currentAIProvider
+      })
     });
     const res = await r.json();
-    if(res.ok && res.result && res.result.ok){
-      log('execution.success', `Executado com sucesso! Alvo: ${res.manifest.target}, Processados: ${res.result.processed}`);
+    if(!res.ok){ log('plan.failed', res.error || 'Falha ao gerar plano', true); return; }
+    currentPlan = res.plan;
+    renderPlan(currentPlan);
+    document.querySelector('#btn-authorize').disabled = !currentPlan.can_apply;
+    document.querySelector('#btn-apply').disabled = true;
+    log('plan.ready', 'Plano '+currentPlan.plan_id.slice(0,12)+' pronto para revisão');
+  } catch(e) { log('error', e.message, true); }
+};
+
+document.querySelector('#btn-authorize').onclick = async () => {
+  if(!currentPlan) return;
+  log('authorization.request', 'Autorizando exatamente o plano exibido...');
+  try {
+    const r = await fetch('/api/workflow/authorize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan_id: currentPlan.plan_id })
+    });
+    const res = await r.json();
+    if(!res.ok){ log('authorization.failed', res.status || 'Falha', true); return; }
+    document.querySelector('#btn-apply').disabled = false;
+    document.querySelector('#btn-authorize').disabled = true;
+    log('authorization.approved', 'Plano '+currentPlan.plan_id.slice(0,12)+' autorizado');
+  } catch(e) { log('error', e.message, true); }
+};
+
+document.querySelector('#btn-apply').onclick = async () => {
+  if(!currentPlan) return;
+  document.querySelector('#btn-apply').disabled = true;
+  log('apply.start', 'Aplicando o plano autorizado...');
+  try {
+    const r = await fetch('/api/workflow/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan_id: currentPlan.plan_id })
+    });
+    const res = await r.json();
+    if(res.ok && res.verification && res.verification.ok){
+      log('apply.success', 'Apply concluído');
+      log('verify.success', 'Artefatos, IR autorizado, manifest e execução verificados');
+      document.querySelector('#plan-content').innerHTML += '<div class="status-ok" style="margin-top:12px"><strong>APPLIED + VERIFIED</strong><br>IR autorizado = artefato compilado · execução real = OK · runtime AI = '+(res.verification.recurring_ai_used?'sim':'não')+'</div>';
     } else {
-      log('execution.failed', res.error || (res.result ? res.result.stderr : 'Falha na execução'), true);
+      log('verify.failed', res.status || res.error || 'Verificação falhou', true);
+      document.querySelector('#plan-content').innerHTML += '<div class="status-err" style="margin-top:12px"><strong>VERIFY FAILED</strong> — o resultado não foi marcado como sucesso.</div>';
     }
   } catch(e) { log('error', e.message, true); }
 };
