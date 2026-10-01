@@ -31,6 +31,22 @@ download one package
 
 A visual Canvas, desktop framework, Python runtime, connector library, GitHub integration or AI provider may help deliver this experience, but none of them defines the product by itself.
 
+The core product loop is not just automation execution; it is **capability closure and reuse**:
+
+```text
+intent
+→ required capability
+→ reuse what is already validated
+→ expose a genuine gap
+→ configure / compose / acquire / generate only what is needed
+→ verify
+→ register the validated result
+→ compile the automation
+→ later automations reuse that capability instead of rebuilding it
+```
+
+Builder should therefore feed Basic: a successfully created or adapted capability becomes reusable validated memory rather than a one-off script.
+
 The intended split is:
 
 - **Basic:** common automations should work without requiring the user to become a developer.
