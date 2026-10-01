@@ -53,9 +53,14 @@ class PreparationPlan:
 def plan_windows_preparation(
     inventory: dict[str, Any] | None = None,
     acquisition_recipes: dict[str, dict[str, Any]] | None = None,
+    *,
+    local_catalog_path: str | Path | None = None,
 ) -> PreparationPlan:
     """DISCOVER -> RESOLVE -> PLAN stage of Windows preparation without environment mutation."""
-    inspection = inspect_windows_automation_base(inventory=inventory)
+    inspection = inspect_windows_automation_base(
+        inventory=inventory,
+        local_catalog_path=str(local_catalog_path) if local_catalog_path is not None else None,
+    )
     missing = inspection.get("missing_required", [])
 
     if not missing:
