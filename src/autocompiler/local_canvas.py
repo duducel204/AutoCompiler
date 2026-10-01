@@ -14,6 +14,7 @@ from .compiler import compile_ir
 from .engine import execute
 from .git_acquisition import plan_git_capability
 from .ir import validate_ir
+from .templates import instantiate_template, list_templates
 from .workspace import repository_snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -95,6 +96,9 @@ class CanvasHandler(BaseHTTPRequestHandler):
         if path == "/api/acquisition/git":
             self._json(plan_git_capability())
             return
+        if path == "/api/templates":
+            self._json({"ok": True, "templates": list_templates()})
+            return
         if path == "/api/workflow/load":
             qs = parse_qs(parsed_url.query)
             target_path = Path(qs.get("path", ["workflow.ir.json"])[0]).expanduser()
@@ -136,6 +140,16 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 self._json({"ok": False, "status": "authorization_required"}, 403)
                 return
             self._json(apply_git_acquisition(authorized=True))
+            return
+        if path == "/api/templates/instantiate":
+            body = self._body()
+            tid = body.get("template_id", "w01")
+            params = body.get("params", {})
+            try:
+                result = instantiate_template(tid, params)
+                self._json({"ok": True, **result})
+            except Exception as exc:
+                self._json({"ok": False, "error": str(exc)}, 400)
             return
         if path == "/api/workflow/validate":
             body = self._body()
