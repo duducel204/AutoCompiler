@@ -11,17 +11,21 @@ from urllib.parse import parse_qs, urlparse
 
 from .catalog import CapabilityCatalog
 from .environment import build_unified_resource_graph
+from .first_run import MachinePreparationStore, build_machine_preflight
 from .git_acquisition import plan_git_capability
 from .ai_draft import draft_intent_to_ir
 from .ir import validate_ir
 from .templates import instantiate_template, list_templates
 from .workflow_lifecycle import WorkflowPlanStore, apply_workflow_plan, build_workflow_plan
+from .windows_provisioner import apply_windows_preparation
 from .workspace import repository_snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web" / "local-canvas"
 DEFAULT_CATALOG = ROOT / ".autocompiler" / "capabilities.json"
+DEFAULT_ENV_MANIFEST = ROOT / ".autocompiler" / "environment_manifest.json"
 WORKFLOW_PLANS = WorkflowPlanStore()
+MACHINE_PLANS = MachinePreparationStore()
 
 
 def snapshot(catalog_path: Path = DEFAULT_CATALOG) -> dict:
@@ -94,6 +98,16 @@ class CanvasHandler(BaseHTTPRequestHandler):
         if path == "/api/state":
             self._json(snapshot())
             return
+        if path == "/api/preflight":
+            try:
+                preflight, prep_plan = build_machine_preflight(local_catalog_path=DEFAULT_CATALOG)
+                if prep_plan is not None and not preflight.get("automation_ready"):
+                    record = MACHINE_PLANS.create(prep_plan)
+                    preflight["plan_id"] = record["plan_id"]
+                self._json({"ok": True, **preflight})
+            except Exception as exc:
+                self._json({"ok": False, "status": "preflight_failed", "error": str(exc)}, 500)
+            return
         if path == "/api/workspace":
             self._json(repository_snapshot(ROOT))
             return
@@ -142,6 +156,46 @@ class CanvasHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
+        if path == "/api/preflight/authorize":
+            body = self._body()
+            plan_id = str(body.get("plan_id", ""))
+            record = MACHINE_PLANS.authorize(plan_id)
+            if record is None:
+                self._json({"ok": False, "status": "unknown_unresolved_or_consumed_plan"}, 409)
+                return
+            self._json({"ok": True, "plan_id": plan_id, "authorized": True})
+            return
+        if path == "/api/preflight/apply":
+            body = self._body()
+            plan_id = str(body.get("plan_id", ""))
+            record = MACHINE_PLANS.get(plan_id)
+            if record is None:
+                self._json({"ok": False, "status": "unknown_plan"}, 404)
+                return
+            if not record.get("authorized"):
+                self._json({"ok": False, "status": "authorization_required"}, 403)
+                return
+            result = apply_windows_preparation(
+                record["plan"],
+                manifest_path=DEFAULT_ENV_MANIFEST,
+                authorized=True,
+            )
+            MACHINE_PLANS.mark_applied(plan_id)
+            postflight, post_plan = build_machine_preflight(local_catalog_path=DEFAULT_CATALOG)
+            if post_plan is not None and not postflight.get("automation_ready"):
+                new_record = MACHINE_PLANS.create(post_plan)
+                postflight["plan_id"] = new_record["plan_id"]
+            ready = bool(postflight.get("automation_ready"))
+            self._json(
+                {
+                    "ok": bool(result.get("ok")) and ready,
+                    "status": "automation_ready" if ready else result.get("status", "preparation_failed"),
+                    "preparation_result": result,
+                    "preflight": postflight,
+                },
+                200 if bool(result.get("ok")) and ready else 409,
+            )
+            return
         if path == "/api/acquisition/git/apply":
             body = self._body()
             if body.get("authorization") != "install-git":
@@ -215,6 +269,10 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 self._json({"ok": False, "error": str(exc)}, 400)
             return
         if path == "/api/workflow/authorize":
+            preflight, _ = build_machine_preflight(local_catalog_path=DEFAULT_CATALOG)
+            if not preflight.get("automation_ready"):
+                self._json({"ok": False, "status": "machine_not_automation_ready"}, 409)
+                return
             body = self._body()
             plan_id = str(body.get("plan_id", ""))
             record = WORKFLOW_PLANS.authorize(plan_id)
@@ -224,6 +282,10 @@ class CanvasHandler(BaseHTTPRequestHandler):
             self._json({"ok": True, "plan_id": plan_id, "authorized": True})
             return
         if path == "/api/workflow/apply":
+            preflight, _ = build_machine_preflight(local_catalog_path=DEFAULT_CATALOG)
+            if not preflight.get("automation_ready"):
+                self._json({"ok": False, "status": "machine_not_automation_ready"}, 409)
+                return
             body = self._body()
             plan_id = str(body.get("plan_id", ""))
             record = WORKFLOW_PLANS.get(plan_id)
