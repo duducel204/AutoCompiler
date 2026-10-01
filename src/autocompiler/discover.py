@@ -58,6 +58,51 @@ def detect_command(capability_id: str, command: str, version_args: list[str]) ->
     )
 
 
+def probe_command(path: str, args: list[str]) -> bool:
+    """Read-only execution probe used to distinguish detection from usability."""
+    try:
+        result = subprocess.run(
+            [path, *args],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=3,
+            check=False,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+def detect_native_scheduler() -> Capability:
+    system = platform.system().lower()
+    if system == "windows":
+        scheduler = shutil.which("schtasks")
+        detected = bool(scheduler)
+        usable = "yes" if scheduler and probe_command(scheduler, ["/?"]) else ("no" if detected else "untested")
+        return Capability(
+            "native_scheduler",
+            detected,
+            installed="yes" if detected else "unknown",
+            accessible="yes" if detected else "unknown",
+            authorized="unknown",
+            usable=usable,
+            path=scheduler,
+            notes="Windows Task Scheduler probed read-only via schtasks /?. Task creation still requires workflow authorization.",
+        )
+
+    scheduler = shutil.which("crontab") or shutil.which("systemctl")
+    return Capability(
+        "native_scheduler",
+        bool(scheduler),
+        installed="yes" if scheduler else "unknown",
+        accessible="yes" if scheduler else "unknown",
+        authorized="unknown",
+        usable="untested",
+        path=scheduler,
+        notes="Scheduler detected; non-Windows scheduler usability remains outside the Windows MVP readiness gate.",
+    )
+
+
 def windows_browser_providers() -> list[Provider]:
     if platform.system().lower() != "windows":
         return []
@@ -127,26 +172,10 @@ def discover() -> dict:
 
     if platform.system().lower() == "windows":
         capabilities.append(detect_command("powershell", "powershell", ["-NoProfile", "-Command", "$PSVersionTable.PSVersion.ToString()"]))
-        scheduler = shutil.which("schtasks")
-        capabilities.append(Capability(
-            "native_scheduler",
-            bool(scheduler),
-            installed="yes" if scheduler else "unknown",
-            accessible="yes" if scheduler else "unknown",
-            path=scheduler,
-            notes="Windows Task Scheduler via schtasks.",
-        ))
     else:
         capabilities.append(detect_command("shell", "sh", ["--version"]))
-        scheduler = shutil.which("crontab") or shutil.which("systemctl")
-        capabilities.append(Capability(
-            "native_scheduler",
-            bool(scheduler),
-            installed="yes" if scheduler else "unknown",
-            accessible="yes" if scheduler else "unknown",
-            path=scheduler,
-            notes="Detected crontab or systemd tooling.",
-        ))
+
+    capabilities.append(detect_native_scheduler())
 
     capabilities.append(Capability(
         "sqlite",
