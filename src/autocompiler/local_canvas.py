@@ -10,6 +10,7 @@ import sys
 from urllib.parse import parse_qs, urlparse
 
 from .catalog import CapabilityCatalog
+from .environment import build_unified_resource_graph
 from .git_acquisition import plan_git_capability
 from .ai_draft import draft_intent_to_ir
 from .ir import validate_ir
@@ -26,11 +27,13 @@ WORKFLOW_PLANS = WorkflowPlanStore()
 def snapshot(catalog_path: Path = DEFAULT_CATALOG) -> dict:
     catalog = CapabilityCatalog(catalog_path)
     records = catalog._load()
+    resource_graph = build_unified_resource_graph(local_catalog_path=catalog_path)
     return {
         "catalog": records,
         "validated": [r for r in records if r.get("trust") == "validated"],
         "candidates": [r for r in records if r.get("trust") == "candidate"],
         "revoked": [r for r in records if r.get("trust") == "revoked"],
+        "resources": resource_graph.get("resources", []),
     }
 
 
@@ -117,6 +120,10 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 })
             except Exception as exc:
                 self._json({"ok": False, "error": str(exc)}, 400)
+            return
+        if path == "/favicon.ico":
+            self.send_response(204)
+            self.end_headers()
             return
         if path in ("/", "/index.html"):
             target = WEB / "index.html"
