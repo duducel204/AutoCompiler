@@ -9,7 +9,21 @@
 > 4. [DECISIONS.md](DECISIONS.md)
 > 5. this roadmap.
 
-This roadmap is intended to be executed task-by-task. Do not skip ahead because a later task looks easier or more visible.
+This roadmap preserves task-level auditability, but task completion is not automatically a human approval boundary.
+
+The default execution model is:
+
+```text
+authorized execution envelope
+→ execute current J-XXX
+→ test + Trust Gate
+→ record evidence + task report
+→ commit the task
+→ advance automatically when green
+→ open/review PR at an integration gate
+```
+
+Do not skip dependencies because a later task looks easier or more visible. Do not stop merely because a task completed.
 
 ---
 
@@ -57,7 +71,9 @@ For every roadmap task:
 11. run the canonical Trust Gate before declaring the task complete;
 12. update the coverage matrix when a task changes workflow coverage;
 13. document unresolved gaps instead of silently mocking them;
-14. one roadmap task should normally produce one focused PR.
+14. one roadmap task should normally produce one identifiable task commit with its tests/evidence;
+15. consecutive tasks inside an authorized execution envelope should advance automatically when their Definition of Done and Trust Gate are green;
+16. pull requests are integration/review gates, not the default authorization boundary for every task.
 
 ### Task completion response
 
@@ -90,6 +106,54 @@ NEXT ROADMAP TASK:
 ```
 
 Do not mark DONE if the Definition of Done is not satisfied.
+
+### Continuous execution envelope
+
+An authorization may cover multiple consecutive roadmap tasks. Within that envelope, an implementation agent should continue automatically after a green task.
+
+Default integration blocks for the MVP:
+
+```text
+Engine / capability closure    J-002 → J-008
+Builder / user creation        J-009 → J-012
+External / persistence         J-013 → J-015
+Packaging / release            J-016 → J-017
+```
+
+A focused PR should normally be created at the end of an integration block. A PR may be opened earlier when isolation is technically useful, but opening a PR must not by itself force a human interruption.
+
+Stop and request a human decision only when at least one of these conditions is true:
+
+- the current task is genuinely BLOCKED;
+- the canonical Trust Gate cannot be restored without changing accepted behavior;
+- PRODUCT_INTENT or an accepted decision must change;
+- a new paid service, financial commitment or materially different recurring cost is required;
+- a credential, secret, consent or external action only the user can provide is required;
+- a destructive/security-sensitive mutation falls outside the already authorized plan;
+- repository evidence exposes a structural contradiction that cannot be resolved from existing authority documents.
+
+Completion reports remain mandatory per task even when execution continues.
+
+### Core MVP falsification gate — capability closure
+
+Before UI breadth or connector breadth is treated as proof of the product, AutoCompiler must prove the loop defined in [MVP_CAPABILITY_CLOSURE.md](MVP_CAPABILITY_CLOSURE.md):
+
+```text
+INTENT
+→ REQUIRED CAPABILITIES
+→ DISCOVER / RESOLVE
+→ genuine capability gap
+→ REUSE / CONFIGURE / COMPOSE / ACQUIRE / GENERATE / DELEGATE
+→ PLAN → AUTHORIZE → APPLY → VERIFY
+→ REGISTER validated capability/provider/skill
+→ COMPILE user-owned automation
+→ independent execution
+→ second distinct automation REUSES the registered capability
+```
+
+Existing provisioning evidence already proves important parts of this loop. The remaining gate is not "can we install one more tool?" It is whether the same AutoCompiler capability model can close a real gap, turn the result into reusable validated memory, and avoid rebuilding that capability on the next automation.
+
+J-002 through J-005 must collectively close this gate before the roadmap is allowed to treat Canvas, templates, or connector count as the main measure of progress.
 
 ---
 
@@ -169,6 +233,8 @@ Do not mark DONE if the Definition of Done is not satisfied.
 - workflow requirements resolve to semantic capabilities;
 - provider selection is not hard-coded into workflow definitions;
 - existing canonical capability memory is reused;
+- unresolved requirements are returned as explicit capability gaps with explainable resolution options;
+- the registry can distinguish a reusable validated capability from a merely detected or proposed implementation;
 - Trust Gate green.
 
 ---
@@ -226,9 +292,9 @@ DISCOVER
 → RESOLVE
 → PLAN
 → USER AUTHORIZATION
-→ REUSE / CONFIGURE / ACQUIRE
+→ REUSE / CONFIGURE / COMPOSE / ACQUIRE / GENERATE / DELEGATE
 → VERIFY
-→ REGISTER OWNERSHIP
+→ REGISTER OWNERSHIP + VALIDATED CAPABILITY MEMORY
 → AUTOMATION_READY
 ```
 
@@ -247,6 +313,8 @@ DISCOVER
 - repeated preparation is idempotent;
 - already-valid machines are not unnecessarily mutated;
 - partial failure leaves a diagnosable state;
+- at least one genuine missing capability is resolved through the canonical capability lifecycle rather than a workflow-specific shortcut;
+- the verified result is registered so normal planning can consume it later;
 - Trust Gate green.
 
 ---
@@ -276,7 +344,17 @@ Prefer the simplest sufficient provider combination:
 
 W-01, W-02 and W-03 compile and execute from reusable primitives.
 
+The capability-closure proof must also pass:
+
+1. Automation A starts from an intent that requires at least one capability not already usable at the beginning of the proof.
+2. AutoCompiler resolves the gap through its canonical lifecycle, verifies the result and registers the validated capability/provider/skill.
+3. Automation A compiles and executes without depending on a permanent AutoCompiler runtime when the behavior is deterministic.
+4. Automation B is a distinct workflow that requires the newly registered capability.
+5. Normal planning resolves Automation B from canonical memory without rebuilding or reacquiring the same capability unnecessarily.
+
 After installation, stop AutoCompiler and prove scheduled/event execution still works where applicable.
+
+**Do not advance to UI breadth if this closure/reuse proof fails.**
 
 ---
 
@@ -363,7 +441,7 @@ Do not solve each example with an unrelated hard-coded implementation.
 - no recurring AI required;
 - Trust Gate green.
 
-**This is the first major MVP gate. Do not proceed if the engine requires workflow-specific code to pass.**
+**This is the first broad coverage gate. Do not proceed if the engine requires workflow-specific code to pass, or if the capability-closure/reuse gate from J-002 through J-005 is still unresolved.**
 
 ---
 
@@ -745,10 +823,10 @@ Do not optimize for raw node count.
 
 ---
 
-# 7. Immediate next task
+# 7. Current execution rule
 
-Once this documentation is merged, the implementation queue starts at:
+Resume from the first roadmap task whose Definition of Done is not already supported by merged evidence.
 
-> **J-001 — Freeze the Automation Grammar in code.**
+J-001 has merged implementation evidence. J-002 is therefore the current task to finish unless newer merged evidence proves its Definition of Done completely.
 
-Only move to J-002 after J-001 satisfies its Definition of Done.
+Once J-002 is green, continue inside the authorized Engine / capability-closure envelope through J-008 without stopping for routine per-task approval. Preserve one identifiable commit and completion report per task.
