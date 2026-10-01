@@ -224,6 +224,17 @@ Builder may help create:
 
 The advanced layer extends the baseline rather than forcing every user to become a developer.
 
+A successful Builder extension should not remain a one-off development artifact. After verification, its reusable capability/provider/skill binding should enter validated capability memory so later Basic automations can resolve and reuse it through the normal planner.
+
+In that sense, Builder feeds Basic:
+
+```text
+new need
+→ Builder closes a genuine capability gap
+→ verify + register
+→ Basic can reuse the new validated capability
+```
+
 ## 9. Capability, provider and stack
 
 A capability is the semantic need. A provider is one implementation.
