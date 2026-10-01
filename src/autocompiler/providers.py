@@ -537,10 +537,13 @@ class StateCheckProvider(CapabilityProvider):
             return {"ok": True, "seen": False, "key": key}
 
         import sqlite3
-        with sqlite3.connect(db_path) as con:
+        con = sqlite3.connect(db_path)
+        try:
             con.execute(f"CREATE TABLE IF NOT EXISTS {table} (item_key TEXT PRIMARY KEY, ts TEXT)")
             cur = con.execute(f"SELECT 1 FROM {table} WHERE item_key = ?", (key,))
             row = cur.fetchone()
+        finally:
+            con.close()
         return {"ok": True, "seen": row is not None, "key": key}
 
 
@@ -565,9 +568,13 @@ class StateUpdateProvider(CapabilityProvider):
 
         db_path.parent.mkdir(parents=True, exist_ok=True)
         import sqlite3
-        with sqlite3.connect(db_path) as con:
+        con = sqlite3.connect(db_path)
+        try:
             con.execute(f"CREATE TABLE IF NOT EXISTS {table} (item_key TEXT PRIMARY KEY, val TEXT, ts TEXT)")
             con.execute(f"INSERT OR REPLACE INTO {table} (item_key, val, ts) VALUES (?, ?, ?)", (key, val, ts))
+            con.commit()
+        finally:
+            con.close()
         return {"ok": True, "updated": True, "key": key, "val": val, "ts": ts}
 
 

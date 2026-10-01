@@ -62,8 +62,11 @@ class StateDeduplicationTests(unittest.TestCase):
 
             # Query database history
             db_file = root / "dedup.db"
-            with sqlite3.connect(db_file) as con:
+            con = sqlite3.connect(db_file)
+            try:
                 rows = con.execute("SELECT item_key, val FROM seen_items").fetchall()
+            finally:
+                con.close()
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0][0], "item_001")
 
