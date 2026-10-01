@@ -1,27 +1,214 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AutoCompiler Canvas</title>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AutoCompiler Causal Canvas</title>
 <style>
-:root{font-family:Segoe UI,Arial,sans-serif;color:#e8edf2;background:#0b0f14}*{box-sizing:border-box}body{margin:0}button,input{font:inherit}.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}.top{padding:12px 18px;border-bottom:1px solid #26313d;display:flex;justify-content:space-between}.layout{display:grid;grid-template-columns:290px 1fr 240px;min-height:0}.side{padding:14px;border-right:1px solid #26313d;background:#10161d;overflow:auto}.side.right{border-right:0;border-left:1px solid #26313d}.canvas{padding:18px;overflow:auto}.card,.node{border:1px solid #334150;border-radius:12px;background:#121a22;padding:12px}.muted{color:#8fa1b3;font-size:12px}.caps{display:grid;gap:8px;margin-top:10px}.cap{padding:8px;border-radius:8px;background:#18222c}.objective{max-width:680px;margin:0 auto 24px}.branches{display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:14px;margin-top:28px}.node button,.actions button,.gate button{margin-top:10px;padding:8px 10px;border:1px solid #486078;border-radius:8px;background:#182b3d;color:#fff;cursor:pointer}.node.active{outline:2px solid #6aa8e8}.stream{border-top:1px solid #26313d;padding:10px 16px;background:#10161d;max-height:180px;overflow:auto;font:12px Consolas,monospace}.event{padding:3px 0}.chat{display:flex;gap:8px;margin-top:16px}.chat input{flex:1;padding:10px;border-radius:8px;border:1px solid #334150;background:#0e141a;color:#fff}.chat button,.gate .approve{padding:10px 14px;border:0;border-radius:8px;background:#276fb7;color:white}.repo-meta{margin:8px 0 12px}.tree{font:12px Consolas,monospace;line-height:1.7;white-space:nowrap}.tree-row{overflow:hidden;text-overflow:ellipsis}.tree-dir{font-weight:700}.dirty{color:#e8bd6a}.clean{color:#72c792}.gate{max-width:680px;margin:0 auto 18px;border:1px solid #8d6e2f;background:#211b10}.gate h3{margin:4px 0 8px}.gate-grid{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:13px}.hidden{display:none}.danger{color:#e8bd6a}@media(max-width:800px){.layout{grid-template-columns:1fr}.side{display:none}.branches{grid-template-columns:1fr}}
+:root{font-family:Segoe UI,Arial,sans-serif;color:#e8edf2;background:#0b0f14}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}.top{padding:12px 18px;border-bottom:1px solid #26313d;display:flex;justify-content:space-between;align-items:center}.layout{display:grid;grid-template-columns:290px 1fr 280px;min-height:0}.side{padding:14px;border-right:1px solid #26313d;background:#10161d;overflow:auto}.side.right{border-right:0;border-left:1px solid #26313d}.canvas{padding:18px;overflow:auto;display:flex;flex-direction:column;gap:18px}.card,.node{border:1px solid #334150;border-radius:12px;background:#121a22;padding:14px}.muted{color:#8fa1b3;font-size:12px}.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.palette button,.actions button{padding:6px 10px;border:1px solid #486078;border-radius:6px;background:#182b3d;color:#fff;cursor:pointer;font-size:13px}.palette button:hover,.actions button:hover{background:#233e54}.flow{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:14px}.block-card{width:100%;max-width:680px;border:1px solid #2f4052;border-radius:10px;background:#16222e;padding:12px;position:relative}.block-header{display:flex;justify-content:space-between;align-items:center;font-weight:bold;margin-bottom:8px}.block-type{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;background:#276fb7;color:#fff}.type-WHEN{background:#8a42ad}.type-GET{background:#1f8272}.type-TRANSFORM{background:#d97706}.type-IF{background:#2563eb}.type-REPEAT{background:#4b5563}.type-ACT{background:#059669}.type-SAVE{background:#0284c7}.type-NOTIFY{background:#b91c1c}.flow-arrow{color:#6aa8e8;font-size:18px;font-weight:bold}.chat{display:flex;gap:8px;margin-top:12px}.chat input{flex:1;padding:8px;border-radius:6px;border:1px solid #334150;background:#0e141a;color:#fff}.stream{border-top:1px solid #26313d;padding:10px 16px;background:#10161d;max-height:180px;overflow:auto;font:12px Consolas,monospace}.event{padding:3px 0}.tree{font:12px Consolas,monospace;line-height:1.7;white-space:nowrap}.status-ok{color:#72c792}.status-err{color:#f87171}@media(max-width:800px){.layout{grid-template-columns:1fr}.side{display:none}}
 </style></head><body><div class="app">
-<header class="top"><strong>AutoCompiler Canvas</strong><span class="muted" id="repo-head">LOCAL · carregando workspace…</span></header>
-<div class="layout"><aside class="side"><strong>Repository Workspace</strong><div id="repo-meta" class="repo-meta muted"></div><div id="tree" class="tree">Lendo repositório local…</div></aside>
-<main class="canvas"><section class="objective card"><div class="muted">OBJETIVO ATUAL</div><h2 id="goal">Explorar o AutoCompiler visualmente</h2><div class="chat"><input id="input" aria-label="Objetivo" placeholder="Digite um objetivo..."><button id="send">Executar</button></div></section>
-<section id="git-gate" class="gate card hidden"><div class="muted">HUMAN GATE · ENVIRONMENT.MODIFY</div><h3>Git não encontrado</h3><p>O AutoCompiler encontrou uma capacidade ausente e uma aquisição disponível.</p><div id="gate-detail" class="gate-grid"></div><p class="danger">A autorização abaixo permite somente o plano exibido para instalar Git.</p><button class="approve" id="approve-git">AUTORIZAR INSTALAÇÃO</button> <button id="deny-git">NEGAR</button></section>
-<div class="branches" id="branches"></div></main>
-<aside class="side right"><strong>Capabilities</strong><div id="caps" class="caps"><div class="muted">Carregando catálogo…</div></div></aside></div>
-<footer class="stream"><div><strong>Execution stream</strong></div><div id="events"></div></footer></div>
+<header class="top"><div><strong>AutoCompiler Causal Canvas</strong> <span class="muted">(J-009 Manual Builder)</span></div><span class="muted" id="repo-head">LOCAL · carregando workspace…</span></header>
+<div class="layout">
+<aside class="side"><strong>Controles & Templates</strong>
+<div class="actions" style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+<button id="btn-w01">⚡ Recriar W-01 (PDFs)</button>
+<button id="btn-w03">⚡ Recriar W-03 (API Snapshot)</button>
+<button id="btn-validate">✓ Validar Schema IR</button>
+<button id="btn-save">💾 Salvar Fluxo (workflow.ir.json)</button>
+<button id="btn-run" style="background:#059669;border-color:#10b981">▶ Compilar & Executar</button>
+</div>
+<hr style="border-color:#26313d;margin:16px 0">
+<strong>Atalhos de Blocos (Gramática Causal)</strong>
+<div class="palette">
+<button onclick="addBlock('WHEN','Trigger','manual')">+ WHEN</button>
+<button onclick="addBlock('GET','Scan/Read','filesystem.scan')">+ GET / CHECK</button>
+<button onclick="addBlock('TRANSFORM','Filtrar/Mapear','filter.extension')">+ TRANSFORM</button>
+<button onclick="addBlock('IF','Condição','flow.condition')">+ IF / ELSE</button>
+<button onclick="addBlock('ACT','Ação Externa','filesystem.copy')">+ ACT</button>
+<button onclick="addBlock('SAVE','Estado Durable','state.record')">+ SAVE</button>
+<button onclick="addBlock('NOTIFY','Notificação','notify')">+ NOTIFY</button>
+</div>
+<div id="validation-msg" class="muted" style="margin-top:16px"></div>
+</aside>
+
+<main class="canvas">
+<section class="card"><div class="muted">FLUXO CAUSAL MANUAL DE AUTOMAÇÃO</div><h2 id="wf-title" style="margin:4px 0 0 0">Novo Fluxo Sem Causalidade</h2><div class="muted" id="wf-desc">Monte blocos causais sem necessidade de código ou conhecimento de infraestrutura.</div></section>
+<section class="card" style="min-height:300px">
+<div id="flow-container" class="flow"></div>
+</section>
+</main>
+
+<aside class="side right"><strong>Capabilities Disponíveis</strong><div id="caps" class="caps" style="margin-top:12px"><div class="muted">Carregando catálogo…</div></div></aside>
+</div>
+
+<footer class="stream"><div><strong>Execution Stream & Logs</strong></div><div id="events"></div></footer>
+</div>
+
 <script>
-const events=document.querySelector('#events'), branches=document.querySelector('#branches'), gate=document.querySelector('#git-gate');
-function log(type,msg){const e=document.createElement('div');e.className='event';e.textContent=new Date().toLocaleTimeString()+'  '+type+'  '+msg;events.prepend(e)}
-function branch(name,text){const n=document.createElement('div');n.className='node';n.innerHTML='<strong>'+name+'</strong><p>'+text+'</p><div class="actions"><button>Explorar</button></div>';n.querySelector('button').onclick=()=>{n.classList.toggle('active');log('branch.selected',name)};branches.appendChild(n)}
-branch('A · REUSE','Procurar capacidade já validada.');branch('B · ACQUIRE','Adquirir ou adaptar um provider existente.');branch('C · BUILD','Construir uma capability candidata.');
-document.querySelector('#send').onclick=()=>{const i=document.querySelector('#input');const v=i.value.trim();if(!v)return;document.querySelector('#goal').textContent=v;log('objective.received',v);log('gap.analysis','comparando objetivo com repertório atual');i.value=''};
+const events=document.querySelector('#events'), flowContainer=document.querySelector('#flow-container');
+let currentIR = {
+  schema_version: "0.1",
+  name: "Automação Manual Canvas",
+  trigger: { type: "manual" },
+  steps: [],
+  state: { file: "history.db" }
+};
 
-function loadGitGate(){fetch('/api/acquisition/git').then(r=>r.json()).then(p=>{if(p.action==='reuse'){log('capability.reused','git · '+(p.version||p.path||'disponível'));gate.classList.add('hidden');return}if(p.action!=='acquire'){log('gap.unresolved',p.reason||'git sem provider');return}document.querySelector('#gate-detail').innerHTML='<b>Capability</b><span>'+p.capability+'</span><b>Provider</b><span>'+p.provider+'</span><b>Fonte</b><span>'+p.source+'</span><b>Escopo</b><span>'+p.install_scope+'</span><b>Admin</b><span>'+(p.requires_admin?'sim':'não')+'</span><b>Verificação</b><span>'+p.verification.join(' ')+'</span><b>Rollback</b><span>'+p.rollback+'</span>';gate.classList.remove('hidden');log('authorization.required','git · '+p.provider)}).catch(e=>log('acquisition.error',e.message))}
-document.querySelector('#deny-git').onclick=()=>{gate.classList.add('hidden');log('authorization.denied','instalação de Git negada')};
-document.querySelector('#approve-git').onclick=async()=>{const b=document.querySelector('#approve-git');b.disabled=true;b.textContent='INSTALANDO…';log('authorization.approved','instalação de Git autorizada');try{const r=await fetch('/api/acquisition/git/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({authorization:'install-git'})});const x=await r.json();if(x.ok){log('verification.passed','Git adquirido e detectado');gate.classList.add('hidden')}else{log('verification.failed',x.status+(x.stderr?' · '+x.stderr.slice(-240):''));b.disabled=false;b.textContent='TENTAR NOVAMENTE'}}catch(e){log('acquisition.error',e.message);b.disabled=false;b.textContent='TENTAR NOVAMENTE'}};
+function log(type,msg,isErr=false){
+  const e=document.createElement('div');
+  e.className='event '+(isErr?'status-err':'status-ok');
+  e.textContent=new Date().toLocaleTimeString()+'  ['+type+']  '+msg;
+  events.prepend(e);
+}
 
-fetch('/api/workspace').then(r=>r.json()).then(w=>{document.querySelector('#repo-head').textContent='LOCAL · '+w.name+' · '+(w.branch||'sem branch')+' @ '+(w.commit||'?');const state=w.clean?'<span class="clean">clean</span>':'<span class="dirty">'+w.changes.length+' alteração(ões)</span>';document.querySelector('#repo-meta').innerHTML='<div>'+w.root+'</div><div>Git: '+state+'</div>';const tree=document.querySelector('#tree');tree.innerHTML='';w.entries.forEach(x=>{const d=document.createElement('div');d.className='tree-row '+(x.type==='directory'?'tree-dir':'');d.style.paddingLeft=(x.depth*12)+'px';d.textContent=(x.type==='directory'?'▸ ':'· ')+x.name;d.title=x.path;tree.appendChild(d)});if(w.truncated){const d=document.createElement('div');d.className='muted';d.textContent='… listagem limitada';tree.appendChild(d)}log('workspace.loaded',w.entries.length+' entradas · '+(w.branch||'sem branch'))}).catch(e=>log('workspace.error',e.message));
-fetch('/api/state').then(r=>r.json()).then(s=>{const box=document.querySelector('#caps');box.innerHTML='';const all=s.catalog||[];if(!all.length){box.innerHTML='<div class="muted">Catálogo vazio neste workspace.</div>';return}all.forEach(c=>{const d=document.createElement('div');d.className='cap';d.innerHTML='<div>'+c.capability+'</div><div class="muted">'+c.trust+' · '+c.provider+'</div>';box.appendChild(d)});log('catalog.loaded',all.length+' registros')}).catch(e=>log('catalog.error',e.message));
-loadGitGate();log('canvas.ready','interface local iniciada');
+function renderFlow(){
+  flowContainer.innerHTML = '';
+  if(!currentIR.steps.length){
+    flowContainer.innerHTML = '<div class="muted" style="padding:40px">Nenhum bloco no fluxo. Use os botões da barra lateral ou selecione um template W-01/W-03.</div>';
+    return;
+  }
+
+  currentIR.steps.forEach((step, idx) => {
+    if(idx > 0){
+      const arrow = document.createElement('div');
+      arrow.className = 'flow-arrow';
+      arrow.textContent = '↓';
+      flowContainer.appendChild(arrow);
+    }
+
+    const card = document.createElement('div');
+    card.className = 'block-card';
+    const bType = step.skill.startsWith('filesystem.scan') ? 'GET' :
+                  step.skill.startsWith('filter') ? 'TRANSFORM' :
+                  step.skill.startsWith('flow') ? 'IF' :
+                  step.skill.startsWith('state') ? 'SAVE' :
+                  step.skill.startsWith('notify') ? 'NOTIFY' : 'ACT';
+
+    card.innerHTML = `
+      <div class="block-header">
+        <span>#${step.id} — ${step.skill}</span>
+        <span class="block-type type-${bType}">${bType}</span>
+      </div>
+      <div class="muted">Parâmetros (with):</div>
+      <pre style="margin:4px 0 0 0;font-size:12px;background:#0d1620;padding:6px;border-radius:4px;overflow:auto">${JSON.stringify(step.with || {}, null, 2)}</pre>
+      <button onclick="removeBlock('${step.id}')" style="margin-top:8px;padding:2px 6px;font-size:11px;background:#7f1d1d;color:#fff;border:0;border-radius:4px;cursor:pointer">Remover</button>
+    `;
+    flowContainer.appendChild(card);
+  });
+}
+
+function addBlock(bType, label, skill){
+  const id = 's' + (currentIR.steps.length + 1);
+  const newStep = { id: id, skill: skill, with: {} };
+  currentIR.steps.push(newStep);
+  renderFlow();
+  log('block.added', `Adicionado bloco ${id} [${skill}]`);
+}
+
+function removeBlock(id){
+  currentIR.steps = currentIR.steps.filter(s => s.id !== id);
+  renderFlow();
+  log('block.removed', `Removido bloco ${id}`);
+}
+
+document.querySelector('#btn-w01').onclick = () => {
+  currentIR = {
+    schema_version: "0.1",
+    name: "W-01 Organize Incoming PDFs",
+    trigger: { type: "manual" },
+    steps: [
+      { id: "s1", skill: "filesystem.scan", with: { path: ".", glob: "*" } },
+      { id: "s2", skill: "filter.extension", with: { from: "s1", extension: ".pdf" } },
+      { id: "s3", skill: "filesystem.copy", with: { from: "s2", destination: "./processed_pdfs" } },
+      { id: "s4", skill: "state.record", with: { from: "s3" } }
+    ],
+    state: { file: "pdf_history.db" }
+  };
+  document.querySelector('#wf-title').textContent = currentIR.name;
+  renderFlow();
+  log('template.loaded', 'W-01 PDF Organizer recriado na Canvas');
+};
+
+document.querySelector('#btn-w03').onclick = () => {
+  currentIR = {
+    schema_version: "0.1",
+    name: "W-03 API Snapshot",
+    trigger: { type: "manual" },
+    steps: [
+      { id: "s1", skill: "http.request", with: { url: "http://api.example.com/snapshot", method: "GET" } },
+      { id: "s2", skill: "state.record_jsonl", with: { value: "$s1", file: "snapshots.jsonl" } }
+    ],
+    state: { file: "history.db" }
+  };
+  document.querySelector('#wf-title').textContent = currentIR.name;
+  renderFlow();
+  log('template.loaded', 'W-03 API Snapshot recriado na Canvas');
+};
+
+document.querySelector('#btn-validate').onclick = async () => {
+  try {
+    const r = await fetch('/api/workflow/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ir: currentIR })
+    });
+    const res = await r.json();
+    if(res.ok){
+      document.querySelector('#validation-msg').innerHTML = `<span class="status-ok">✓ IR Válido! Capabilities requeridas: ${res.required_capabilities.join(', ') || 'nenhuma'}</span>`;
+      log('validation.success', 'Schema IR validado com sucesso');
+    } else {
+      document.querySelector('#validation-msg').innerHTML = `<span class="status-err">✗ Erro: ${res.error}</span>`;
+      log('validation.error', res.error, true);
+    }
+  } catch(e) { log('error', e.message, true); }
+};
+
+document.querySelector('#btn-save').onclick = async () => {
+  try {
+    const r = await fetch('/api/workflow/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: "workflow.ir.json", ir: currentIR })
+    });
+    const res = await r.json();
+    if(res.ok){
+      log('workflow.saved', `Salvo em ${res.path}`);
+    } else { log('workflow.save_error', res.error, true); }
+  } catch(e) { log('error', e.message, true); }
+};
+
+document.querySelector('#btn-run').onclick = async () => {
+  log('execution.start', 'Compilando e executando automação...');
+  try {
+    const r = await fetch('/api/workflow/compile_and_run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ir: currentIR, target: "python-sqlite" })
+    });
+    const res = await r.json();
+    if(res.ok && res.result && res.result.ok){
+      log('execution.success', `Executado com sucesso! Alvo: ${res.manifest.target}, Processados: ${res.result.processed}`);
+    } else {
+      log('execution.failed', res.error || (res.result ? res.result.stderr : 'Falha na execução'), true);
+    }
+  } catch(e) { log('error', e.message, true); }
+};
+
+fetch('/api/workspace').then(r=>r.json()).then(w=>{
+  document.querySelector('#repo-head').textContent = 'LOCAL · ' + w.name + ' · ' + (w.branch || 'sem branch');
+});
+
+fetch('/api/state').then(r=>r.json()).then(s=>{
+  const box = document.querySelector('#caps');
+  box.innerHTML = '';
+  (s.catalog || []).forEach(c=>{
+    const d = document.createElement('div');
+    d.className = 'cap';
+    d.style.padding = '6px';
+    d.style.marginBottom = '6px';
+    d.style.background = '#18222c';
+    d.style.borderRadius = '6px';
+    d.innerHTML = `<div>${c.capability}</div><div class="muted">${c.trust} · ${c.provider}</div>`;
+    box.appendChild(d);
+  });
+});
+
+renderFlow();
+log('canvas.ready', 'Causal Canvas Manual pronta');
 </script></body></html>

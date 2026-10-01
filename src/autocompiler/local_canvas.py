@@ -6,8 +6,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+import sys
+from urllib.parse import parse_qs, urlparse
+
 from .catalog import CapabilityCatalog
+from .compiler import compile_ir
+from .engine import execute
 from .git_acquisition import plan_git_capability
+from .ir import validate_ir
 from .workspace import repository_snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -78,7 +84,8 @@ class CanvasHandler(BaseHTTPRequestHandler):
             return {}
 
     def do_GET(self) -> None:
-        path = urlparse(self.path).path
+        parsed_url = urlparse(self.path)
+        path = parsed_url.path
         if path == "/api/state":
             self._json(snapshot())
             return
@@ -87,6 +94,24 @@ class CanvasHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/acquisition/git":
             self._json(plan_git_capability())
+            return
+        if path == "/api/workflow/load":
+            qs = parse_qs(parsed_url.query)
+            target_path = Path(qs.get("path", ["workflow.ir.json"])[0]).expanduser()
+            if not target_path.exists():
+                self._json({"ok": False, "error": "file_not_found"}, 404)
+                return
+            try:
+                ir_data = json.loads(target_path.read_text(encoding="utf-8"))
+                val = validate_ir(ir_data)
+                self._json({
+                    "ok": True,
+                    "path": str(target_path),
+                    "ir": ir_data,
+                    "required_capabilities": val.required_capabilities,
+                })
+            except Exception as exc:
+                self._json({"ok": False, "error": str(exc)}, 400)
             return
         if path in ("/", "/index.html"):
             target = WEB / "index.html"
@@ -111,6 +136,59 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 self._json({"ok": False, "status": "authorization_required"}, 403)
                 return
             self._json(apply_git_acquisition(authorized=True))
+            return
+        if path == "/api/workflow/validate":
+            body = self._body()
+            ir_data = body.get("ir", {})
+            try:
+                val = validate_ir(ir_data)
+                self._json({
+                    "ok": True,
+                    "required_capabilities": val.required_capabilities,
+                    "permissions": val.permissions,
+                })
+            except Exception as exc:
+                self._json({"ok": False, "error": str(exc)}, 400)
+            return
+        if path == "/api/workflow/save":
+            body = self._body()
+            ir_data = body.get("ir", {})
+            save_path = Path(body.get("path", "workflow.ir.json")).expanduser()
+            try:
+                validate_ir(ir_data)
+                save_path.parent.mkdir(parents=True, exist_ok=True)
+                save_path.write_text(json.dumps(ir_data, indent=2, ensure_ascii=False), encoding="utf-8")
+                self._json({"ok": True, "path": str(save_path)})
+            except Exception as exc:
+                self._json({"ok": False, "error": str(exc)}, 400)
+            return
+        if path == "/api/workflow/compile_and_run":
+            body = self._body()
+            ir_data = body.get("ir", {})
+            target = body.get("target", "python-sqlite")
+            event = body.get("event", {})
+            out_dir = Path(body.get("out_dir", ROOT / "generated" / "canvas_run")).expanduser()
+            try:
+                manifest = compile_ir(ir_data, target, out_dir)
+                exec_run = subprocess.run(
+                    [sys.executable, str(out_dir / "automation.py")],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                run_result = json.loads(exec_run.stdout) if exec_run.returncode == 0 and exec_run.stdout.strip().startswith("{") else {
+                    "ok": exec_run.returncode == 0,
+                    "stdout": exec_run.stdout,
+                    "stderr": exec_run.stderr,
+                }
+                self._json({
+                    "ok": True,
+                    "compiled": True,
+                    "manifest": manifest,
+                    "result": run_result,
+                })
+            except Exception as exc:
+                self._json({"ok": False, "error": str(exc)}, 400)
             return
         self._json({"error": "not found"}, 404)
 
