@@ -135,3 +135,14 @@ AutoCompiler Basic targets common automations through templates, natural languag
 Desktop framework, Canvas library, embedded runtime, connector catalog, AI provider and initial platform coverage are replaceable implementation choices unless separately accepted as decisions. They must not silently redefine the product.
 
 Canonical reference: `docs/PRODUCT_INTENT.md`.
+
+## Accepted execution and self-extension decisions
+
+### D-022 — Builder must feed Basic through validated capability memory
+When an automation requires a capability outside the current validated baseline, AutoCompiler should use the same semantic lifecycle it exposes to users: resolve the requirement, prefer reuse/configuration/composition, acquire or generate only when necessary, verify the result, and register the validated capability/provider/skill so normal planning can reuse it later. Builder is therefore an extension mechanism for Basic, not a disconnected developer product.
+
+This is not permission for unrestricted self-modifying code. Changes remain bounded by Plan → Authorize → Apply → Verify, provenance, tests, ownership, and repository/product invariants.
+
+### D-023 — Task completion is not automatically a human authorization boundary
+A roadmap task is the unit of scope, evidence, testing, completion reporting, and commit-level rollback. A pull request is normally an integration/review boundary. Consecutive tasks covered by an explicit execution envelope may advance automatically after their Definition of Done and canonical Trust Gate are green. Human interruption is reserved for defined stop conditions that require a genuine decision, credential, cost commitment, security exception, or product change.
+
