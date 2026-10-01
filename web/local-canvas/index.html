@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AutoCompiler Causal Canvas</title>
 <style>
-:root{font-family:Segoe UI,Arial,sans-serif;color:#e8edf2;background:#0b0f14}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}.top{padding:12px 18px;border-bottom:1px solid #26313d;display:flex;justify-content:space-between;align-items:center}.layout{display:grid;grid-template-columns:310px 1fr 280px;min-height:0}.side{padding:14px;border-right:1px solid #26313d;background:#10161d;overflow:auto}.side.right{border-right:0;border-left:1px solid #26313d}.canvas{padding:18px;overflow:auto;display:flex;flex-direction:column;gap:18px}.card,.node{border:1px solid #334150;border-radius:12px;background:#121a22;padding:14px}.muted{color:#8fa1b3;font-size:12px}.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.palette button,.actions button{padding:6px 10px;border:1px solid #486078;border-radius:6px;background:#182b3d;color:#fff;cursor:pointer;font-size:13px}.palette button:hover,.actions button:hover{background:#233e54}.flow{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:14px}.block-card{width:100%;max-width:680px;border:1px solid #2f4052;border-radius:10px;background:#16222e;padding:12px;position:relative}.block-header{display:flex;justify-content:space-between;align-items:center;font-weight:bold;margin-bottom:8px}.block-type{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;background:#276fb7;color:#fff}.type-WHEN{background:#8a42ad}.type-GET{background:#1f8272}.type-TRANSFORM{background:#d97706}.type-IF{background:#2563eb}.type-REPEAT{background:#4b5563}.type-ACT{background:#059669}.type-SAVE{background:#0284c7}.type-NOTIFY{background:#b91c1c}.flow-arrow{color:#6aa8e8;font-size:18px;font-weight:bold}.chat{display:flex;gap:8px;margin-top:12px}.chat input{flex:1;padding:8px;border-radius:6px;border:1px solid #334150;background:#0e141a;color:#fff}.stream{border-top:1px solid #26313d;padding:10px 16px;background:#10161d;max-height:180px;overflow:auto;font:12px Consolas,monospace}.event{padding:3px 0}.status-ok{color:#72c792}.status-err{color:#f87171}.field-group{display:flex;flex-direction:column;gap:4px;margin-top:8px}.field-group label{font-size:12px;color:#8fa1b3}.field-group input{padding:6px;border-radius:4px;border:1px solid #334150;background:#0e141a;color:#fff;font-size:12px}@media(max-width:800px){.layout{grid-template-columns:1fr}.side{display:none}}
+:root{font-family:Segoe UI,Arial,sans-serif;color:#e8edf2;background:#0b0f14}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}.top{padding:12px 18px;border-bottom:1px solid #26313d;display:flex;justify-content:space-between;align-items:center}.layout{display:grid;grid-template-columns:310px 1fr 280px;min-height:0}.side{padding:14px;border-right:1px solid #26313d;background:#10161d;overflow:auto}.side.right{border-right:0;border-left:1px solid #26313d}.canvas{padding:18px;overflow:auto;display:flex;flex-direction:column;gap:18px}.card,.node{border:1px solid #334150;border-radius:12px;background:#121a22;padding:14px}.muted{color:#8fa1b3;font-size:12px}.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.palette button,.actions button{padding:6px 10px;border:1px solid #486078;border-radius:6px;background:#182b3d;color:#fff;cursor:pointer;font-size:13px}.palette button:hover,.actions button:hover{background:#233e54}.flow{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:14px}.block-card{width:100%;max-width:680px;border:1px solid #2f4052;border-radius:10px;background:#16222e;padding:12px;position:relative}.block-header{display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:bold;margin-bottom:8px}.block-type{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;background:#276fb7;color:#fff}.type-WHEN{background:#8a42ad}.type-GET{background:#1f8272}.type-TRANSFORM{background:#d97706}.type-IF{background:#2563eb}.type-REPEAT{background:#4b5563}.type-ACT{background:#059669}.type-SAVE{background:#0284c7}.type-NOTIFY{background:#b91c1c}.flow-arrow{color:#6aa8e8;font-size:18px;font-weight:bold}.chat{display:flex;gap:8px;margin-top:12px}.chat input{flex:1;padding:8px;border-radius:6px;border:1px solid #334150;background:#0e141a;color:#fff}.stream{border-top:1px solid #26313d;padding:10px 16px;background:#10161d;max-height:180px;overflow:auto;font:12px Consolas,monospace}.event{padding:3px 0}.status-ok{color:#72c792}.status-err{color:#f87171}.field-group{display:flex;flex-direction:column;gap:4px;margin-top:8px}.field-group label{font-size:12px;color:#8fa1b3}.field-group input{padding:6px;border-radius:4px;border:1px solid #334150;background:#0e141a;color:#fff;font-size:12px}@media(max-width:800px){.layout{grid-template-columns:1fr}.side{display:none}}
 </style></head><body><div class="app">
-<header class="top"><div><strong>AutoCompiler Causal Canvas</strong> <span class="muted">(J-011 Build-Time AI Draft)</span></div><span class="muted" id="repo-head">LOCAL · carregando workspace…</span></header>
+<header class="top"><div><strong>AutoCompiler Causal Canvas</strong> <span class="muted">(Local Canvas · J-012 Trust Gate)</span></div><span class="muted" id="repo-head">LOCAL · carregando workspace…</span></header>
 <div class="layout">
 <aside class="side">
 <strong>Gerar Rascunho com IA (Opcional - J-011)</strong>
@@ -61,7 +61,7 @@
 <main class="canvas">
 <section class="card"><div class="muted">FLUXO CAUSAL MANUAL DE AUTOMAÇÃO</div><h2 id="wf-title" style="margin:4px 0 0 0">Selecione um Template, Digite uma Intenção ou Crie um Fluxo</h2><div class="muted" id="wf-desc">IA, templates e edição manual produzem o mesmo IR. Nada é aplicado antes do plano e da autorização.</div></section>
 <section class="card" id="plan-panel">
-<div class="muted">PLANO DE IMPACTO · ainda não gerado</div>
+<div class="muted" id="plan-status-label">PLANO DE IMPACTO · ainda não gerado</div>
 <div id="plan-content" style="margin-top:8px">Gere o plano para ver arquivos, rede, providers, IA, custo, agendamento e rollback antes de autorizar.</div>
 </section>
 <section class="card" style="min-height:300px">
@@ -94,6 +94,7 @@ function resetPlan(reason){
   currentPlan = null;
   document.querySelector('#btn-authorize').disabled = true;
   document.querySelector('#btn-apply').disabled = true;
+  document.querySelector('#plan-status-label').textContent = 'PLANO DE IMPACTO · precisa ser gerado';
   document.querySelector('#plan-content').innerHTML = 'Plano precisa ser gerado para o fluxo atual.';
   if(reason) log('plan.invalidated', reason);
 }
@@ -105,6 +106,7 @@ function planList(title, items, formatter){
 }
 
 function renderPlan(plan){
+  document.querySelector('#plan-status-label').textContent = 'PLANO DE IMPACTO · gerado';
   const ai = plan.ai || {};
   const schedule = plan.schedule || {};
   const providers = Object.entries(plan.providers || {});
@@ -159,7 +161,7 @@ function renderFlow(){
     card.innerHTML = `
       <div class="block-header">
         <span>#${step.id} — ${step.skill}</span>
-        <span class="block-type type-${bType}">${bType}</span>
+        <span class="block-type type-${bType}">· ${bType}</span>
       </div>
       <div class="muted">Parâmetros (with):</div>
       <pre style="margin:4px 0 0 0;font-size:12px;background:#0d1620;padding:6px;border-radius:4px;overflow:auto">${JSON.stringify(step.with || {}, null, 2)}</pre>
@@ -382,6 +384,7 @@ document.querySelector('#btn-apply').onclick = async () => {
     if(res.ok && res.verification && res.verification.ok){
       log('apply.success', 'Apply concluído');
       log('verify.success', 'Artefatos, IR autorizado, manifest e execução verificados');
+      document.querySelector('#plan-status-label').textContent = 'PLANO DE IMPACTO · aplicado e verificado';
       document.querySelector('#plan-content').innerHTML += '<div class="status-ok" style="margin-top:12px"><strong>APPLIED + VERIFIED</strong><br>IR autorizado = artefato compilado · execução real = OK · runtime AI = '+(res.verification.recurring_ai_used?'sim':'não')+'</div>';
     } else {
       log('verify.failed', res.status || res.error || 'Verificação falhou', true);
@@ -397,19 +400,28 @@ fetch('/api/workspace').then(r=>r.json()).then(w=>{
 fetch('/api/state').then(r=>r.json()).then(s=>{
   const box = document.querySelector('#caps');
   box.innerHTML = '';
-  (s.catalog || []).forEach(c=>{
+  const resources = s.resources || [];
+  if(!resources.length){
+    box.innerHTML = '<div class="muted">Nenhuma capability resolvida nesta máquina.</div>';
+    return;
+  }
+  resources.forEach(c=>{
     const d = document.createElement('div');
     d.className = 'cap';
     d.style.padding = '6px';
     d.style.marginBottom = '6px';
     d.style.background = '#18222c';
     d.style.borderRadius = '6px';
-    d.innerHTML = `<div>${c.capability}</div><div class="muted">${c.trust} · ${c.provider}</div>`;
+    const source = c.source ? ' · '+c.source : '';
+    d.innerHTML = `<div>${c.capability}</div><div class="muted">${c.state} · ${c.provider}${source}</div>`;
     box.appendChild(d);
   });
+}).catch(e=>{
+  document.querySelector('#caps').innerHTML = '<div class="status-err">Falha ao carregar capabilities</div>';
+  log('state.error', e.message, true);
 });
 
 loadTemplates();
 renderFlow();
-log('canvas.ready', 'Causal Canvas com suporte a AI Draft (J-011)');
+log('canvas.ready', 'Causal Canvas com Plan → Authorize → Apply → Verify (J-012)');
 </script></body></html>
