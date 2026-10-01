@@ -17,7 +17,19 @@ from autocompiler.local_canvas import CanvasHandler, ThreadingHTTPServer, apply_
 
 
 class LocalCanvasTests(unittest.TestCase):
-    def test_snapshot_reads_real_catalog_states(self):
+    @patch("autocompiler.local_canvas.build_unified_resource_graph")
+    def test_snapshot_reads_catalog_and_exposes_planner_resources(self, graph):
+        graph.return_value = {
+            "resources": [
+                {
+                    "capability": "filesystem.read",
+                    "provider": "python-stdlib-filesystem",
+                    "state": "usable",
+                    "source": "canonical",
+                    "cost": "free",
+                }
+            ]
+        }
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "catalog.json"
             catalog = CapabilityCatalog(path)
@@ -30,6 +42,9 @@ class LocalCanvasTests(unittest.TestCase):
             self.assertEqual(len(state["candidates"]), 1)
             self.assertEqual(state["candidates"][0]["capability"], "demo.capability")
             self.assertEqual(state["validated"], [])
+            self.assertEqual(state["resources"][0]["capability"], "filesystem.read")
+            self.assertEqual(state["resources"][0]["provider"], "python-stdlib-filesystem")
+            graph.assert_called_once_with(local_catalog_path=path)
 
     @patch("autocompiler.local_canvas.plan_git_capability")
     def test_git_acquisition_cannot_run_without_authorization(self, plan):
@@ -68,6 +83,9 @@ class LocalCanvasTests(unittest.TestCase):
         thread.start()
         try:
             base_url = f"http://127.0.0.1:{port}"
+
+            with urlopen(f"{base_url}/favicon.ico") as resp:
+                self.assertEqual(resp.status, 204)
 
             with tempfile.TemporaryDirectory() as td:
                 source = Path(td) / "incoming"
