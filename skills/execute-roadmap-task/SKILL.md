@@ -9,14 +9,17 @@ Standardized operational procedure for executing roadmap tasks in the **AutoComp
 ```text
 SYNC MAIN
 → READ CANONICAL DOCS
-→ LOCATE J-XXX
+→ LOCATE CURRENT J-XXX
 → INSPECT EXISTING CODE
-→ IMPLEMENT ONLY TASK SCOPE
+→ IMPLEMENT TASK SCOPE
 → ADD/UPDATE TESTS
 → RUN TRUST GATE
 → UPDATE COVERAGE WHEN APPLICABLE
 → PRODUCE COMPLETION REPORT
-→ STOP
+→ COMMIT TASK
+→ IF INSIDE AUTHORIZED ENVELOPE AND GREEN: ADVANCE
+→ IF INTEGRATION GATE: PREPARE PR
+→ STOP ONLY ON A DEFINED STOP CONDITION
 ```
 
 ---
@@ -36,7 +39,7 @@ Before executing any `J-XXX` task, read these documents in exact order:
 
 ## Execution Rules
 
-- **Work on request scope only**: Work strictly on the single requested task `J-XXX`. Do NOT advance automatically to `J-(XXX+1)`.
+- **Respect the authorized execution envelope**: Work strictly inside the authorized roadmap range. Finish the current `J-XXX` before advancing, but automatically advance to the next dependent task when the current Definition of Done and Trust Gate are green.
 - **Inspect before creating**: Inspect existing implementations before creating new modules or code.
 - **Reuse canonical capabilities**: Reuse existing capabilities, skills, and components.
 - **Provider neutrality**: Never make concrete providers (e.g., Gmail, Python, PowerShell, SQLite, Google Sheets) mandatory semantic concepts.
@@ -45,6 +48,22 @@ Before executing any `J-XXX` task, read these documents in exact order:
 - **Test driven**: Add unit tests for all implemented behavior.
 - **Trust Gate compliance**: Run `python3 scripts/trust_gate.py` and `PYTHONPATH=. pytest`.
 - **Honest status reporting**: Record real gaps as `PARTIAL` or `BLOCKED` without simulating completion. Update `docs/BASIC_1_0_COVERAGE.md` only when task changes coverage.
+- **Task commit, integration PR**: Preserve each completed task as an identifiable commit. Do not require one PR per task; use the integration gates defined by the roadmap unless isolation is technically necessary.
+- **Capability closure first**: For J-002 through J-005, treat `docs/MVP_CAPABILITY_CLOSURE.md` as a mandatory cross-task gate.
+
+## Stop Conditions
+
+Do not stop merely to report that a task completed or to ask permission to begin the next already-authorized task.
+
+Stop only when:
+
+- the task is genuinely BLOCKED;
+- the canonical Trust Gate cannot be restored without changing accepted behavior;
+- PRODUCT_INTENT or an accepted decision must change;
+- a new paid service or materially different recurring cost is required;
+- a credential, secret, consent, or external user-only action is required;
+- a destructive/security-sensitive mutation is outside the authorized plan;
+- repository evidence exposes an unresolved structural contradiction.
 
 ---
 
