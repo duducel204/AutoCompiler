@@ -39,7 +39,9 @@ AutoCompiler should:
 - use AI for interpretation, development, semantic necessity and repair, while making repeatable work deterministic whenever possible;
 - compile/configure automations toward user-owned execution that can outlive the AutoCompiler UI/runtime when practical;
 - treat capabilities as semantic requirements and tools/services as replaceable providers;
-- minimize environment mutation and recurring infrastructure cost.
+- minimize environment mutation and recurring infrastructure cost;
+- close capability gaps through the same semantic lifecycle the product exposes: REUSE → CONFIGURE/COMPOSE → ACQUIRE → GENERATE → DELEGATE, followed by verification and reusable registration;
+- when Builder creates or adapts a validated capability/provider/skill, make that result available to normal planning so later automations can reuse it instead of rebuilding it.
 
 ## Do not assume
 
@@ -78,9 +80,13 @@ If a proposal changes a product invariant, update `docs/PRODUCT_INTENT.md` and `
 
 When implementing `docs/PRODUCT_ROADMAP.md`:
 
-- execute tasks in order unless the roadmap explicitly permits otherwise;
-- do not begin the next task until the current Definition of Done is satisfied or the task is explicitly recorded as BLOCKED;
-- keep each task focused enough for independent review;
+- execute dependent tasks in order unless the roadmap explicitly permits parallel preparation;
+- do not begin the next task until the current Definition of Done is satisfied;
+- when multiple tasks are covered by an authorized execution envelope, advance automatically after a green task instead of waiting for routine human approval;
+- preserve task-level auditability with an identifiable commit, tests/evidence and completion report for each J-XXX;
+- use pull requests as integration/review gates rather than as the authorization boundary for every task;
+- stop only on the roadmap's defined stop conditions or when a task is explicitly BLOCKED;
+- for J-002 through J-005, the cross-task capability-closure proof in `docs/MVP_CAPABILITY_CLOSURE.md` is mandatory;
 - update `docs/BASIC_1_0_COVERAGE.md` when implementation changes benchmark coverage;
 - return the task completion report required by the roadmap.
 
