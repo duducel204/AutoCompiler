@@ -19,8 +19,8 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "status": "ready",
         "difficulty": "Fácil",
         "parameters": [
-            {"key": "source_folder", "label": "Source Directory", "default": "."},
-            {"key": "target_folder", "label": "Target Directory", "default": "./processed_pdfs"},
+            {"key": "source_folder", "label": "Qual pasta contém os PDFs?", "default": "."},
+            {"key": "target_folder", "label": "Onde guardar os PDFs?", "default": "./processed_pdfs"},
         ],
         "template_ir": {
             "schema_version": "0.1",
@@ -61,8 +61,8 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "status": "validation",
         "difficulty": "Fácil",
         "parameters": [
-            {"key": "source_folder", "label": "Source Folder", "default": "./data"},
-            {"key": "backup_folder", "label": "Backup Folder", "default": "./backups"},
+            {"key": "source_folder", "label": "Qual pasta deve ter backup?", "default": "./data"},
+            {"key": "backup_folder", "label": "Onde guardar o backup?", "default": "./backups"},
         ],
         "template_ir": {
             "schema_version": "0.1",
@@ -98,8 +98,8 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "status": "validation",
         "difficulty": "Intermediário",
         "parameters": [
-            {"key": "api_url", "label": "API Endpoint URL", "default": "http://api.example.com/snapshot"},
-            {"key": "output_file", "label": "Output File", "default": "snapshots.jsonl"},
+            {"key": "api_url", "label": "Qual endereço da API?", "default": "http://api.example.com/snapshot"},
+            {"key": "output_file", "label": "Onde guardar os dados?", "default": "snapshots.jsonl"},
         ],
         "template_ir": {
             "schema_version": "0.1",
@@ -130,8 +130,8 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "status": "validation",
         "difficulty": "Intermediário",
         "parameters": [
-            {"key": "monitor_key", "label": "Monitor Key", "default": "page_1"},
-            {"key": "target_url", "label": "Target URL", "default": "http://example.com/page"},
+            {"key": "monitor_key", "label": "Como identificar este monitor?", "default": "page_1"},
+            {"key": "target_url", "label": "Qual endereço deve ser monitorado?", "default": "http://example.com/page"},
         ],
         "template_ir": {
             "schema_version": "0.1",
@@ -167,8 +167,8 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "status": "validation",
         "difficulty": "Fácil",
         "parameters": [
-            {"key": "input_csv", "label": "Input CSV File", "default": "input.csv"},
-            {"key": "output_xlsx", "label": "Output XLSX File", "default": "output.xlsx"},
+            {"key": "input_csv", "label": "Qual arquivo CSV?", "default": "input.csv"},
+            {"key": "output_xlsx", "label": "Qual nome da planilha de saída?", "default": "output.xlsx"},
         ],
         "template_ir": {
             "schema_version": "0.1",
