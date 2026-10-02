@@ -18,7 +18,31 @@ The [canonical Trust Gate run](https://github.com/duducel204/AutoCompiler/action
 | J-015 | W-10 example and engine/lifecycle tests | Persistent follow-up, restart, retry and removal proof |
 | J-016/J-017 | Packaging/release requirements | One-package Windows installer and full release demonstrations |
 
-## User-visible readiness
+## Limites observados na leitura do código
+
+Leitura estática em 2026-10-02, sobre a implementação de `d8fd1cb` conservada pela atualização documental `6c66667`. Não houve nova execução de testes nesta leitura. Os pontos abaixo qualificam as evidências e os rótulos anteriores; não apagam os resultados históricos.
+
+| Área | Comportamento implementado | Limite a considerar |
+|---|---|---|
+| Compilador independente | `compiler.py` gera Python/SQLite e Python/JSON para scan, filtro, copy e history | O IR aceita mais ações do que esses destinos executam |
+| HTTP do motor | Testes injetam um callable HTTP; `http_provider.py` define `request` | O caminho sem injeção importa `HTTPClientProvider`, que não está definido nesse módulo |
+| Requisito HTTP | `ir.py` mapeia a skill `http.request` para `http.client` | O catálogo registra `http.request`; resolução pela interface precisa reconciliar esse vocabulário |
+| Monitoramento | `FilesystemWatchProvider` lista arquivos uma vez | Não mantém acompanhamento contínuo nem detecta diferenças entre varreduras |
+| Schedule | `ScheduleProvider` devolve comandos Windows/cron | O campo `scheduled: true` não prova instalação; não há criação de tarefa nessa função |
+| Notificação | `NotificationSendProvider` imprime no console | O campo `delivered: true` não comprova toast/balloon nativo |
+| Continuação/espera | Salvar/carregar JSON e sleep transitório | Não comprovam retomada persistente ou reagendamento automático |
+| Fallback | O motor registra configuração e trace de fallback | Não executa a ação de fallback configurada |
+| Fechamento de capacidades | `test_capability_closure.py` registra `custom.formatter` e verifica reuse no planner | Os IRs compilados A/B só usam skills B1 e não consomem o formatter; falta a ligação completa exigida pelo gate |
+| Validação CI | `scripts/trust_gate.py` executa uma lista explícita | Essa lista não inclui `test_capability_contracts` ou `test_assistant_chat`; sucesso não significa todos os testes existentes |
+| Política de segurança | `SECURITY.md` contém o template inicial | Versões de exemplo e canal de reporte não constituem política do projeto |
+
+O catálogo contém 40 registros marcados `validated`. Isso é estado registrado, não uma nova auditoria conclusiva de todos os caminhos. Para decidir o que reutilizar, consultar o comportamento, o contrato exercitado e as condições do recurso. Entrada de leitura: [INDEX.md](INDEX.md).
+
+### Prioridade decorrente desta leitura
+
+Antes de ampliar integrações, reconciliar requisitos HTTP e seu caminho real, suporte do compilador versus IR aceito e a prova de consumo da capacidade nova. Depois distinguir geração de comandos, varredura e logs de instalação, monitoramento e notificação nativos. Esses ajustes são pendências registradas, não correções executadas por esta atualização documental.
+
+## Prontidão registrada das utilidades
 
 The catalog in `src/autocompiler/templates.py` marks Organize PDFs (`w01`) ready, with manual scan/filter/copy/history. Backup (`w02`), API snapshot (`w03`), change monitor (`w04`) and spreadsheet transformation (`w05`) remain in validation. Additional utilities remain planned.
 

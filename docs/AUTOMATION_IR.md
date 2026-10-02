@@ -1,5 +1,7 @@
 # Automation IR — Draft 0.1
 
+> **Historical design draft.** The YAML below records an early proposal, not the current accepted input format. Current references are [automation-ir.schema.json](../schemas/automation-ir.schema.json), [ir.py](../src/autocompiler/ir.py) and the [B1 example](../examples/b1-folder-copy.ir.json). The current validator accepts schema versions 0.1, 0.2 and 0.3. Schema acceptance, engine execution and independent target compilation have different support limits; see [ARCHITECTURE.md](ARCHITECTURE.md).
+
 The IR is the project's most important interface. It separates intent understanding from execution technology.
 
 ## Design goals

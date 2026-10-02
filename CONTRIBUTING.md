@@ -19,3 +19,9 @@ Before adding a feature, answer:
 5. Does the change preserve a portable machine-readable representation?
 
 For roadmap changes, edit `data/roadmap.csv`; the README table is generated automatically.
+
+## Connected documentation and reusable scripts
+
+Start at [docs/INDEX.md](docs/INDEX.md) and [docs/REPOSITORY_MAP.md](docs/REPOSITORY_MAP.md). Maintain responsibilities and flows in [data/repository_map.json](data/repository_map.json). Run `python scripts/render_repository_map.py` after changing files or relationships; `--check` checks synchronization without running application tests. CI performs that same check.
+
+Save reusable scripts in the repository with inputs, outputs, prerequisites, permissions and limitations documented. Record successful execution with the command and observed result in `docs/evidence`, linked to the implementation. Evidence proves only exercised behavior. Register canonical capabilities once their provider contract and integration requirements are satisfied; a working CLI script alone does not become a builtin engine action.

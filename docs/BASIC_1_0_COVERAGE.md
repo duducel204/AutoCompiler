@@ -205,6 +205,8 @@ For each workflow, record each dimension as:
 
 ### Verified Benchmark Coverage (J-008 Engine Gate)
 
+This is the recorded benchmark table. Its dimensions must not be read as live scheduler installation, native notification delivery or support in every compiled target. The static implementation/test review identified limits in HTTP integration, triggers, fallback and compilation; see [NEXT_TASK_PREP.md](NEXT_TASK_PREP.md#limites-observados-na-leitura-do-codigo). The existing test fixtures exercise narrower paths than the complete user journey.
+
 | Workflow | Trigger | Logic | Data | Action | State | Reliability | Auth | Autonomy | Status |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|:---:|
 | **W-01** Organize incoming PDFs | 1 | 1 | 1 | 1 | 1 | 1 | N/A | 1 | **VERIFIED** |
