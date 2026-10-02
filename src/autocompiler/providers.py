@@ -6,6 +6,7 @@ import json
 import re
 import fnmatch
 import subprocess
+import sqlite3
 import time
 import zipfile
 import xml.etree.ElementTree as ET
