@@ -14,7 +14,6 @@ from .windows_base import inspect_windows_automation_base
 class PreparationPlan:
     intent: str
     missing_capabilities: list[str]
-    validation_required: list[str]
     changes: list[Change]
     automation_ready_before: bool
 
@@ -29,8 +28,7 @@ class PreparationPlan:
     @property
     def unresolved_capabilities(self) -> list[str]:
         covered = set(self.covered_capabilities)
-        unresolved_missing = [cap for cap in self.missing_capabilities if cap not in covered]
-        return sorted(set(unresolved_missing + self.validation_required))
+        return [cap for cap in self.missing_capabilities if cap not in covered]
 
     @property
     def can_apply(self) -> bool:
@@ -44,7 +42,6 @@ class PreparationPlan:
         return {
             "intent": self.intent,
             "missing_capabilities": self.missing_capabilities,
-            "validation_required": self.validation_required,
             "covered_capabilities": self.covered_capabilities,
             "unresolved_capabilities": self.unresolved_capabilities,
             "changes": [asdict(c) for c in self.changes],
@@ -65,13 +62,11 @@ def plan_windows_preparation(
         local_catalog_path=str(local_catalog_path) if local_catalog_path is not None else None,
     )
     missing = inspection.get("missing_required", [])
-    validation_required = inspection.get("validation_required", [])
 
-    if not missing and not validation_required:
+    if not missing:
         return PreparationPlan(
             intent="Prepare Windows Automation Base",
             missing_capabilities=[],
-            validation_required=[],
             changes=[],
             automation_ready_before=True,
         )
@@ -102,7 +97,6 @@ def plan_windows_preparation(
     return PreparationPlan(
         intent="Prepare Windows Automation Base",
         missing_capabilities=missing,
-        validation_required=validation_required,
         changes=changes,
         automation_ready_before=False,
     )
@@ -129,7 +123,6 @@ def apply_windows_preparation(
             "status": "unresolved_capabilities",
             "automation_ready": False,
             "missing_capabilities": plan.missing_capabilities,
-            "validation_required": plan.validation_required,
             "unresolved_capabilities": plan.unresolved_capabilities or plan.missing_capabilities,
             "changes_applied": 0,
         }
