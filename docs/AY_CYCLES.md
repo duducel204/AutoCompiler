@@ -227,3 +227,65 @@ next_cycle.json
 
 The dispatcher must never write directly to `main`. Unsupported or ambiguous work stops rather than being guessed.
 
+
+
+## AY-C6H — Post-cycle context integrity hardening
+
+The node-context graph is disposable derived state, but the development loop must never silently interpret cache produced by a different derivation contract.
+
+**Integrity contract:**
+
+```text
+tracked source file SHA-256
++
+node-context schema version
++
+hash of indexer / spider / post-cycle derivation code
+→ reusable derived context
+```
+
+If schema, contract fingerprint, structure or JSON integrity does not match, the cache is discarded and rebuilt from tracked repository files. A cache hit never promotes capability trust, evidence, authorization or work state.
+
+GitHub cache keys are scoped by the same derivation-code hash so an older context implementation is not restored into a newer one.
+
+
+## AY-C8 — Development-cycle continuity dispatcher
+
+AY-C8 closes the continuity protocol after `next_cycle.json`. It is deliberately executor-agnostic.
+
+```text
+next_cycle.json
++ verified context fingerprint
++ explicit executor registry
+        ↓
+dispatcher
+  ├─ no work                 → STOP_NO_WORK
+  ├─ context not verified    → STOP_CONTEXT_UNVERIFIED
+  ├─ no executor             → STOP_NEEDS_EXECUTOR
+  ├─ multiple executors      → STOP_AMBIGUOUS_EXECUTOR
+  └─ one explicit executor   → DISPATCH
+                                ↓
+                         branch + PR boundary
+```
+
+An executor is a replaceable capability. Copilot, Jules, ChatGPT, a local agent, a deterministic script or a future runner may only participate after being explicitly registered for the exact work item. Wildcard executor ownership is not accepted.
+
+The dispatcher itself remains read-only against the repository. It emits a bounded dispatch envelope containing work item, source cycle, implementation paths, tests, context and required branch/PR boundary.
+
+### Failure continuity
+
+Trust Gate failure is also a cycle result.
+
+```text
+Trust Gate failure
+→ classify known deterministic repair?
+   ├─ yes → bounded repair may be attempted by the existing deterministic repair rules
+   └─ no  → ci_failure_context.json
+              ├─ failed check/stage
+              ├─ error signature
+              ├─ bounded log excerpt
+              ├─ referenced files
+              └─ NEED_EXECUTOR
+```
+
+Unknown failures are never guessed into a code change. The diagnostic package is evidence/context for the next executor, not authorization to mutate.
