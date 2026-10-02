@@ -48,9 +48,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .autocompiler/node_context_graph.json
-          key: node-context-main-${{ steps.cycle.outputs.sha }}
+          key: node-context-main-v2-${{ hashFiles('scripts/node_context_index.py', 'scripts/node_context_spider.py', 'scripts/post_cycle_spider.py') }}-${{ steps.cycle.outputs.sha }}
           restore-keys: |
-            node-context-main-
+            node-context-main-v2-${{ hashFiles('scripts/node_context_index.py', 'scripts/node_context_spider.py', 'scripts/post_cycle_spider.py') }}-
 
       - name: Read completed cycle with Spider
         shell: bash
@@ -92,6 +92,8 @@ jobs:
           print(f"- Context nodes: {len(spider['nodes'])}")
           print(f"- Context edges: {len(spider['edges'])}")
           print(f"- Truncated: {spider['truncated']}")
+          print(f"- Cache state: `{data['index'].get('cache_state', 'unknown')}`")
+          print(f"- Context contract: `{data['index'].get('contract_fingerprint', '')[:16]}...`")
           next_cycle = json.loads(Path(".autocompiler/next_cycle.json").read_text(encoding="utf-8"))
           selected = next_cycle.get("selected")
           print()
@@ -110,7 +112,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .autocompiler/node_context_graph.json
-          key: node-context-main-${{ steps.cycle.outputs.sha }}
+          key: node-context-main-v2-${{ hashFiles('scripts/node_context_index.py', 'scripts/node_context_spider.py', 'scripts/post_cycle_spider.py') }}-${{ steps.cycle.outputs.sha }}
 
       - name: Upload context for the next cycle
         uses: actions/upload-artifact@v4
