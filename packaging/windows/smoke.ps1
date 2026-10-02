@@ -81,8 +81,8 @@ try {
     $Response = Wait-Canvas
 
     $ReadyUtilities = @($Response.templates | Where-Object { $_.status -eq "ready" })
-    if ($ReadyUtilities.Count -lt 5) {
-        throw "Installed product does not expose all five W-01 through W-05 ready utilities."
+    if ($ReadyUtilities.Count -lt 10) {
+        throw "Installed product does not expose the ten-workflow Ready Pack."
     }
 
     Write-Host "[smoke] Upgrading in place while Canvas owns the private Python runtime"
