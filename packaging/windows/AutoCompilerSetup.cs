@@ -14,6 +14,12 @@ internal static class AutoCompilerSetup
     private static int Main(string[] args)
     {
         string staging = Path.Combine(Path.GetTempPath(), "AutoCompilerSetup-" + Guid.NewGuid().ToString("N"));
+        bool uninstall = false;
+        string installRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "AutoCompiler"
+        );
+
         try
         {
             Directory.CreateDirectory(staging);
@@ -39,11 +45,13 @@ internal static class AutoCompilerSetup
                 }
                 else if (String.Equals(arg, "--uninstall", StringComparison.OrdinalIgnoreCase))
                 {
+                    uninstall = true;
                     psArgs += " -Uninstall";
                 }
                 else if (String.Equals(arg, "--install-root", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 {
-                    psArgs += " -InstallRoot " + Quote(args[++i]);
+                    installRoot = Path.GetFullPath(args[++i]);
+                    psArgs += " -InstallRoot " + Quote(installRoot);
                 }
                 else
                 {
@@ -66,6 +74,9 @@ internal static class AutoCompilerSetup
                 if (process.ExitCode != 0)
                     throw new InvalidOperationException("Installation bootstrap failed with exit code " + process.ExitCode + ".");
             }
+
+            if (uninstall)
+                ScheduleInstallRootRemoval(installRoot);
 
             return 0;
         }
@@ -95,6 +106,21 @@ internal static class AutoCompilerSetup
             }
             catch { }
         }
+    }
+
+    private static void ScheduleInstallRootRemoval(string installRoot)
+    {
+        string command =
+            "/c ping 127.0.0.1 -n 3 >nul & rmdir /s /q " + QuoteForCmd(installRoot);
+
+        ProcessStartInfo cleanup = new ProcessStartInfo
+        {
+            FileName = "cmd.exe",
+            Arguments = command,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        Process.Start(cleanup);
     }
 
     private static void ExtractPayload(string destination)
@@ -136,6 +162,11 @@ internal static class AutoCompilerSetup
 
     private static string Quote(string value)
     {
-        return """ + value.Replace(""", """") + """;
+        return "\"" + value.Replace("\"", "\"\"") + "\"";
+    }
+
+    private static string QuoteForCmd(string value)
+    {
+        return "\"" + value.Replace("\"", "\"\"") + "\"";
     }
 }
