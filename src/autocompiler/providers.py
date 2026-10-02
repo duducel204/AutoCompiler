@@ -517,6 +517,19 @@ class ProcessExecuteAuthorizedProvider(CapabilityProvider):
         }
 
 
+def _safe_state_table(name: Any) -> str:
+    table = str(name or "seen_items")
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table):
+        raise ValueError("Invalid SQLite state table name")
+    return table
+
+
+def _state_value(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
 class StateCheckProvider(CapabilityProvider):
     @property
     def capability(self) -> str:
@@ -531,20 +544,47 @@ class StateCheckProvider(CapabilityProvider):
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         db_path = Path(params.get("db", "state.db")).expanduser()
-        table = params.get("table", "seen_items")
+        table = _safe_state_table(params.get("table", "seen_items"))
         key = str(params.get("key") or params.get("value") or "")
-        if not db_path.exists():
-            return {"ok": True, "seen": False, "key": key}
+        expected_supplied = "val" in params
+        expected = _state_value(params.get("val")) if expected_supplied else None
 
-        import sqlite3
+        if not db_path.exists():
+            return {
+                "ok": True,
+                "seen": False,
+                "key": key,
+                "val": None,
+                "matches": False if expected_supplied else None,
+                "changed": True if expected_supplied else None,
+            }
+
         con = sqlite3.connect(db_path)
         try:
-            con.execute(f"CREATE TABLE IF NOT EXISTS {table} (item_key TEXT PRIMARY KEY, ts TEXT)")
-            cur = con.execute(f"SELECT 1 FROM {table} WHERE item_key = ?", (key,))
+            con.execute(
+                f"CREATE TABLE IF NOT EXISTS {table} "
+                "(item_key TEXT PRIMARY KEY, val TEXT, ts TEXT)"
+            )
+            columns = {row[1] for row in con.execute(f"PRAGMA table_info({table})")}
+            if "val" not in columns:
+                con.execute(f"ALTER TABLE {table} ADD COLUMN val TEXT")
+                con.commit()
+            cur = con.execute(f"SELECT val FROM {table} WHERE item_key = ?", (key,))
             row = cur.fetchone()
         finally:
             con.close()
-        return {"ok": True, "seen": row is not None, "key": key}
+
+        current = row[0] if row is not None else None
+        seen = row is not None
+        matches = (current == expected) if expected_supplied and seen else False if expected_supplied else None
+        return {
+            "ok": True,
+            "seen": seen,
+            "key": key,
+            "val": current,
+            "matches": matches,
+            "changed": (not matches) if expected_supplied else None,
+        }
 
 
 class StateUpdateProvider(CapabilityProvider):
@@ -561,21 +601,44 @@ class StateUpdateProvider(CapabilityProvider):
 
     def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         db_path = Path(params.get("db", "state.db")).expanduser()
-        table = params.get("table", "seen_items")
+        table = _safe_state_table(params.get("table", "seen_items"))
         key = str(params.get("key") or params.get("value") or "")
-        val = str(params.get("val", "ok"))
+        val = _state_value(params.get("val", "ok"))
         ts = datetime.now(timezone.utc).isoformat()
 
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        import sqlite3
         con = sqlite3.connect(db_path)
         try:
-            con.execute(f"CREATE TABLE IF NOT EXISTS {table} (item_key TEXT PRIMARY KEY, val TEXT, ts TEXT)")
-            con.execute(f"INSERT OR REPLACE INTO {table} (item_key, val, ts) VALUES (?, ?, ?)", (key, val, ts))
-            con.commit()
+            con.execute(
+                f"CREATE TABLE IF NOT EXISTS {table} "
+                "(item_key TEXT PRIMARY KEY, val TEXT, ts TEXT)"
+            )
+            columns = {row[1] for row in con.execute(f"PRAGMA table_info({table})")}
+            if "val" not in columns:
+                con.execute(f"ALTER TABLE {table} ADD COLUMN val TEXT")
+            previous_row = con.execute(
+                f"SELECT val FROM {table} WHERE item_key = ?",
+                (key,),
+            ).fetchone()
+            previous = previous_row[0] if previous_row is not None else None
+            changed = previous != val
+            if changed or not params.get("only_if_changed", False):
+                con.execute(
+                    f"INSERT OR REPLACE INTO {table} (item_key, val, ts) VALUES (?, ?, ?)",
+                    (key, val, ts),
+                )
+                con.commit()
         finally:
             con.close()
-        return {"ok": True, "updated": True, "key": key, "val": val, "ts": ts}
+        return {
+            "ok": True,
+            "updated": changed or not params.get("only_if_changed", False),
+            "changed": changed,
+            "key": key,
+            "previous": previous,
+            "val": val,
+            "ts": ts,
+        }
 
 
 class ContinuationProvider(CapabilityProvider):
