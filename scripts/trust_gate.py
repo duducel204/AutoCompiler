@@ -62,6 +62,8 @@ TESTS=[
  "tests.test_post_cycle_workflow",
  "tests.test_next_cycle_plan",
  "tests.test_ci_failure_context",
+ "tests.test_development_cycle_dispatch",
+ "tests.test_development_cycle_workflow",
 ]
 
 def run(cmd):
