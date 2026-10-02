@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json, subprocess, sys
+import json, os, subprocess, sys
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -7,6 +7,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.autocompiler.trust import classify_failure, report
+from scripts.ci_failure_context import build_failure_context, write_failure_context
+
+RESULT_PATH = ROOT / ".autocompiler" / "trust_gate_result.json"
+FAILURE_PATH = ROOT / ".autocompiler" / "ci_failure_context.json"
 TESTS=[
  "tests.test_discover",
  "tests.test_planner_runtime",
@@ -57,11 +61,31 @@ TESTS=[
  "tests.test_post_cycle_spider",
  "tests.test_post_cycle_workflow",
  "tests.test_next_cycle_plan",
+ "tests.test_ci_failure_context",
 ]
 
 def run(cmd):
     p=subprocess.run(cmd,cwd=ROOT,text=True,capture_output=True)
     return p.returncode,p.stdout+"\n"+p.stderr
+
+
+def write_result(payload):
+    RESULT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    RESULT_PATH.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def record_failure(check, code, log):
+    payload = build_failure_context(
+        log,
+        check=check,
+        stage="trust_gate",
+        exit_code=code,
+        source_sha=os.environ.get("GITHUB_SHA", ""),
+    )
+    write_failure_context(payload, FAILURE_PATH)
+    write_result({"gate": "FAIL", "check": check, "failure_context": str(FAILURE_PATH)})
+    return payload
+
 
 def main():
     evidence=[]
@@ -70,6 +94,7 @@ def main():
         evidence.append({"check":module,"ok":code==0})
         if code:
             failure=classify_failure(log)
+            record_failure(module, code, log)
             print(json.dumps({"gate":"FAIL","check":module,"failure":report(failure)},indent=2))
             print(log[-8000:],file=sys.stderr)
             return 1
@@ -77,10 +102,15 @@ def main():
     evidence.append({"check":"build_b1","ok":code==0})
     if code:
         failure=classify_failure(log)
+        record_failure("build_b1", code, log)
         print(json.dumps({"gate":"FAIL","check":"build_b1","failure":report(failure)},indent=2))
         print(log[-8000:],file=sys.stderr)
         return 1
-    print(json.dumps({"gate":"PASS","contract":"restore invariants, never manufacture green","checks":evidence},indent=2))
+    if FAILURE_PATH.exists():
+        FAILURE_PATH.unlink()
+    result={"gate":"PASS","contract":"restore invariants, never manufacture green","checks":evidence}
+    write_result(result)
+    print(json.dumps(result,indent=2))
     return 0
 
 if __name__=="__main__":
