@@ -58,7 +58,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "user_title": "Backup automático",
         "category": "Proteção",
         "outcome": "Copiar arquivos de uma pasta para um backup em horário programado.",
-        "status": "validation",
+        "status": "ready",
         "difficulty": "Fácil",
         "parameters": [
             {"key": "source_folder", "label": "Qual pasta deve ter backup?", "default": "./data"},
@@ -164,7 +164,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "user_title": "Converter CSV em Excel",
         "category": "Planilhas",
         "outcome": "Transformar um arquivo CSV em uma planilha XLSX sem trabalho manual.",
-        "status": "validation",
+        "status": "ready",
         "difficulty": "Fácil",
         "parameters": [
             {"key": "input_csv", "label": "Qual arquivo CSV?", "default": "input.csv"},
