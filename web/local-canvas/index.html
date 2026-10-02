@@ -204,10 +204,11 @@ body.builder-mode .lifecycle-strip{background:#0c1016;border-color:#292e36}
           <button id="assistant-send" disabled>Enviar</button>
         </div>
         <div class="assistant-dev-actions">
+          <button id="assistant-actions" disabled>Ações locais OFF</button>
           <button id="assistant-draft" disabled>Gerar / atualizar rascunho</button>
           <button id="assistant-open-builder" disabled>Abrir rascunho no Construtor</button>
         </div>
-        <div class="assistant-note">A IA pode criar e editar o rascunho. Autorizar, aplicar e executar continuam separados e exigem sua ação explícita.</div>
+        <div class="assistant-note">Ações locais são opt-in por sessão e, neste estágio, só controlam o navegador: abrir, pesquisar e navegar. Shell, PowerShell e arquivos continuam fora do alcance direto da IA.</div>
       </section>
       </div>
     </div>
@@ -475,6 +476,7 @@ let latestPreflight=null;
 let selectedUtility=null;
 let assistantHistory=[];
 let assistantConfigured=false;
+let assistantActionsEnabled=false;
 let selectedCanvasNode=null;
 let nodePositions={};
 let canvasZoom=1;
@@ -658,11 +660,17 @@ async function bootProduct(){
 }
 function renderAssistantStatus(status){
   assistantConfigured=Boolean(status&&status.configured);
-  const badge=document.querySelector('#assistant-status'),send=document.querySelector('#assistant-send'),config=document.querySelector('#assistant-config');
+  assistantActionsEnabled=Boolean(status&&status.actions&&status.actions.enabled);
+  const badge=document.querySelector('#assistant-status'),send=document.querySelector('#assistant-send'),config=document.querySelector('#assistant-config'),actions=document.querySelector('#assistant-actions');
   if(assistantConfigured){
     badge.textContent='IA CONECTADA · '+(status.model||'Gemini');badge.className='assistant-status online';send.disabled=false;config.classList.add('hidden');
   }else{
-    badge.textContent='AGUARDANDO API';badge.className='assistant-status offline';send.disabled=true;config.classList.remove('hidden');
+    badge.textContent='AGUARDANDO API';badge.className='assistant-status offline';send.disabled=true;config.classList.remove('hidden');assistantActionsEnabled=false;
+  }
+  if(actions){
+    actions.disabled=!assistantConfigured;
+    actions.textContent=assistantActionsEnabled?'Ações locais ON':'Ações locais OFF';
+    actions.className=assistantActionsEnabled?'success-btn':'';
   }
   refreshAssistantDraftButtons();
 }
@@ -702,6 +710,24 @@ async function configureAssistant(){
 document.querySelector('#assistant-connect').onclick=configureAssistant;
 document.querySelector('#assistant-reconfigure').onclick=()=>document.querySelector('#assistant-config').classList.toggle('hidden');
 
+async function toggleAssistantActions(){
+  if(!assistantConfigured)return;
+  const next=!assistantActionsEnabled;
+  if(next&&!confirm('Habilitar nesta sessão ações locais de navegador? O Gemini poderá pedir ao AutoCompiler para abrir o navegador, pesquisar e abrir URLs http/https. Shell, PowerShell e arquivos continuam bloqueados.'))return;
+  const button=document.querySelector('#assistant-actions');button.disabled=true;
+  try{
+    const r=await fetch('/api/assistant/actions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:next,authorization:next?'enable-browser-actions':null})});
+    const res=await r.json();if(!res.ok)throw new Error(res.status||res.error||'Falha ao alterar ações locais');
+    assistantActionsEnabled=Boolean(res.enabled);
+    button.textContent=assistantActionsEnabled?'Ações locais ON':'Ações locais OFF';
+    button.className=assistantActionsEnabled?'success-btn':'';
+    appendAssistantMessage('assistant',assistantActionsEnabled?'Ações locais de navegador habilitadas nesta sessão. Você pode pedir, por exemplo: “abra o navegador” ou “pesquise tradutor”.':'Ações locais desabilitadas.');
+    log('assistant.actions',assistantActionsEnabled?'browser actions enabled':'browser actions disabled');
+  }catch(e){appendAssistantMessage('assistant','Não consegui alterar as ações locais: '+e.message);log('assistant.actions_error',e.message,true);}
+  finally{button.disabled=!assistantConfigured;}
+}
+document.querySelector('#assistant-actions').onclick=toggleAssistantActions;
+
 async function sendAssistantMessage(){
   const input=document.querySelector('#assistant-input'),button=document.querySelector('#assistant-send');
   const message=input.value.trim();if(!message||!assistantConfigured)return;
@@ -716,6 +742,9 @@ async function sendAssistantMessage(){
       throw new Error((res.message||diag.message||res.details||res.error||'Falha no chat')+suffix);
     }
     appendAssistantMessage('assistant',res.reply);assistantHistory.push({role:'assistant',text:res.reply});
+    if(Array.isArray(res.actions)&&res.actions.length){
+      res.actions.forEach(action=>log('assistant.action',(action.function||'action')+' → '+(action.status||'ok')+(action.query?' · '+action.query:'')));
+    }
   }catch(e){
     appendAssistantMessage('assistant','Não consegui responder agora. '+e.message);log('assistant.error',e.message,true);
   }finally{
