@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .ai_draft import draft_intent_to_ir
+from .ay.state import build_ay_state
 from .assistant_actions import (
     BROWSER_FUNCTION_DECLARATIONS,
     actions_status,
@@ -193,6 +194,33 @@ def _catalog_context(utilities: list[dict[str, Any]]) -> str:
     return "\n".join(rows)
 
 
+def _ay_self_context(intent: str) -> str:
+    """Project compact factual self-state for the current turn.
+
+    Failure to inspect self-state must not block chat; it becomes explicit
+    unknown context rather than invented capability.
+    """
+    try:
+        state = build_ay_state(intent=intent)
+    except (OSError, ValueError, RuntimeError) as exc:
+        return json.dumps(
+            {"self_state": "unavailable", "reason": type(exc).__name__},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+
+    payload = {
+        "intent": state.intent,
+        "available_capabilities": sorted(state.capabilities_available),
+        "missing_capabilities": state.missing_capabilities,
+        "muscles": state.muscles_available,
+        "unknown": state.unknown,
+        "constraints": state.constraints,
+        "evidence_refs": state.evidence_refs,
+    }
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+
 def _gemini_chat(
     *,
     config: AssistantConfig,
@@ -208,7 +236,15 @@ def _gemini_chat(
         })
     contents.append({"role": "user", "parts": [{"text": message}]})
 
-    prompt = SYSTEM_PROMPT + "\n\nCATÁLOGO ATUAL DE UTILIDADES:\n" + _catalog_context(utilities)
+    prompt = (
+        SYSTEM_PROMPT
+        + "\n\nESTADO OPERACIONAL DO AY (projeção, não nova fonte de verdade):\n"
+        + _ay_self_context(message)
+        + "\n\nESTADO OPERACIONAL DO AY (projeção, não nova fonte de verdade):\n"
+        + _ay_self_context(message)
+        + "\n\nCATÁLOGO ATUAL DE UTILIDADES:\n"
+        + _catalog_context(utilities)
+    )
     payload = generate_content(
         api_key=config.api_key,
         model=config.model,
