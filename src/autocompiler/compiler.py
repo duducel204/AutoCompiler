@@ -293,6 +293,20 @@ def run():
             context[sid] = copied
             processed += len(copied)
 
+        elif skill == "filesystem.move":
+            from_ref = args["from"]
+            items = _resolve(from_ref, context) if isinstance(from_ref, str) and from_ref.startswith("$") else context[from_ref]
+            destination = Path(_resolve(args["destination"], context)).expanduser()
+            destination.mkdir(parents=True, exist_ok=True)
+            moved = []
+            for item in items:
+                source = Path(item)
+                target = destination / source.name
+                shutil.move(str(source), str(target))
+                moved.append((source, target))
+            context[sid] = moved
+            processed += len(moved)
+
         elif skill == "state.record":
             from_ref = args["from"]
             pairs = _resolve(from_ref, context) if isinstance(from_ref, str) and from_ref.startswith("$") else context[from_ref]
@@ -392,6 +406,7 @@ TARGET_SKILLS = {
         "filesystem.scan",
         "filter.extension",
         "filesystem.copy",
+        "filesystem.move",
         "state.record",
         "http.request",
         "data.map",
@@ -405,6 +420,7 @@ TARGET_SKILLS = {
         "filesystem.scan",
         "filter.extension",
         "filesystem.copy",
+        "filesystem.move",
         "state.record",
         "http.request",
         "data.map",
