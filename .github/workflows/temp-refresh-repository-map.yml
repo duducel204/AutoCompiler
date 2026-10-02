@@ -2,7 +2,7 @@ name: Temporary repository map refresh
 
 on:
   pull_request:
-    types: [reopened]
+    types: [opened]
 
 permissions:
   contents: write
