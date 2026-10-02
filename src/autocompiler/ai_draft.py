@@ -143,7 +143,7 @@ class GeminiDraftProvider(AIProvider):
 
         # Urllib REST call to Gemini API endpoint
         import urllib.request
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent"
         payload = {
             "contents": [
                 {
@@ -158,7 +158,7 @@ class GeminiDraftProvider(AIProvider):
             req = urllib.request.Request(
                 url,
                 data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=15) as resp:
