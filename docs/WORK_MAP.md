@@ -8,7 +8,7 @@ O CSV declara trabalho e evidência; estado operacional é derivado. Merge, test
 
 ## Agora
 
-- Ready: `AY-C8`
+- Ready: `AY-C8`, `SEC-OS1`, `UI-CANVAS1`, `REPO-H1`, `TARGET-PS1`, `IMPORT-N8N1`
 - Dívida de verificação: nenhuma
 - Bloqueados: nenhum
 - Conflitos de ownership acionáveis: 0
@@ -32,6 +32,11 @@ flowchart LR
   W_AY_C6["AY-C6<br/>Post-cycle Spider assimilation via GitHub Actions<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C7["AY-C7<br/>Post-cycle next-work synthesis<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C8["AY-C8<br/>GitHub Actions development-cycle dispatcher<br/>READY"]
+  W_SEC_OS1["SEC-OS1<br/>Native OS secret storage provider<br/>READY"]
+  W_UI_CANVAS1["UI-CANVAS1<br/>Modularize local Canvas without behavior change<br/>READY"]
+  W_REPO_H1["REPO-H1<br/>Consolidate root demo and build entrypoints<br/>READY"]
+  W_TARGET_PS1["TARGET-PS1<br/>Prove one native PowerShell compilation target<br/>READY"]
+  W_IMPORT_N8N1["IMPORT-N8N1<br/>Experiment with n8n JSON to Automation IR import<br/>READY"]
   W_CC_01 -->|build| W_CC_01T
   W_CC_03 -->|build| W_CC_03S
   W_CC_01T -.->|proof| W_CC_03S
@@ -53,6 +58,8 @@ flowchart LR
   W_AY_C5 -->|build| W_AY_C6
   W_AY_C6 -->|build| W_AY_C7
   W_AY_C7 -->|build| W_AY_C8
+  W_CC_04 -->|build| W_TARGET_PS1
+  W_CC_04 -->|build| W_IMPORT_N8N1
 ```
 
 ## Work board
@@ -74,6 +81,11 @@ flowchart LR
 | `AY-C6` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C7` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C8` | — | — | — | — | — | `READY` | implement |
+| `SEC-OS1` | — | — | — | — | — | `READY` | implement |
+| `UI-CANVAS1` | — | — | — | — | — | `READY` | implement |
+| `REPO-H1` | — | — | — | — | — | `READY` | implement |
+| `TARGET-PS1` | — | — | — | — | — | `READY` | implement |
+| `IMPORT-N8N1` | — | — | — | — | — | `READY` | implement |
 
 ## Dívida de verificação
 
