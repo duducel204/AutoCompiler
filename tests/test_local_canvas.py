@@ -113,7 +113,7 @@ class LocalCanvasTests(unittest.TestCase):
                 utilities_res = json.loads(resp.read().decode("utf-8"))
             self.assertTrue(utilities_res["ok"])
             self.assertTrue(any(u["user_title"] == "Organizar PDFs" and u["status"] == "ready" for u in utilities_res["utilities"]))
-            self.assertTrue(any(u["user_title"] == "Organizar Downloads" and u["status"] == "planned" for u in utilities_res["utilities"]))
+            self.assertTrue(any(u["user_title"] == "Organizar Downloads" and u["status"] == "ready" for u in utilities_res["utilities"]))
 
             with urlopen(f"{base_url}/") as resp:
                 page = resp.read().decode("utf-8")
