@@ -31,7 +31,7 @@ class StarterTemplatesTests(unittest.TestCase):
         validation = [u for u in utilities if u["status"] == "validation"]
         planned = [u for u in utilities if u["status"] == "planned"]
         self.assertEqual(len(ready), 2)
-        self.assertEqual(len(validation), 4)
+        self.assertEqual(len(validation), 3)
         self.assertGreaterEqual(len(planned), 5)
         self.assertTrue(all(u["template_id"] for u in ready + validation))
         self.assertTrue(all(u["template_id"] is None for u in planned))
