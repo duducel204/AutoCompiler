@@ -45,6 +45,25 @@ class NodeContextIndexTests(unittest.TestCase):
             self.assertIn("symbol", kinds)
             self.assertIn("semantic", kinds)
             self.assertIn("logic", kinds)
+            self.assertEqual(graph["schema_version"], 2)
+            self.assertEqual(len(graph["contract_fingerprint"]), 64)
+
+    def test_stale_contract_cache_is_discarded_and_rebuilt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "node_context_graph.json"
+            output.write_text(
+                json.dumps({
+                    "schema_version": 2,
+                    "contract_fingerprint": "0" * 64,
+                    "files": {},
+                }),
+                encoding="utf-8",
+            )
+            result = self._run(output)
+            self.assertEqual(result["cache_state"], "contract_mismatch")
+            self.assertGreater(len(result["changed_files"]), 0)
+            graph = json.loads(output.read_text(encoding="utf-8"))
+            self.assertNotEqual(graph["contract_fingerprint"], "0" * 64)
 
 
 if __name__ == "__main__":

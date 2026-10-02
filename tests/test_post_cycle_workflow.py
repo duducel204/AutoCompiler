@@ -22,6 +22,8 @@ class PostCycleSpiderWorkflowTests(unittest.TestCase):
     def test_workflow_restores_graph_runs_spider_and_publishes_next_cycle_context(self):
         text = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("actions/cache/restore@v4", text)
+        self.assertIn("node-context-main-v2-", text)
+        self.assertIn("hashFiles('scripts/node_context_index.py', 'scripts/node_context_spider.py', 'scripts/post_cycle_spider.py')", text)
         self.assertIn("scripts/post_cycle_spider.py", text)
         self.assertIn(".autocompiler/node_context_graph.json", text)
         self.assertIn(".autocompiler/post_cycle_context.json", text)

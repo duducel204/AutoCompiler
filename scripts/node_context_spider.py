@@ -12,7 +12,7 @@ from collections import deque
 from pathlib import Path
 from typing import Any
 
-from node_context_index import DEFAULT_OUTPUT, run_cycle
+from node_context_index import CACHE_SCHEMA_VERSION, DEFAULT_OUTPUT, load_cache, run_cycle
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,9 +20,13 @@ ROOT = Path(__file__).resolve().parents[1]
 def load_graph(path: Path, *, refresh: bool = False) -> dict[str, Any]:
     if refresh or not path.exists():
         run_cycle(path)
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if data.get("schema_version") != 1 or not isinstance(data.get("files"), dict):
+    data = load_cache(path)
+    if data.get("_cache_state") != "reused":
+        run_cycle(path)
+        data = load_cache(path)
+    if data.get("schema_version") != CACHE_SCHEMA_VERSION or not isinstance(data.get("files"), dict):
         raise ValueError("unsupported node context graph")
+    data.pop("_cache_state", None)
     return data
 
 

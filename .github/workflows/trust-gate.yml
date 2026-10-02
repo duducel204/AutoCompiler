@@ -30,6 +30,17 @@ jobs:
       - name: Validate complete repository contract
         run: python scripts/trust_gate.py
 
+      - name: Upload structured failure context
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trust-gate-failure-${{ matrix.os }}-${{ github.sha }}
+          path: |
+            .autocompiler/ci_failure_context.json
+            .autocompiler/trust_gate_result.json
+          if-no-files-found: warn
+          retention-days: 14
+
   final:
     name: Trust Gate
     if: always()

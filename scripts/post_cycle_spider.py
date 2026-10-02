@@ -123,6 +123,8 @@ def build_context(
             "total_nodes": int(index_summary.get("total_nodes", 0)),
             "total_edges": int(index_summary.get("total_edges", 0)),
             "graph_path": str(graph_path),
+            "cache_state": str(index_summary.get("cache_state", "unknown")),
+            "contract_fingerprint": str(index_summary.get("contract_fingerprint", "")),
         },
         "spider": {
             "depth": depth,
@@ -171,6 +173,8 @@ def run_post_cycle(
         "context_nodes": len(report["spider"]["nodes"]),
         "context_edges": len(report["spider"]["edges"]),
         "truncated": report["spider"]["truncated"],
+        "cache_state": report["index"]["cache_state"],
+        "contract_fingerprint": report["index"]["contract_fingerprint"],
         "graph": str(graph_path),
         "report": str(report_path),
     }
