@@ -61,6 +61,26 @@ def test_self_state_carries_plan_gap_without_promoting_it():
     assert resolve_next(state).status is ResolutionStatus.NEED_CAPABILITY
 
 
+def test_muscle_maturity_requires_repository_evidence(tmp_path):
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "render_repository_map.py").write_text("# test\n", encoding="utf-8")
+
+    from src.autocompiler.ay.muscles import list_existing_muscles
+
+    first = {item.id: item for item in list_existing_muscles(tmp_path)}
+    assert first["repo.map"].maturity == "known"
+    assert first["repo.map"].evidence_refs == ()
+
+    evidence = tmp_path / "docs" / "evidence"
+    evidence.mkdir(parents=True)
+    (evidence / "REPOSITORY_MAP_EXECUTION.md").write_text("observed proof\n", encoding="utf-8")
+
+    second = {item.id: item for item in list_existing_muscles(tmp_path)}
+    assert second["repo.map"].maturity == "evidence_backed"
+    assert second["repo.map"].evidence_refs == ("docs/evidence/REPOSITORY_MAP_EXECUTION.md",)
+
+
 def test_resolver_reuses_existing_muscle_before_generating_script(tmp_path):
     scripts = tmp_path / "scripts"
     scripts.mkdir()
