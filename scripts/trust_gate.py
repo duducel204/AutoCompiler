@@ -22,6 +22,7 @@ TESTS=[
  "tests.test_real_provisioning_vertical",
  "tests.test_external_provider_e030",
  "tests.test_capability_catalog",
+ "tests.test_capability_contracts",
  "tests.test_local_canvas",
  "tests.test_workspace",
  "tests.test_git_acquisition",
@@ -37,6 +38,7 @@ TESTS=[
  "tests.test_coverage_w01_w05",
  "tests.test_templates",
  "tests.test_ai_draft",
+ "tests.test_assistant_chat",
  "tests.test_workflow_lifecycle",
 ]
 
