@@ -2,9 +2,11 @@ from __future__ import annotations
 import os, re, subprocess, sys
 from pathlib import Path
 
-from scripts.ci_failure_context import build_failure_context, write_failure_context
-
 ROOT=Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.ci_failure_context import build_failure_context, write_failure_context
 MAX_ATTEMPTS=3
 TESTS=[
  [sys.executable,"tests/test_discover.py","-v"],
