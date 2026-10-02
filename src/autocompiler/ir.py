@@ -14,7 +14,7 @@ SUPPORTED_SKILLS = {
     "data.map": {"requires": [], "permissions": []},
     "flow.condition": {"requires": [], "permissions": []},
     "flow.branch": {"requires": [], "permissions": []},
-    "state.record_jsonl": {"requires": ["durable_state", "filesystem.write"], "permissions": ["write"]},
+    "state.record_jsonl": {"requires": ["filesystem.write"], "permissions": ["write"]},
     "state.check": {"requires": ["durable_state", "filesystem.read"], "permissions": ["read"]},
     "state.update": {"requires": ["durable_state", "filesystem.write"], "permissions": ["write"]},
     "csv.read": {"requires": ["csv.read"], "permissions": ["read"]},
