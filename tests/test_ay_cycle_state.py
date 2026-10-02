@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.autocompiler.ay import OrchestrationRequest, build_ay_state, orchestrate, record_verified_cycle
 from src.autocompiler.ay.cycle_state import CycleStateStore
 
 
@@ -39,6 +40,32 @@ class AYCycleStateTests(unittest.TestCase):
                     result={"ok": True},
                     evidence_refs=(),
                 )
+
+    def test_next_resolution_reuses_verified_cycle_before_new_work(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "cycles.json"
+            record_verified_cycle(
+                path=path,
+                key="repo.contract.diff",
+                fingerprint="commit-123",
+                result={"ok": True, "accepted_not_materialized": []},
+                evidence_refs=("test:contract-diff-pass",),
+            )
+            state = build_ay_state(resource_graph={"resources": []})
+            result = orchestrate(
+                state,
+                OrchestrationRequest(
+                    needs_context=True,
+                    context_query="compiler",
+                    reuse_key="repo.contract.diff",
+                    source_fingerprint="commit-123",
+                    cycle_state_path=str(path),
+                ),
+            )
+            self.assertEqual(result.decision.next_action, "reuse_verified_cycle")
+            self.assertTrue(result.safe_to_execute_directly)
+            self.assertTrue(result.context["reused"])
+            self.assertEqual(result.context["result"]["accepted_not_materialized"], [])
 
 
 if __name__ == "__main__":
