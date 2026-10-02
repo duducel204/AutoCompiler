@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from ..environment import DEFAULT_LOCAL_CATALOG, build_unified_resource_graph
-from .muscles import list_existing_muscles
 
 
 @dataclass(frozen=True)
@@ -33,7 +32,6 @@ class AYState:
     unknown: list[str] = field(default_factory=list)
     capabilities_available: dict[str, list[str]] = field(default_factory=dict)
     missing_capabilities: list[str] = field(default_factory=list)
-    muscles_available: list[str] = field(default_factory=list)
     human_gaps: list[str] = field(default_factory=list)
     system_gaps: list[str] = field(default_factory=list)
     evidence_refs: list[str] = field(default_factory=list)
@@ -47,7 +45,6 @@ class AYState:
             "unknown": list(self.unknown),
             "capabilities_available": {k: list(v) for k, v in self.capabilities_available.items()},
             "missing_capabilities": list(self.missing_capabilities),
-            "muscles_available": list(self.muscles_available),
             "human_gaps": list(self.human_gaps),
             "system_gaps": list(self.system_gaps),
             "evidence_refs": list(self.evidence_refs),
@@ -79,20 +76,12 @@ def build_ay_state(
     """Build a compact self snapshot from current canonical sources."""
     graph = resource_graph or build_unified_resource_graph(local_catalog_path=local_catalog_path)
     capabilities = _capability_projection(graph)
-    muscles = list_existing_muscles(root)
-
     missing = sorted(set((workflow_plan or {}).get("missing_capabilities", [])))
     facts = [
         StateFact(
             key="capability_count",
             value=len(capabilities),
             source="environment.build_unified_resource_graph",
-            status="observed",
-        ),
-        StateFact(
-            key="existing_muscle_count",
-            value=len(muscles),
-            source="ay.muscles.list_existing_muscles",
             status="observed",
         ),
     ]
@@ -120,7 +109,6 @@ def build_ay_state(
         facts=facts,
         capabilities_available=capabilities,
         missing_capabilities=missing,
-        muscles_available=sorted(item.id for item in muscles),
         system_gaps=list(missing),
         evidence_refs=evidence_refs,
         constraints=constraints,
