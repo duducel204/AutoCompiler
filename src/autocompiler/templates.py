@@ -95,7 +95,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "user_title": "Salvar dados de uma API",
         "category": "Internet",
         "outcome": "Consultar um endereço de API e guardar uma cópia dos dados recebidos.",
-        "status": "validation",
+        "status": "ready",
         "difficulty": "Intermediário",
         "parameters": [
             {"key": "api_url", "label": "Qual endereço da API?", "default": "http://api.example.com/snapshot"},
