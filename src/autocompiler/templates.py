@@ -208,10 +208,10 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "status": "ready",
         "difficulty": "Fácil",
         "parameters": [
-            {"key": "source_folder", "label": "Qual pasta deve ser organizada?", "default": "./Downloads"},
-            {"key": "documents_folder", "label": "Onde guardar PDFs?", "default": "./Downloads/Documentos"},
-            {"key": "spreadsheets_folder", "label": "Onde guardar planilhas?", "default": "./Downloads/Planilhas"},
-            {"key": "images_folder", "label": "Onde guardar imagens?", "default": "./Downloads/Imagens"},
+            {"key": "source_folder", "label": "Qual pasta deve ser organizada?", "default": "~/Downloads"},
+            {"key": "documents_folder", "label": "Onde guardar PDFs?", "default": "~/Documents/AutoCompiler/PDFs"},
+            {"key": "spreadsheets_folder", "label": "Onde guardar planilhas?", "default": "~/Documents/AutoCompiler/Planilhas"},
+            {"key": "images_folder", "label": "Onde guardar imagens?", "default": "~/Pictures/AutoCompiler"},
         ],
         "template_ir": {
             "schema_version": "0.1",
@@ -248,9 +248,9 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "status": "ready",
         "difficulty": "Fácil",
         "parameters": [
-            {"key": "source_folder", "label": "Qual pasta deve ser verificada?", "default": "./data"},
+            {"key": "source_folder", "label": "Qual pasta deve ser verificada?", "default": "~/Documents"},
             {"key": "extension", "label": "Qual extensão deve entrar no backup?", "default": ".pdf"},
-            {"key": "backup_folder", "label": "Onde guardar os arquivos?", "default": "./backups/selective"},
+            {"key": "backup_folder", "label": "Onde guardar os arquivos?", "default": "~/AutoCompiler Backups/Selective"},
         ],
         "template_ir": {
             "schema_version": "0.1",
@@ -299,8 +299,8 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "status": "ready",
         "difficulty": "Fácil",
         "parameters": [
-            {"key": "input_csv", "label": "Qual arquivo CSV deve ser lido?", "default": "input.csv"},
-            {"key": "output_xlsx", "label": "Qual planilha deve ser atualizada?", "default": "output.xlsx"},
+            {"key": "input_csv", "label": "Qual arquivo CSV deve ser lido?", "default": "~/Documents/input.csv"},
+            {"key": "output_xlsx", "label": "Qual planilha deve ser atualizada?", "default": "~/Documents/output.xlsx"},
         ],
         "template_ir": {
             "schema_version": "0.1",
@@ -323,8 +323,8 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "status": "ready",
         "difficulty": "Fácil",
         "parameters": [
-            {"key": "source_folder", "label": "Qual é a pasta de entrada?", "default": "./inbox"},
-            {"key": "target_folder", "label": "Onde arquivar os PDFs?", "default": "./pdf_archive"},
+            {"key": "source_folder", "label": "Qual é a pasta de entrada?", "default": "~/Downloads"},
+            {"key": "target_folder", "label": "Onde arquivar os PDFs?", "default": "~/Documents/PDF Archive"},
         ],
         "template_ir": {
             "schema_version": "0.1",
