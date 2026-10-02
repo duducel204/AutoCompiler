@@ -1,7 +1,10 @@
 import json
+import platform
+import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -10,6 +13,7 @@ from unittest.mock import Mock, patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from autocompiler.deployment import remove_windows_schedule
 from autocompiler.templates import instantiate_template
 from autocompiler.workflow_lifecycle import (
     WorkflowPlanStore,
@@ -311,6 +315,63 @@ class WorkflowLifecycleTests(unittest.TestCase):
             self.assertTrue(output.is_file())
             self.assertGreater(output.stat().st_size, 0)
             self.assertFalse(result["result"]["autocompiler_runtime_used"])
+
+    @unittest.skipUnless(platform.system() == "Windows", "real Task Scheduler acceptance runs only on Windows")
+    def test_w02_real_windows_scheduler_runs_compiled_backup_and_cleans_up(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            source = root / "source"
+            backup = root / "backup"
+            source.mkdir()
+            (source / "proof.txt").write_text("scheduled-proof", encoding="utf-8")
+
+            instantiated = instantiate_template(
+                "w02",
+                {"source_folder": str(source), "backup_folder": str(backup)},
+            )
+            ir = instantiated["ir"]
+            graph = usable_graph()
+            graph["resources"].append({
+                "capability": "schedule",
+                "provider": "native_scheduler",
+                "state": "usable",
+                "cost": "free",
+            })
+            plan = build_workflow_plan(
+                ir,
+                out_dir=root / "compiled",
+                source="template",
+                resource_graph=graph,
+            )
+            self.assertTrue(plan["can_apply"])
+
+            store = WorkflowPlanStore()
+            store.create(ir, plan)
+            record = store.authorize(plan["plan_id"])
+            applied = apply_workflow_plan(record)
+            task_name = applied.get("deployment", {}).get("task_name")
+
+            try:
+                self.assertTrue(applied["ok"])
+                self.assertTrue(task_name)
+                fired = subprocess.run(
+                    ["schtasks.exe", "/Run", "/TN", task_name],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(fired.returncode, 0, fired.stderr)
+
+                deadline = time.time() + 15
+                target = backup / "proof.txt"
+                while time.time() < deadline and not target.exists():
+                    time.sleep(0.25)
+                self.assertTrue(target.exists(), "scheduled artifact did not copy the proof file")
+                self.assertEqual(target.read_text(encoding="utf-8"), "scheduled-proof")
+            finally:
+                if task_name:
+                    removed = remove_windows_schedule(task_name)
+                    self.assertTrue(removed["ok"], removed)
 
     def test_failed_execution_is_not_reported_as_verified(self):
         with tempfile.TemporaryDirectory() as td:
