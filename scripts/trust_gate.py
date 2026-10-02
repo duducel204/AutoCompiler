@@ -54,6 +54,8 @@ TESTS=[
  "tests.test_capability_closure_e2e",
  "tests.test_repo_contract_diff",
  "tests.test_ay_cycle_state",
+ "tests.test_post_cycle_spider",
+ "tests.test_post_cycle_workflow",
 ]
 
 def run(cmd):
