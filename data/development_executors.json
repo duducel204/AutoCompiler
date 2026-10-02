@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "executors": [],
+  "policy": {
+    "explicit_work_item_match_required": true,
+    "wildcards_allowed": false,
+    "direct_main_mutation": false,
+    "branch_and_pr_required": true
+  },
+  "notes": "Executors are capabilities, not assumptions. Keep this list empty until a concrete executor has a verified branch/PR contract."
+}
