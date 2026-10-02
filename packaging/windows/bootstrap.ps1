@@ -19,6 +19,55 @@ function Write-InstallLog([string]$Message) {
     }
 }
 
+function Stop-AutoCompilerOwnedProcesses([string]$Root) {
+    if (-not (Test-Path $Root)) {
+        return
+    }
+
+    $prefix = [System.IO.Path]::GetFullPath($Root).TrimEnd("\") + "\"
+    $allowedNames = @("python.exe", "pythonw.exe", "AutoCompilerReadyBridge.exe")
+    $stopped = @()
+
+    $processes = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue
+    foreach ($proc in $processes) {
+        $exe = $proc.ExecutablePath
+        if (-not $exe) {
+            continue
+        }
+
+        try {
+            $full = [System.IO.Path]::GetFullPath($exe)
+        } catch {
+            continue
+        }
+
+        $name = [System.IO.Path]::GetFileName($full)
+        $owned = $full.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)
+        if ($owned -and ($allowedNames -contains $name)) {
+            try {
+                Write-InstallLog ("Stopping running AutoCompiler process " + $proc.ProcessId + " (" + $name + ").")
+                Stop-Process -Id $proc.ProcessId -Force -ErrorAction Stop
+                $stopped += [int]$proc.ProcessId
+            } catch {
+                throw "Could not stop running AutoCompiler process $($proc.ProcessId): $($_.Exception.Message)"
+            }
+        }
+    }
+
+    foreach ($processId in $stopped) {
+        for ($i = 0; $i -lt 50; $i++) {
+            if (-not (Get-Process -Id $processId -ErrorAction SilentlyContinue)) {
+                break
+            }
+            Start-Sleep -Milliseconds 100
+        }
+
+        if (Get-Process -Id $processId -ErrorAction SilentlyContinue) {
+            throw "AutoCompiler process $processId did not stop before upgrade."
+        }
+    }
+}
+
 function New-Shortcut([string]$Path, [string]$Target, [string]$Arguments, [string]$WorkingDirectory, [string]$Description) {
     $shell = New-Object -ComObject WScript.Shell
     $shortcut = $shell.CreateShortcut($Path)
@@ -54,6 +103,7 @@ $InstallRoot = [System.IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA "AutoC
 $script:LogPath = $null
 
 if ($Uninstall) {
+    Stop-AutoCompilerOwnedProcesses $InstallRoot
     $Programs = [Environment]::GetFolderPath("Programs")
     foreach ($name in @("AutoCompiler.lnk", "AutoCompiler Edge.lnk", "AutoCompiler Chrome.lnk")) {
         $shortcut = Join-Path $Programs $name
@@ -94,6 +144,7 @@ if ($Uninstall) {
 New-Item -ItemType Directory -Force -Path $InstallRoot | Out-Null
 $script:LogPath = Join-Path $InstallRoot "install.log"
 Write-InstallLog "Starting installation."
+Stop-AutoCompilerOwnedProcesses $InstallRoot
 
 $PayloadManifestPath = Join-Path $PayloadRoot "payload-manifest.json"
 if (-not (Test-Path $PayloadManifestPath)) {
@@ -267,7 +318,7 @@ Set-ItemProperty -Path $UninstallKey -Name "DisplayVersion" -Value ([string]$Pay
 Set-ItemProperty -Path $UninstallKey -Name "Publisher" -Value "AutoCompiler"
 Set-ItemProperty -Path $UninstallKey -Name "InstallLocation" -Value $InstallRoot
 if (Test-Path $UninstallExe) {
-    $UninstallString = [char]34 + $UninstallExe + [char]34 + " --uninstall --install-root " + [char]34 + $InstallRoot + [char]34
+    $UninstallString = [char]34 + $UninstallExe + [char]34 + " --uninstall --no-launch --no-shortcuts"
     Set-ItemProperty -Path $UninstallKey -Name "UninstallString" -Value $UninstallString
 }
 
