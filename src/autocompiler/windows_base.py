@@ -126,6 +126,8 @@ def inspect_windows_automation_base(
 
     statuses: list[CapabilityStatus] = []
     missing_required: list[str] = []
+    validation_required: list[str] = []
+    unready_required: list[str] = []
 
     for req in manifest.get("required_capabilities", []):
         cap_name = req["capability"]
@@ -151,7 +153,8 @@ def inspect_windows_automation_base(
                     )
                 )
             else:
-                missing_required.append(cap_name)
+                validation_required.append(cap_name)
+                unready_required.append(cap_name)
                 gap = req.get("readiness_gap", "product-level end-to-end validation")
                 statuses.append(
                     CapabilityStatus(
@@ -184,7 +187,8 @@ def inspect_windows_automation_base(
                     )
                 )
             else:
-                missing_required.append(cap_name)
+                validation_required.append(cap_name)
+                unready_required.append(cap_name)
                 gap = req.get("readiness_gap", "product-level end-to-end validation")
                 statuses.append(
                     CapabilityStatus(
@@ -198,6 +202,7 @@ def inspect_windows_automation_base(
                 )
         else:
             missing_required.append(cap_name)
+            unready_required.append(cap_name)
             statuses.append(
                 CapabilityStatus(
                     capability=cap_name,
@@ -209,7 +214,7 @@ def inspect_windows_automation_base(
                 )
             )
 
-    automation_ready = len(missing_required) == 0
+    automation_ready = len(unready_required) == 0
     usable_required = sum(1 for s in statuses if s.required and s.status == "usable")
     return {
         "automation_ready": automation_ready,
@@ -219,9 +224,12 @@ def inspect_windows_automation_base(
             "required": len(statuses),
             "usable": usable_required,
             "missing": len(missing_required),
-            "validation_required": sum(1 for s in statuses if s.status == "validation_required"),
+            "validation_required": len(validation_required),
+            "unready": len(unready_required),
         },
         "statuses": [s.to_dict() for s in statuses],
         "missing_required": missing_required,
+        "validation_required": validation_required,
+        "unready_required": unready_required,
         "manifest": manifest,
     }
