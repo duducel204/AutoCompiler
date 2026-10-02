@@ -217,6 +217,19 @@ class LocalCanvasTests(unittest.TestCase):
                     urlopen(bad_plan)
                 self.assertEqual(bad_plan_error.exception.code, 400)
 
+                # A foreign web origin cannot use the localhost API as a bridge.
+                foreign = Request(
+                    f"{base_url}/api/workflow/validate",
+                    data=json.dumps({"ir": ir_w01}).encode("utf-8"),
+                    headers={
+                        "Content-Type": "text/plain",
+                        "Origin": "https://attacker.example",
+                    },
+                )
+                with self.assertRaises(HTTPError) as foreign_error:
+                    urlopen(foreign)
+                self.assertEqual(foreign_error.exception.code, 403)
+
                 # Old direct execution path is closed.
                 direct = Request(
                     f"{base_url}/api/workflow/compile_and_run",
