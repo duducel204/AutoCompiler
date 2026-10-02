@@ -48,11 +48,6 @@ internal static class AutoCompilerSetup
                     uninstall = true;
                     psArgs += " -Uninstall";
                 }
-                else if (String.Equals(arg, "--install-root", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-                {
-                    installRoot = Path.GetFullPath(args[++i]);
-                    psArgs += " -InstallRoot " + Quote(installRoot);
-                }
                 else
                 {
                     throw new ArgumentException("Unsupported setup argument: " + arg);
