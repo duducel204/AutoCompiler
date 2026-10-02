@@ -12,6 +12,33 @@ from autocompiler.windows_provisioner import apply_windows_preparation, plan_win
 
 
 class WindowsProvisionerTests(unittest.TestCase):
+    def test_missing_gap_without_recipe_fails_closed(self):
+        prep_plan = plan_windows_preparation(
+            inventory={
+                "machine": {"os": "Windows"},
+                "capabilities": [
+                    {
+                        "id": "native_scheduler",
+                        "detected": True,
+                        "usable": "no",
+                    }
+                ],
+            }
+        )
+        self.assertFalse(prep_plan.automation_ready_before)
+        self.assertIn("schedule", prep_plan.unresolved_capabilities)
+        self.assertFalse(prep_plan.can_apply)
+
+        with tempfile.TemporaryDirectory() as td:
+            result = apply_windows_preparation(
+                prep_plan,
+                manifest_path=Path(td) / "environment_manifest.json",
+                authorized=True,
+            )
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["automation_ready"])
+        self.assertEqual(result["status"], "unresolved_capabilities")
+
     def test_plan_when_already_automation_ready(self):
         # Provide inventory satisfying all required capabilities
         full_inventory = {
