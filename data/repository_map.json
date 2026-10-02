@@ -217,6 +217,11 @@
         "data/discoveries.csv",
         "data/hypotheses.csv",
         "data/resources.csv",
+        "data/work_graph.csv",
+        "data/work_evidence.csv",
+        "scripts/work_map.py",
+        "docs/WORK_MAP.md",
+        "docs/WORK_STATUS.csv",
         "scripts/render_readme.py",
         "scripts/render_repository_map.py",
         "scripts/render_repository_index.py",
@@ -224,9 +229,10 @@
         "docs/REPOSITORY_MAP.md",
         "docs/REPOSITORY_INDEX.xlsx"
       ],
-      "output": "Seções do README, mapa navegável e planilha principal",
+      "output": "README sections, Development Control Map/CSV, connected repository map and principal workbook",
       "limits": "Não executa providers, não promove trust e não comprova comportamentos por presença de arquivos.",
       "docs": [
+        "docs/WORK_MAP.md",
         "docs/INDEX.md",
         "docs/REPOSITORY_INDEX.md",
         "docs/evidence/INDEX.md",
