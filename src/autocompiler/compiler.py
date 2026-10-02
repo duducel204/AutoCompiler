@@ -8,10 +8,11 @@ from typing import Any
 from .ir import validate_ir
 
 PYTHON_RUNTIME_TEMPLATE = r'''from __future__ import annotations
-import json, shutil, sqlite3, time
+import csv, json, shutil, sqlite3, time, zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
+from xml.sax.saxutils import escape
 
 ROOT = Path(__file__).resolve().parent
 IR = json.loads((ROOT / "automation.ir.json").read_text(encoding="utf-8"))
