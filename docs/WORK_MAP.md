@@ -8,7 +8,7 @@ O CSV declara trabalho e evidência; estado operacional é derivado. Merge, test
 
 ## Agora
 
-- Ready: `CC-04`
+- Ready: nenhum
 - Dívida de verificação: nenhuma
 - Bloqueados: `AY-C4`, `AY-C5`
 - Conflitos de ownership acionáveis: 0
@@ -17,12 +17,12 @@ O CSV declara trabalho e evidência; estado operacional é derivado. Merge, test
 
 ```mermaid
 flowchart LR
-  W_CC_01["CC-01<br/>Capability closure core<br/>INTEGRATED_COMPONENT_WIRED"]
-  W_CC_01T["CC-01T<br/>Capability closure trust hardening<br/>INTEGRATED_COMPONENT_WIRED"]
-  W_CC_03["CC-03<br/>Workflow capability-gap resume<br/>INTEGRATED_COMPONENT_WIRED"]
-  W_CC_03S["CC-03S<br/>Product/API gap inspection and resume seam<br/>INTEGRATED_COMPONENT_WIRED"]
-  W_CC_02["CC-02<br/>Generic compiled capability consumption<br/>INTEGRATED_COMPONENT_WIRED"]
-  W_CC_04["CC-04<br/>Full capability-closure end-to-end proof<br/>READY"]
+  W_CC_01["CC-01<br/>Capability closure core<br/>SYSTEM_PROOF_WIRED"]
+  W_CC_01T["CC-01T<br/>Capability closure trust hardening<br/>SYSTEM_PROOF_WIRED"]
+  W_CC_03["CC-03<br/>Workflow capability-gap resume<br/>SYSTEM_PROOF_WIRED"]
+  W_CC_03S["CC-03S<br/>Product/API gap inspection and resume seam<br/>SYSTEM_PROOF_WIRED"]
+  W_CC_02["CC-02<br/>Generic compiled capability consumption<br/>SYSTEM_PROOF_WIRED"]
+  W_CC_04["CC-04<br/>Full capability-closure end-to-end proof<br/>COMPONENT_GATE_WIRED"]
   W_AY_C1["AY-C1<br/>Self state and truth projection<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C2A["AY-C2A<br/>Incremental semantic and logic node index<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C2B["AY-C2B<br/>Bounded node-context spider for complex gaps<br/>SYSTEM_PROOF_WIRED"]
@@ -51,18 +51,18 @@ flowchart LR
 
 | ID | Implementação | Teste | Gate | Merge | Prova sistema | Estado | Next |
 |---|---:|---:|---:|---:|---:|---|---|
-| `CC-01` | ✓ | ✓ | ✓ | ✓ | — | `INTEGRATED_COMPONENT_WIRED` | add/wire system proof |
-| `CC-01T` | ✓ | ✓ | ✓ | ✓ | — | `INTEGRATED_COMPONENT_WIRED` | add/wire system proof |
-| `CC-03` | ✓ | ✓ | ✓ | ✓ | — | `INTEGRATED_COMPONENT_WIRED` | add/wire system proof |
-| `CC-03S` | ✓ | ✓ | ✓ | ✓ | — | `INTEGRATED_COMPONENT_WIRED` | add/wire system proof |
-| `CC-02` | ✓ | ✓ | ✓ | ✓ | — | `INTEGRATED_COMPONENT_WIRED` | add/wire system proof |
-| `CC-04` | — | — | — | — | — | `READY` | implement |
+| `CC-01` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
+| `CC-01T` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
+| `CC-03` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
+| `CC-03S` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
+| `CC-02` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
+| `CC-04` | ✓ | ✓ | ✓ | — | ✓ | `COMPONENT_GATE_WIRED` | integrate |
 | `AY-C1` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C2A` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C2B` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C3` | ✓ | ✓ | ✓ | — | ✓ | `COMPONENT_GATE_WIRED` | integrate |
-| `AY-C4` | — | ✓ | ✓ | — | ✓ | `BLOCKED` | wait for AY-C3 |
-| `AY-C5` | — | — | — | — | — | `BLOCKED` | wait for AY-C3,AY-C4 |
+| `AY-C4` | ✓ | ✓ | ✓ | — | ✓ | `BLOCKED` | wait for AY-C3 |
+| `AY-C5` | ✓ | ✓ | ✓ | — | ✓ | `BLOCKED` | wait for AY-C3,AY-C4 |
 
 ## Dívida de verificação
 

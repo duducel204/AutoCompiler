@@ -51,6 +51,9 @@ TESTS=[
  "tests.test_ay_scripts",
  "tests.test_node_context_index",
  "tests.test_node_context_spider",
+ "tests.test_capability_closure_e2e",
+ "tests.test_repo_contract_diff",
+ "tests.test_ay_cycle_state",
 ]
 
 def run(cmd):

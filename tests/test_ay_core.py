@@ -75,6 +75,24 @@ class AYCoreTests(unittest.TestCase):
         self.assertIs(decision.status, ResolutionStatus.NEED_SCRIPT)
         self.assertEqual(decision.next_action, "create_ephemeral_script")
 
+    def test_orchestrator_routes_need_context_to_bounded_spider(self):
+        state = build_ay_state(resource_graph={"resources": []})
+        result = orchestrate(
+            state,
+            OrchestrationRequest(
+                needs_context=True,
+                context_query="schedule",
+                context_depth=1,
+            ),
+        )
+        self.assertIs(result.decision.status, ResolutionStatus.NEED_CONTEXT)
+        self.assertTrue(result.safe_to_execute_directly)
+        self.assertIsNotNone(result.context)
+        self.assertTrue(result.context["ok"])
+        self.assertTrue(result.context["seeds"])
+        self.assertLessEqual(len(result.context["nodes"]), 60)
+        self.assertLessEqual(len(result.context["edges"]), 120)
+
     def test_orchestrator_never_marks_protected_mutation_direct(self):
         state = build_ay_state(resource_graph={"resources": []})
         result = orchestrate(
