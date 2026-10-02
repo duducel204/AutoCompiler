@@ -2,26 +2,35 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
+from .ai_draft import draft_intent_to_ir
 
-SYSTEM_PROMPT = """Você é o assistente do AutoCompiler Basic.
 
-Objetivo: ajudar uma pessoa comum a descobrir, entender e configurar automações úteis sem exigir conhecimento técnico.
+SYSTEM_PROMPT = """Você é o copiloto de desenvolvimento do AutoCompiler Basic.
+
+Objetivo: ajudar uma pessoa comum a construir automações úteis por conversa, sem exigir conhecimento técnico.
 
 Regras:
-- fale em português claro e curto;
-- comece pelo resultado que a pessoa quer, não por infraestrutura;
+- fale em português claro, compacto e orientado ao resultado;
+- trate a conversa como uma sessão de desenvolvimento de automação;
 - use o catálogo recebido como fonte de verdade sobre o que está pronto, em validação ou planejado;
 - nunca diga que uma utilidade está pronta se o catálogo marcar validation ou planned;
-- você pode explicar e sugerir caminhos, mas NÃO autoriza, NÃO aplica, NÃO executa e NÃO altera automações;
-- quando a intenção estiver clara, resuma em linguagem causal simples (quando → verificar/obter → agir → salvar/notificar);
+- ajude a definir gatilho, entradas, regras, ações, estado, falhas e resultado esperado;
+- quando a intenção estiver suficientemente clara, diga que o usuário pode gerar/atualizar o rascunho;
+- você pode propor mudanças no RASCUNHO, mas NÃO autoriza, NÃO aplica e NÃO executa automações;
+- alterações protegidas continuam obrigatoriamente em Plan → Authorize → Apply → Verify;
 - se faltar uma informação essencial, faça no máximo uma pergunta por vez;
-- detalhes técnicos só quando o usuário pedir.
+- detalhes técnicos só quando forem úteis ou pedidos.
 """
+
+
+_RUNTIME_LOCK = threading.Lock()
+_RUNTIME_CONFIG: dict[str, str] = {}
 
 
 @dataclass(frozen=True)
@@ -31,30 +40,91 @@ class AssistantConfig:
     model: str
 
     @classmethod
-    def from_env(cls) -> "AssistantConfig | None":
-        provider = os.environ.get("AUTOCOMPILER_CHAT_PROVIDER", "google-gemini").strip()
-        api_key = os.environ.get("AUTOCOMPILER_CHAT_API_KEY", "").strip()
-        model = os.environ.get("AUTOCOMPILER_CHAT_MODEL", "gemini-2.5-flash").strip()
+    def current(cls) -> "AssistantConfig | None":
+        with _RUNTIME_LOCK:
+            runtime = dict(_RUNTIME_CONFIG)
+
+        provider = (
+            runtime.get("provider")
+            or os.environ.get("AUTOCOMPILER_CHAT_PROVIDER", "google-gemini")
+        ).strip()
+        api_key = (
+            runtime.get("api_key")
+            or os.environ.get("AUTOCOMPILER_CHAT_API_KEY", "")
+        ).strip()
+        model = (
+            runtime.get("model")
+            or os.environ.get("AUTOCOMPILER_CHAT_MODEL", "gemini-3.8-flash")
+        ).strip()
+
         if not api_key or not provider or not model:
             return None
         return cls(provider=provider, api_key=api_key, model=model)
 
 
+def configure_assistant(
+    *,
+    api_key: str,
+    provider: str = "google-gemini",
+    model: str = "gemini-3.8-flash",
+) -> dict[str, Any]:
+    """Store a development credential in process memory only.
+
+    The key is never persisted, returned, logged, or written to repository files.
+    It is intentionally lost when the local AutoCompiler process stops.
+    """
+    api_key = str(api_key or "").strip()
+    provider = str(provider or "").strip()
+    model = str(model or "").strip()
+
+    if not api_key:
+        return {"ok": False, "error": "api_key_required"}
+    if provider != "google-gemini":
+        return {"ok": False, "error": "unsupported_chat_provider", "provider": provider}
+    if not model:
+        return {"ok": False, "error": "model_required"}
+
+    with _RUNTIME_LOCK:
+        _RUNTIME_CONFIG.clear()
+        _RUNTIME_CONFIG.update({
+            "provider": provider,
+            "api_key": api_key,
+            "model": model,
+        })
+
+    return {
+        "ok": True,
+        "configured": True,
+        "provider": provider,
+        "model": model,
+        "storage": "process_memory_only",
+    }
+
+
+def clear_assistant_configuration() -> dict[str, Any]:
+    with _RUNTIME_LOCK:
+        _RUNTIME_CONFIG.clear()
+    return {"ok": True, "configured": False}
+
+
 def assistant_status() -> dict[str, Any]:
-    config = AssistantConfig.from_env()
+    config = AssistantConfig.current()
     if config is None:
         return {
             "ok": True,
             "configured": False,
-            "provider": os.environ.get("AUTOCOMPILER_CHAT_PROVIDER", "google-gemini"),
-            "message": "Chat com IA aguardando configuração local.",
+            "provider": "google-gemini",
+            "default_model": "gemini-3.8-flash",
+            "storage": "process_memory_only",
+            "message": "Conecte uma chave temporária para desenvolver automações com IA.",
         }
     return {
         "ok": True,
         "configured": True,
         "provider": config.provider,
         "model": config.model,
-        "message": "Chat com IA configurado localmente.",
+        "storage": "process_memory_only",
+        "message": "IA de desenvolvimento conectada nesta sessão local.",
     }
 
 
@@ -62,14 +132,14 @@ def _normalize_history(history: Any) -> list[dict[str, str]]:
     if not isinstance(history, list):
         return []
     clean: list[dict[str, str]] = []
-    for item in history[-12:]:
+    for item in history[-16:]:
         if not isinstance(item, dict):
             continue
         role = str(item.get("role", "")).strip()
         text = str(item.get("text", "")).strip()
         if role not in {"user", "assistant"} or not text:
             continue
-        clean.append({"role": role, "text": text[:4000]})
+        clean.append({"role": role, "text": text[:5000]})
     return clean
 
 
@@ -105,28 +175,30 @@ def _gemini_chat(
         "systemInstruction": {"parts": [{"text": prompt}]},
         "contents": contents,
         "generationConfig": {
-            "temperature": 0.35,
-            "maxOutputTokens": 700,
+            "temperature": 0.3,
+            "maxOutputTokens": 1200,
         },
     }
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
         + config.model
-        + ":generateContent?key="
-        + config.api_key
+        + ":generateContent"
     )
     request = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "x-goog-api-key": config.api_key,
+        },
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=25) as response:
+        with urllib.request.urlopen(request, timeout=40) as response:
             data = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"assistant_provider_http_{exc.code}: {body[:500]}") from exc
+        raise RuntimeError(f"assistant_provider_http_{exc.code}: {body[:700]}") from exc
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"assistant_provider_failed: {exc}") from exc
 
@@ -150,12 +222,12 @@ def chat_with_assistant(
     if not message:
         return {"ok": False, "error": "message_required"}
 
-    config = AssistantConfig.from_env()
+    config = AssistantConfig.current()
     if config is None:
         return {
             "ok": False,
             "error": "assistant_not_configured",
-            "message": "Configure a API temporária localmente para usar o chat.",
+            "message": "Conecte a API temporária nesta página para usar o workspace de IA.",
         }
 
     clean_history = _normalize_history(history)
@@ -171,7 +243,7 @@ def chat_with_assistant(
     try:
         answer = _gemini_chat(
             config=config,
-            message=message[:4000],
+            message=message[:5000],
             history=clean_history,
             utilities=utility_catalog,
         )
@@ -187,7 +259,65 @@ def chat_with_assistant(
         "reply": answer,
         "provider": config.provider,
         "model": config.model,
-        "can_mutate": False,
+        "can_edit_draft": True,
+        "can_mutate_machine": False,
         "can_authorize": False,
         "can_apply": False,
     }
+
+
+def draft_from_conversation(
+    *,
+    history: Any,
+    current_ir: Any = None,
+) -> dict[str, Any]:
+    """Turn the development conversation into candidate IR only.
+
+    This may create or revise a draft, but never authorizes or applies it.
+    """
+    config = AssistantConfig.current()
+    if config is None:
+        return {
+            "ok": False,
+            "error": "assistant_not_configured",
+            "message": "Conecte a API temporária antes de gerar um rascunho.",
+        }
+
+    clean_history = _normalize_history(history)
+    if not clean_history:
+        return {"ok": False, "error": "conversation_required"}
+
+    transcript = "\n".join(
+        ("USUÁRIO" if item["role"] == "user" else "ASSISTENTE") + ": " + item["text"]
+        for item in clean_history
+    )
+    prompt_parts = [
+        "Crie ou atualize um Automation IR a partir desta conversa de desenvolvimento.",
+        "Use somente skills válidas do schema e não execute nada.",
+        "Se ainda faltar informação essencial, retorne ambiguidades/perguntas em vez de inventar.",
+        "",
+        "CONVERSA:",
+        transcript,
+    ]
+    if isinstance(current_ir, dict) and current_ir.get("steps"):
+        prompt_parts.extend([
+            "",
+            "RASCUNHO ATUAL (preserve o que não precisar mudar):",
+            json.dumps(current_ir, ensure_ascii=False),
+        ])
+
+    result = draft_intent_to_ir(
+        "\n".join(prompt_parts),
+        api_key=config.api_key,
+        provider=config.provider,
+    )
+    if result.get("ok"):
+        result.update({
+            "source": "assistant_conversation",
+            "provider": config.provider,
+            "model": config.model,
+            "draft_only": True,
+            "can_authorize": False,
+            "can_apply": False,
+        })
+    return result
