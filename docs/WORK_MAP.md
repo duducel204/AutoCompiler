@@ -8,9 +8,9 @@ O CSV declara trabalho e evidência; estado operacional é derivado. Merge, test
 
 ## Agora
 
-- Ready: nenhum
+- Ready: `AY-C8`
 - Dívida de verificação: nenhuma
-- Bloqueados: `AY-C8`
+- Bloqueados: nenhum
 - Conflitos de ownership acionáveis: 0
 
 ## Grafo
@@ -30,8 +30,8 @@ flowchart LR
   W_AY_C4["AY-C4<br/>Crystallize repeated complex analysis into task scripts<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C5["AY-C5<br/>Close resolution into evidence state and cheaper reuse<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C6["AY-C6<br/>Post-cycle Spider assimilation via GitHub Actions<br/>SYSTEM_PROOF_WIRED"]
-  W_AY_C7["AY-C7<br/>Post-cycle next-work synthesis<br/>COMPONENT_GATE_WIRED"]
-  W_AY_C8["AY-C8<br/>GitHub Actions development-cycle dispatcher<br/>BLOCKED"]
+  W_AY_C7["AY-C7<br/>Post-cycle next-work synthesis<br/>SYSTEM_PROOF_WIRED"]
+  W_AY_C8["AY-C8<br/>GitHub Actions development-cycle dispatcher<br/>READY"]
   W_CC_01 -->|build| W_CC_01T
   W_CC_03 -->|build| W_CC_03S
   W_CC_01T -.->|proof| W_CC_03S
@@ -72,8 +72,8 @@ flowchart LR
 | `AY-C4` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C5` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C6` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
-| `AY-C7` | ✓ | ✓ | ✓ | — | ✓ | `COMPONENT_GATE_WIRED` | integrate |
-| `AY-C8` | — | — | — | — | — | `BLOCKED` | wait for AY-C7 |
+| `AY-C7` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
+| `AY-C8` | — | — | — | — | — | `READY` | implement |
 
 ## Dívida de verificação
 
@@ -104,6 +104,8 @@ Nenhuma colisão de ownership entre trabalhos acionáveis.
 | `AY-C6` | `merged_pr` | PR#86 | `pass` | integration | 2026-10-02 | Post-cycle Spider workflow merged to main with read-only GitHub Actions orchestration. |
 | `AY-C6` | `ci_check` | Actions#37075409824 | `pass` | system-proof | 2026-10-02 | Successful main Trust Gate automatically triggered Post-cycle Spider; baseline graph cache was saved and post-cycle-context artifact 11256660815 was published for SHA 324ae3e8c8e29ed02d4117adf51eb260f475f283. |
 | `AY-C6` | `ci_check` | Actions#37075802268 | `pass` | system-proof | 2026-10-02 | Post-cycle Spider restored cache node-context-main-285bc29..., incrementally reparsed 3 changed eligible files, produced 15 context nodes/14 edges/8 semantic labels/1 logic node without truncation, and published artifact 11256441692. |
+| `AY-C7` | `merged_pr` | PR#90 | `pass` | integration | 2026-10-02 | Post-cycle next-work planner merged; exact-head Trust Gate passed and Actions#37076501876 generated next_cycle.json from canonical work state plus bounded Spider context. |
+| `AY-C7` | `ci_check` | Actions#37076501876 | `pass` | system-proof | 2026-10-02 | After trusted main SHA 5186125b..., Post-cycle Spider restored prior context and next_cycle_plan selected AY-C7/integrate because merge evidence was not yet canonical, proving state-sensitive planning rather than a hardcoded next task. |
 
 ## Comandos
 
