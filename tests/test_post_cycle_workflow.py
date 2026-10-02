@@ -28,6 +28,9 @@ class PostCycleSpiderWorkflowTests(unittest.TestCase):
         self.assertIn("actions/cache/save@v4", text)
         self.assertIn("actions/upload-artifact@v4", text)
         self.assertIn("post-cycle-context-", text)
+        self.assertIn("scripts/next_cycle_plan.py", text)
+        self.assertIn(".autocompiler/next_cycle.json", text)
+        self.assertIn(".autocompiler/next_cycle_run.json", text)
 
 
 if __name__ == "__main__":

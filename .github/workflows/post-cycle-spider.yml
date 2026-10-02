@@ -64,6 +64,14 @@ jobs:
             --max-changed-files 20 \
             | tee .autocompiler/post_cycle_run.json
 
+      - name: Build next-cycle handoff
+        shell: bash
+        run: |
+          python scripts/next_cycle_plan.py \
+            --context .autocompiler/post_cycle_context.json \
+            --output .autocompiler/next_cycle.json \
+            | tee .autocompiler/next_cycle_run.json
+
       - name: Publish cycle context summary
         shell: bash
         run: |
@@ -84,6 +92,17 @@ jobs:
           print(f"- Context nodes: {len(spider['nodes'])}")
           print(f"- Context edges: {len(spider['edges'])}")
           print(f"- Truncated: {spider['truncated']}")
+          next_cycle = json.loads(Path(".autocompiler/next_cycle.json").read_text(encoding="utf-8"))
+          selected = next_cycle.get("selected")
+          print()
+          print("## Next cycle")
+          if selected:
+              print(f"- Selected: `{selected['id']}` — {selected['title']}")
+              print(f"- State: `{selected['state']}`")
+              print(f"- Next action: {selected['next_action']}")
+              print(f"- Mutation policy: `{selected['mutation_policy']}`")
+          else:
+              print(f"- Stop: `{next_cycle.get('stop_reason')}`")
           PY
 
       - name: Save refreshed derived context graph
@@ -101,5 +120,7 @@ jobs:
             .autocompiler/node_context_graph.json
             .autocompiler/post_cycle_context.json
             .autocompiler/post_cycle_run.json
+            .autocompiler/next_cycle.json
+            .autocompiler/next_cycle_run.json
           if-no-files-found: error
           retention-days: 30

@@ -176,3 +176,54 @@ The derived graph is persisted between GitHub Actions runs through the Actions c
 **Loop rule:** one successful trusted `main` cycle produces one Spider assimilation. The Spider workflow itself does not push code, so it cannot recursively trigger another development cycle.
 
 **Success:** after the first baseline run, an unchanged file is not reparsed in subsequent cycles, while changed files generate refreshed nodes and bounded relational context for the next cycle.
+
+## AY-C7 — Post-cycle next-work synthesis
+
+After Spider assimilation, build a bounded handoff for the next development cycle.
+
+**Trigger:** successful Post-cycle Spider assimilation.
+
+**Reads:**
+- canonical declared work from `data/work_graph.csv` + `data/work_evidence.csv`;
+- the bounded `.autocompiler/post_cycle_context.json`.
+
+**Output:** `.autocompiler/next_cycle.json` with the selected declared work item, other actionable candidates, dependencies, tests, owner paths, context overlap and branch/PR mutation policy.
+
+**Decision boundary:** the Spider never decides what work exists. It only provides context. `next_cycle_plan.py` may rank work already declared in the canonical work graph, but it must stop with `NO_DECLARED_ACTIONABLE_WORK` instead of inventing a task.
+
+**Priority rule:** declared priority and lifecycle state outrank context overlap. Context is only a tiebreak within otherwise comparable declared work.
+
+**Safety:** the planner is read-only. It does not modify source, authorize protected actions, dispatch agents or write to `main`.
+
+**Success:** every trusted cycle produces either one explicit next-cycle handoff or an explicit stop reason.
+
+
+## AY-C8 — GitHub Actions development-cycle dispatcher
+
+Consume the handoff from AY-C7 and start a supported executor only through an isolated development boundary.
+
+Target sequence:
+
+```text
+next_cycle.json
+→ executor supported?
+   ├─ no  → STOP / needs executor
+   └─ yes
+       ↓
+    isolated branch
+       ↓
+    bounded development work
+       ↓
+    tests
+       ↓
+    pull request
+       ↓
+    Trust Gate
+       ↓
+    merge
+       ↓
+    Post-cycle Spider
+```
+
+The dispatcher must never write directly to `main`. Unsupported or ambiguous work stops rather than being guessed.
+
