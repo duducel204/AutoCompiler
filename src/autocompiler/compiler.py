@@ -7,15 +7,71 @@ from typing import Any
 
 from .ir import validate_ir
 
-PYTHON_RUNTIME = r'''from __future__ import annotations
-import json, shutil, sqlite3
+PYTHON_RUNTIME_TEMPLATE = r'''from __future__ import annotations
+import json, shutil, sqlite3, time
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.request import Request, urlopen
+
 ROOT = Path(__file__).resolve().parent
 IR = json.loads((ROOT / "automation.ir.json").read_text(encoding="utf-8"))
 MANIFEST = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
+STATE_MODE = "__STATE_MODE__"
 
-def log_event(db, name, source, destination, status):
+
+def _provider(capability):
+    resolved = MANIFEST.get("resolved_execution") or {}
+    for item in resolved.get("requirements", []):
+        if item.get("capability") == capability and item.get("status") == "resolved":
+            return item.get("provider")
+    return None
+
+
+def _resolve(value, context):
+    if isinstance(value, str) and value.startswith("$"):
+        token = value[1:]
+        parts = token.split(".")
+        current = context.get(parts[0])
+        for part in parts[1:]:
+            if isinstance(current, dict):
+                current = current.get(part)
+            elif isinstance(current, list) and part.isdigit():
+                current = current[int(part)]
+            else:
+                return None
+        return current
+    if isinstance(value, list):
+        return [_resolve(v, context) for v in value]
+    if isinstance(value, dict):
+        return {k: _resolve(v, context) for k, v in value.items()}
+    return value
+
+
+def _http_request(method, url, body=None, retries=0):
+    provider = _provider("http.request")
+    if provider != "autocompiler.http_provider":
+        raise RuntimeError("Unsupported resolved http.request provider: " + str(provider))
+    data = None if body is None else json.dumps(body).encode("utf-8")
+    headers = {"Content-Type": "application/json"} if data else {}
+    last = None
+    for attempt in range(int(retries) + 1):
+        try:
+            with urlopen(Request(url, data=data, headers=headers, method=method.upper()), timeout=15) as response:
+                raw = response.read().decode("utf-8")
+                if not raw:
+                    return {"status": response.status}
+                try:
+                    return json.loads(raw)
+                except json.JSONDecodeError:
+                    return {"status": response.status, "text": raw}
+        except Exception as exc:
+            last = exc
+            if attempt < int(retries):
+                time.sleep(min(2 ** attempt, 4))
+    raise last
+
+
+def _log_copy_event(db, name, source, destination, status):
     with sqlite3.connect(db) as con:
         con.execute("""CREATE TABLE IF NOT EXISTS events(
             id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, name TEXT NOT NULL,
@@ -23,98 +79,133 @@ def log_event(db, name, source, destination, status):
         con.execute("INSERT INTO events(ts,name,source,destination,status) VALUES(?,?,?,?,?)",
                     (datetime.now(timezone.utc).isoformat(), name, source, destination, status))
 
-def run():
-    context = {}
-    processed = 0
-    db = ROOT / IR.get("state", {}).get("file", "history.db")
-    for step in IR["steps"]:
-        skill, args = step["skill"], step.get("with", {})
-        if skill == "filesystem.scan":
-            source = Path(args["path"]).expanduser()
-            context[step["id"]] = [p for p in source.glob(args.get("glob", "*")) if p.is_file()]
-        elif skill == "filter.extension":
-            items = context[args["from"]]
-            ext = args["extension"].lower()
-            context[step["id"]] = [p for p in items if p.suffix.lower() == ext]
-        elif skill == "filesystem.copy":
-            items = context[args["from"]]
-            destination = Path(args["destination"]).expanduser()
-            destination.mkdir(parents=True, exist_ok=True)
-            copied = []
-            for item in items:
-                target = destination / item.name
-                shutil.copy2(item, target)
-                copied.append((item, target))
-            context[step["id"]] = copied
-            processed += len(copied)
-        elif skill == "state.record":
-            for source, target in context[args["from"]]:
-                log_event(db, source.name, str(source), str(target), "ok")
-        else:
-            raise RuntimeError("Unsupported compiled skill: " + skill)
-    print(json.dumps({"ok": True, "processed": processed, "target": MANIFEST["target"],
-                      "recurring_ai_used": False, "autocompiler_runtime_used": False,
-                      "resolved_execution_digest": MANIFEST.get("resolved_execution_digest"),
-                      "history_db": str(db)}, ensure_ascii=False))
-if __name__ == "__main__":
-    run()
-'''
 
-JSON_RUNTIME = r'''from __future__ import annotations
-import json, shutil
-from datetime import datetime, timezone
-from pathlib import Path
-ROOT = Path(__file__).resolve().parent
-IR = json.loads((ROOT / "automation.ir.json").read_text(encoding="utf-8"))
-MANIFEST = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
+def _record_copy_history(root, ir, pairs):
+    if STATE_MODE == "sqlite":
+        db = root / ir.get("state", {}).get("file", "history.db")
+        for source, target in pairs:
+            _log_copy_event(db, source.name, str(source), str(target), "ok")
+        return str(db)
+    history_file = root / ir.get("state", {}).get("file", "history.jsonl")
+    with history_file.open("a", encoding="utf-8") as f:
+        for source, target in pairs:
+            f.write(json.dumps({
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "name": source.name,
+                "source": str(source),
+                "destination": str(target),
+                "status": "ok",
+            }, ensure_ascii=False) + "\n")
+    return str(history_file)
+
 
 def run():
     context = {}
     processed = 0
-    history_file = ROOT / IR.get("state", {}).get("file", "history.jsonl")
+    history = None
+
     for step in IR["steps"]:
-        skill, args = step["skill"], step.get("with", {})
+        skill = step.get("skill") or step.get("type") or step.get("action")
+        args = step.get("with", {})
+        sid = step["id"]
+
         if skill == "filesystem.scan":
-            source = Path(args["path"]).expanduser()
-            context[step["id"]] = [p for p in source.glob(args.get("glob", "*")) if p.is_file()]
+            source = Path(_resolve(args["path"], context)).expanduser()
+            context[sid] = [p for p in source.glob(args.get("glob", "*")) if p.is_file()]
+
         elif skill == "filter.extension":
-            items = context[args["from"]]
-            ext = args["extension"].lower()
-            context[step["id"]] = [p for p in items if p.suffix.lower() == ext]
+            items = _resolve(args["from"], context) if str(args.get("from", "")).startswith("$") else context[args["from"]]
+            ext = str(args["extension"]).lower()
+            context[sid] = [p for p in items if p.suffix.lower() == ext]
+
         elif skill == "filesystem.copy":
-            items = context[args["from"]]
-            destination = Path(args["destination"]).expanduser()
+            from_ref = args["from"]
+            items = _resolve(from_ref, context) if isinstance(from_ref, str) and from_ref.startswith("$") else context[from_ref]
+            destination = Path(_resolve(args["destination"], context)).expanduser()
             destination.mkdir(parents=True, exist_ok=True)
             copied = []
             for item in items:
-                target = destination / item.name
-                shutil.copy2(item, target)
-                copied.append((item, target))
-            context[step["id"]] = copied
+                source = Path(item)
+                target = destination / source.name
+                shutil.copy2(source, target)
+                copied.append((source, target))
+            context[sid] = copied
             processed += len(copied)
+
         elif skill == "state.record":
-            with history_file.open("a", encoding="utf-8") as f:
-                for source, target in context[args["from"]]:
-                    f.write(json.dumps({"ts": datetime.now(timezone.utc).isoformat(), "name": source.name,
-                                        "source": str(source), "destination": str(target), "status": "ok"}) + "\n")
+            from_ref = args["from"]
+            pairs = _resolve(from_ref, context) if isinstance(from_ref, str) and from_ref.startswith("$") else context[from_ref]
+            history = _record_copy_history(ROOT, IR, pairs)
+            context[sid] = {"ok": True, "count": len(pairs)}
+
+        elif skill == "http.request":
+            url = _resolve(args.get("url"), context)
+            body = _resolve(args.get("body"), context)
+            context[sid] = _http_request(
+                str(args.get("method", "GET")),
+                str(url),
+                body=body,
+                retries=int(args.get("retries", 0)),
+            )
+
+        elif skill == "data.map":
+            fields = args.get("fields", {})
+            context[sid] = {key: _resolve(value, context) for key, value in fields.items()}
+
+        elif skill == "state.record_jsonl":
+            value = _resolve(args.get("value"), context)
+            file_path = Path(str(_resolve(args.get("file"), context))).expanduser()
+            if not file_path.is_absolute():
+                file_path = ROOT / file_path
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with file_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(value, ensure_ascii=False) + "\n")
+            context[sid] = {"ok": True, "path": str(file_path)}
+            history = str(file_path)
+
         else:
-            raise RuntimeError("Unsupported compiled skill: " + skill)
-    print(json.dumps({"ok": True, "processed": processed, "target": MANIFEST["target"],
-                      "recurring_ai_used": False, "autocompiler_runtime_used": False,
-                      "resolved_execution_digest": MANIFEST.get("resolved_execution_digest"),
-                      "history_file": str(history_file)}, ensure_ascii=False))
+            raise RuntimeError("Unsupported compiled skill: " + str(skill))
+
+    print(json.dumps({
+        "ok": True,
+        "processed": processed,
+        "target": MANIFEST["target"],
+        "recurring_ai_used": False,
+        "autocompiler_runtime_used": False,
+        "resolved_execution_digest": MANIFEST.get("resolved_execution_digest"),
+        "history": history,
+        "context": context,
+    }, ensure_ascii=False, default=str))
+
+
 if __name__ == "__main__":
     run()
 '''
 
 TARGETS = {
-    "python-sqlite": {"runtime": PYTHON_RUNTIME, "state_provider": "sqlite"},
-    "python-json": {"runtime": JSON_RUNTIME, "state_provider": "jsonl"},
+    "python-sqlite": {"state_provider": "sqlite"},
+    "python-json": {"state_provider": "jsonl"},
 }
 
 TARGET_SKILLS = {
-    "python-sqlite": {"filesystem.scan", "filter.extension", "filesystem.copy", "state.record"},
-    "python-json": {"filesystem.scan", "filter.extension", "filesystem.copy", "state.record"},
+    "python-sqlite": {
+        "filesystem.scan",
+        "filter.extension",
+        "filesystem.copy",
+        "state.record",
+        "http.request",
+        "data.map",
+        "state.record_jsonl",
+    },
+    "python-json": {
+        "filesystem.scan",
+        "filter.extension",
+        "filesystem.copy",
+        "state.record",
+        "http.request",
+        "data.map",
+        "state.record_jsonl",
+    },
 }
 
 # Capabilities satisfied outside the generated artifact itself are verified by
@@ -126,11 +217,13 @@ TARGET_CAPABILITY_PROVIDERS = {
         "filesystem.read": {"python-stdlib-filesystem", "stdlib"},
         "filesystem.write": {"python-stdlib-filesystem", "stdlib"},
         "durable_state": {"sqlite"},
+        "http.request": {"autocompiler.http_provider"},
     },
     "python-json": {
         "filesystem.read": {"python-stdlib-filesystem", "stdlib"},
         "filesystem.write": {"python-stdlib-filesystem", "stdlib"},
-        "durable_state": {"jsonl", "python-json"},
+        "durable_state": {"jsonl", "python-json", "sqlite"},
+        "http.request": {"autocompiler.http_provider"},
     },
 }
 
@@ -220,7 +313,7 @@ def compile_ir(
     target_def = TARGETS[target]
     resolved_digest = _digest(resolved_execution) if resolved_execution else None
     manifest = {
-        "schema_version": "0.2",
+        "schema_version": "0.3",
         "automation": ir["name"],
         "target": target,
         "state_provider": target_def["state_provider"],
@@ -233,7 +326,8 @@ def compile_ir(
         "resolved_execution": resolved_execution,
         "resolved_execution_digest": resolved_digest,
     }
-    (out / "automation.py").write_text(target_def["runtime"], encoding="utf-8")
+    runtime = PYTHON_RUNTIME_TEMPLATE.replace("__STATE_MODE__", target_def["state_provider"])
+    (out / "automation.py").write_text(runtime, encoding="utf-8")
     (out / "automation.ir.json").write_text(json.dumps(ir, indent=2, ensure_ascii=False), encoding="utf-8")
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
     return manifest
