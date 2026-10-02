@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from autocompiler.catalog import CapabilityCatalog
-from autocompiler.workflow_lifecycle import (
+from src.autocompiler.catalog import CapabilityCatalog
+from src.autocompiler.workflow_lifecycle import (
     WorkflowPlanStore,
     build_workflow_plan,
     replan_workflow,

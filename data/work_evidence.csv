@@ -1,0 +1,8 @@
+work_item,evidence_type,reference,result,observed_at,scope,notes
+CC-01,merged_pr,PR#71,pass,2026-10-02,integration,"Capability closure core merged; PR completion report records focused tests and Trust Gate pass."
+CC-03,merged_pr,PR#72,pass,2026-10-02,integration,"Workflow resume semantics merged; PR completion report records focused tests."
+CC-03S,merged_pr,PR#73,pass,2026-10-02,integration,"Gap inspection and safe replan seam merged into main."
+CC-01T,merged_pr,PR#74,pass,2026-10-02,integration,"Trust hardening merged; PR completion report records capability-closure tests and Trust Gate pass."
+CC-02,merged_pr,PR#76,pass,2026-10-02,integration,"Generic compiled capability consumption merged into main."
+CC-02,ci_check,PR#76@b9b751ef3900f2819f49ac16ee561c590f62cd53:Trust Gate,pass,2026-10-02,repository-gate,"Exact-head Trust Gate passed, but test_compiler_capability_binding.py is not yet listed in scripts/trust_gate.py; do not treat this as component-proof coverage."
+CC-02,ci_check,PR#76@b9b751ef3900f2819f49ac16ee561c590f62cd53:Documentation map,fail,2026-10-02,documentation,"Documentation map failed on the CC-02 head; unrelated to runtime behavior but preserved as evidence."

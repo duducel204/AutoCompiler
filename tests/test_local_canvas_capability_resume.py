@@ -8,15 +8,15 @@ from pathlib import Path
 from unittest.mock import patch
 from urllib.request import Request, urlopen
 
-import autocompiler.local_canvas as canvas
-from autocompiler.catalog import CapabilityCatalog
-from autocompiler.local_canvas import (
+import src.autocompiler.local_canvas as canvas
+from src.autocompiler.catalog import CapabilityCatalog
+from src.autocompiler.local_canvas import (
     CanvasHandler,
     ThreadingHTTPServer,
     replan_stored_workflow,
     workflow_gap_resolution,
 )
-from autocompiler.workflow_lifecycle import WorkflowPlanStore, build_workflow_plan
+from src.autocompiler.workflow_lifecycle import WorkflowPlanStore, build_workflow_plan
 
 
 def custom_ir(capability: str) -> dict:
