@@ -4,13 +4,13 @@
 
 ## 1. Product promise
 
-AutoCompiler should let an ordinary computer user install one package, describe or assemble a useful automation, authorize what will change, and leave that automation running primarily on resources the user already owns or can acquire at low cost.
+AutoCompiler should let an ordinary computer user install one package, leave the Windows machine automation-ready, immediately gain a small set of useful local automations, describe or assemble additional automations, authorize what will change, and leave those automations running primarily on resources the user already owns or can acquire at low cost.
 
 The product is not defined by a specific framework, runtime, canvas library, cloud, connector set, or packaging technology.
 
 The product is defined by the outcome:
 
-> **Turn human intent into installed computational capability with minimum recurring cost, minimum lock-in, explicit authorization, and the smallest sufficient use of AI.**
+> **Turn human intent and an ordinary Windows computer into installed, reusable computational capability with minimum recurring cost, minimum lock-in, explicit authorization, and the smallest sufficient use of AI.**
 
 ## 2. Minimum user experience
 
@@ -27,6 +27,12 @@ PREPARE
 inspect the computer
 reuse what is already usable
 complete only the real capability gaps
+install the Automation Base
+install/enable validated Ready Automations
+      ↓
+READY
+computer is automation-ready
+use ready actions immediately
       ↓
 CREATE
 choose a starter automation or describe an intent
@@ -80,9 +86,11 @@ DELEGATE / ESCALATE
 
 Installation is a capability-gap strategy, not the default first step.
 
+The installation target is `AUTOMATION_READY`, not merely “the AutoCompiler UI opens”.
+
 ## 4. Automation Base
 
-A fresh installation should aim to provide a useful baseline for common local automations. The baseline is semantic; the underlying provider may vary by machine.
+A fresh installation should provide a useful baseline for common local automations. The baseline is semantic; the underlying provider may vary by machine.
 
 Initial baseline classes:
 
@@ -104,12 +112,35 @@ The baseline should be sufficient for automations such as:
 
 - "When a PDF enters this folder, inspect it and move it according to rules."
 - "Every day at 18:00, back up these files."
-- "When an e-mail arrives, check defined criteria and perform an action."
 - "Call this API, transform the response, save the result, and notify me."
 
 External services such as Gmail, Google Drive, WhatsApp or Slack may require connectors or authenticated providers, but they should plug into semantic capabilities rather than redefine the automation model.
 
-## 5. Human model: causal logic, not infrastructure
+## 5. Ready Automations
+
+AutoCompiler should install or enable a small curated set of useful automations that are immediately usable after setup.
+
+These are not separate demo implementations. They are user-facing compositions of the same canonical capabilities, providers, authorization and evidence model used by normal AutoCompiler workflows.
+
+Examples include:
+
+- selected browser text → send to a local PowerShell input bridge;
+- file/folder context action → start a configured local automation;
+- scheduled local backup;
+- local change monitor and notification;
+- deterministic text/file transform actions.
+
+Ready Automations should appear at the natural point of use — browser, Windows Explorer, clipboard, scheduler or another local surface — while remaining inspectable/configurable through AutoCompiler.
+
+Security-sensitive actions must preserve an explicit boundary. In particular, selected text coming from a web page may be transferred to PowerShell, but should not be silently executed as shell code.
+
+Ready Automations serve three purposes simultaneously:
+
+1. immediate user value;
+2. reusable starter workflows;
+3. real product evidence that the same Automation Base works outside the Canvas.
+
+## 6. Human model: causal logic, not infrastructure
 
 The primary mental model for a non-technical user is:
 
@@ -138,7 +169,7 @@ Natural language and visual logic should work together:
 
 The user should not need to think in terms of "Python node", "PowerShell node" or "SQLite node" unless they choose an advanced view.
 
-## 6. AI policy: intelligence first, repetition last
+## 7. AI policy: intelligence first, repetition last
 
 AI is primarily useful for:
 
@@ -169,7 +200,7 @@ human review
 
 If AI is still required at runtime, that fact and its expected cost/privacy impact must be visible in the plan.
 
-## 7. Runtime independence
+## 8. Runtime independence
 
 When technically reasonable, compiled automations should continue working without:
 
@@ -189,7 +220,7 @@ Examples of target execution may include:
 
 AutoCompiler is primarily the layer that creates, prepares, verifies, changes, explains and repairs automation capability. It should avoid becoming a runtime tax.
 
-## 8. Basic vs Builder
+## 9. Basic vs Builder
 
 ### AutoCompiler Basic
 
@@ -199,6 +230,8 @@ The expected experience is:
 
 ```text
 install
+→ machine becomes automation-ready
+→ ready automations are immediately available
 → choose template or describe intent
 → review causal flow
 → review permissions/cost
@@ -206,7 +239,7 @@ install
 → run
 ```
 
-Basic should cover the Automation Base and validated starter integrations.
+Basic should cover the Automation Base, Ready Automations and validated starter integrations.
 
 ### AutoCompiler Builder
 
@@ -235,7 +268,7 @@ new need
 → Basic can reuse the new validated capability
 ```
 
-## 9. Capability, provider and stack
+## 10. Capability, provider and stack
 
 A capability is the semantic need. A provider is one implementation.
 
@@ -265,7 +298,7 @@ INTENT
 → MINIMUM SUFFICIENT STACK
 ```
 
-## 10. Trust boundary
+## 11. Trust boundary
 
 The canonical mutation lifecycle remains:
 
@@ -284,11 +317,14 @@ Acquired providers require provenance and verification.
 
 AutoCompiler must distinguish user-owned resources from resources it installed and track consumers when removal could affect automations.
 
-## 11. What is fixed vs open
+## 12. What is fixed vs open
 
 ### Current product invariants
 
 - one simple installation experience for the user;
+- installation aims for an automation-ready machine, not only a launched UI;
+- the installation includes a useful Automation Base;
+- a small set of Ready Automations provides immediate value outside the Canvas;
 - inspect and reuse existing capabilities first;
 - complete genuine gaps so basic automation is actually usable;
 - causal automation model understandable by non-programmers;
@@ -311,9 +347,10 @@ Unless separately accepted in `docs/DECISIONS.md`, these are implementation choi
 - exact connector libraries;
 - exact AI provider;
 - GitHub as control plane;
-- any particular visual editor or packaging framework.
+- any particular visual editor or packaging framework;
+- exact browser/Explorer integration technology for Ready Automations.
 
-## 12. Decision hierarchy
+## 13. Decision hierarchy
 
 Repository work should follow this authority order:
 
