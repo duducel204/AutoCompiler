@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "AutoCompiler Ready Actions",
+  "version": "0.1.0",
+  "description": "Local Ready Automations installed by AutoCompiler.",
+  "permissions": [
+    "contextMenus",
+    "nativeMessaging"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
