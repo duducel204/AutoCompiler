@@ -670,15 +670,25 @@ function appendAssistantMessage(role,text){
 async function configureAssistant(){
   const key=document.querySelector('#assistant-api-key').value.trim(),model=document.querySelector('#assistant-model').value.trim()||'gemini-3.8-flash';
   if(!key){appendAssistantMessage('assistant','Cole a chave temporária para conectar a IA nesta sessão local.');return;}
-  const button=document.querySelector('#assistant-connect');button.disabled=true;button.textContent='Conectando…';
+  const button=document.querySelector('#assistant-connect'),badge=document.querySelector('#assistant-status');
+  button.disabled=true;button.textContent='Testando Gemini…';badge.textContent='TESTANDO API';badge.className='assistant-status offline';
   try{
     const r=await fetch('/api/assistant/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:key,provider:'google-gemini',model})});
-    const res=await r.json();if(!res.ok)throw new Error(res.error||'Falha ao conectar');
+    const res=await r.json();
+    if(!res.ok){
+      const diag=res.diagnostic||{};
+      const error=new Error(res.message||diag.message||res.details||res.error||'Falha ao conectar');
+      error.kind=diag.kind;error.httpStatus=diag.http_status;throw error;
+    }
     document.querySelector('#assistant-api-key').value='';renderAssistantStatus(res);
-    appendAssistantMessage('assistant','IA conectada. Agora podemos desenvolver a automação por aqui.');
-    log('assistant.connected','Credencial temporária carregada apenas na memória do processo local');
-  }catch(e){appendAssistantMessage('assistant','Não consegui conectar: '+e.message);log('assistant.connect_error',e.message,true);}
-  finally{button.disabled=false;button.textContent='Conectar nesta sessão';}
+    appendAssistantMessage('assistant','Conexão com a Gemini API testada e validada. O chat está pronto.');
+    log('assistant.connected','Gemini respondeu ao probe; credencial mantida somente na memória do processo local');
+  }catch(e){
+    assistantConfigured=false;badge.textContent='API NÃO VALIDADA';badge.className='assistant-status offline';document.querySelector('#assistant-send').disabled=true;
+    const suffix=e.kind?(' ['+e.kind+(e.httpStatus?' · HTTP '+e.httpStatus:'')+']'):'';
+    appendAssistantMessage('assistant','Não consegui validar a Gemini API: '+e.message+suffix);
+    log('assistant.connect_error',e.message+suffix,true);
+  }finally{button.disabled=false;button.textContent='Conectar nesta sessão';}
 }
 document.querySelector('#assistant-connect').onclick=configureAssistant;
 document.querySelector('#assistant-reconfigure').onclick=()=>document.querySelector('#assistant-config').classList.toggle('hidden');
@@ -691,7 +701,11 @@ async function sendAssistantMessage(){
   try{
     const r=await fetch('/api/assistant/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,history:historyForRequest})});
     const res=await r.json();
-    if(!res.ok)throw new Error(res.message||res.details||res.error||'Falha no chat');
+    if(!res.ok){
+      const diag=res.diagnostic||{};
+      const suffix=diag.kind?(' ['+diag.kind+(diag.http_status?' · HTTP '+diag.http_status:'')+']'):'';
+      throw new Error((res.message||diag.message||res.details||res.error||'Falha no chat')+suffix);
+    }
     appendAssistantMessage('assistant',res.reply);assistantHistory.push({role:'assistant',text:res.reply});
   }catch(e){
     appendAssistantMessage('assistant','Não consegui responder agora. '+e.message);log('assistant.error',e.message,true);
