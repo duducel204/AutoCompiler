@@ -13,4 +13,5 @@ AY-C4,ay-closed-loop,Crystallize repeated complex analysis into task scripts,P0,
 AY-C5,ay-closed-loop,Close resolution into evidence state and cheaper reuse,P0,SYSTEM_PROOF_WIRED,yes,yes,yes,yes,yes,yes,observe system proof execution
 AY-C6,ay-closed-loop,Post-cycle Spider assimilation via GitHub Actions,P0,SYSTEM_PROOF_WIRED,yes,yes,yes,yes,yes,yes,observe system proof execution
 AY-C7,ay-closed-loop,Post-cycle next-work synthesis,P0,SYSTEM_PROOF_WIRED,yes,yes,yes,yes,yes,yes,observe system proof execution
-AY-C8,ay-closed-loop,GitHub Actions development-cycle dispatcher,P0,READY,yes,no,no,no,no,no,implement
+AY-C8,ay-closed-loop,GitHub Actions development-cycle dispatcher,P0,COMPONENT_GATE_WIRED,yes,yes,yes,yes,no,yes,integrate
+AY-C9,ay-closed-loop,First automated branch PR development cycle proof,P0,BLOCKED,no,no,yes,yes,no,yes,wait for AY-C8
