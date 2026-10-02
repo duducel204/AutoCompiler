@@ -14,13 +14,13 @@ from autocompiler.workflow_lifecycle import (
 )
 
 
-def usable_graph():
+def usable_graph(filesystem_provider: str = "stdlib"):
     return {
         "resources": [
-            {"capability": "filesystem.read", "provider": "stdlib", "state": "usable", "cost": "free"},
-            {"capability": "filesystem.write", "provider": "stdlib", "state": "usable", "cost": "free"},
+            {"capability": "filesystem.read", "provider": filesystem_provider, "state": "usable", "cost": "free"},
+            {"capability": "filesystem.write", "provider": filesystem_provider, "state": "usable", "cost": "free"},
             {"capability": "durable_state", "provider": "sqlite", "state": "usable", "cost": "free"},
-            {"capability": "http.client", "provider": "stdlib-http", "state": "usable", "cost": "free"},
+            {"capability": "http.request", "provider": "stdlib-http", "state": "usable", "cost": "free"},
         ]
     }
 
@@ -61,8 +61,11 @@ class WorkflowLifecycleTests(unittest.TestCase):
         self.assertEqual(plan["recurring_cost"]["amount"], 0)
         self.assertFalse(plan["schedule"]["background"])
         self.assertIn("filesystem.read", plan["providers"])
+        self.assertTrue(plan["compiler_support"]["supported"])
+        self.assertTrue(plan["deployment_support"]["supported"])
+        self.assertEqual(plan["resolved_execution"]["target"], "python-sqlite")
 
-    def test_plan_makes_build_time_ai_and_schedule_visible(self):
+    def test_plan_makes_build_time_ai_and_schedule_visible_but_not_ready(self):
         ir = {
             "schema_version": "0.1",
             "name": "Scheduled API snapshot",
@@ -74,7 +77,7 @@ class WorkflowLifecycleTests(unittest.TestCase):
             "state": {"file": "history.db"},
         }
         graph = usable_graph()
-        graph["resources"].append({"capability": "filesystem.write", "provider": "stdlib", "state": "usable", "cost": "free"})
+        graph["resources"].append({"capability": "schedule", "provider": "windows-task-scheduler", "state": "usable", "cost": "free"})
         plan = build_workflow_plan(
             ir,
             source="ai",
@@ -90,6 +93,30 @@ class WorkflowLifecycleTests(unittest.TestCase):
         self.assertEqual(plan["schedule"]["cron"], "0 18 * * *")
         self.assertEqual(plan["external_services"], ["example.com"])
         self.assertFalse(plan["recurring_cost"]["known"])
+        self.assertFalse(plan["can_apply"])
+        self.assertFalse(plan["compiler_support"]["supported"])
+        self.assertFalse(plan["deployment_support"]["supported"])
+
+    def test_plan_id_binds_provider_resolution(self):
+        ir = w01_ir("./incoming", "./processed")
+        plan_a = build_workflow_plan(ir, resource_graph=usable_graph("stdlib"))
+        plan_b = build_workflow_plan(ir, resource_graph=usable_graph("python-stdlib-filesystem"))
+        self.assertNotEqual(plan_a["plan_id"], plan_b["plan_id"])
+        req_a = {x["capability"]: x["provider"] for x in plan_a["resolved_execution"]["requirements"]}
+        req_b = {x["capability"]: x["provider"] for x in plan_b["resolved_execution"]["requirements"]}
+        self.assertEqual(req_a["filesystem.read"], "stdlib")
+        self.assertEqual(req_b["filesystem.read"], "python-stdlib-filesystem")
+
+    def test_schedule_resolution_alone_does_not_claim_deployment_ready(self):
+        ir = w01_ir("./incoming", "./processed")
+        ir["trigger"] = {"type": "schedule", "cron": "0 9 * * *"}
+        graph = usable_graph()
+        graph["resources"].append({"capability": "schedule", "provider": "windows-task-scheduler", "state": "usable", "cost": "free"})
+        plan = build_workflow_plan(ir, resource_graph=graph)
+        self.assertEqual(plan["missing_capabilities"], [])
+        self.assertTrue(plan["compiler_support"]["supported"])
+        self.assertFalse(plan["deployment_support"]["supported"])
+        self.assertFalse(plan["can_apply"])
 
     def test_apply_is_blocked_before_authorization(self):
         with tempfile.TemporaryDirectory() as td:
@@ -131,9 +158,14 @@ class WorkflowLifecycleTests(unittest.TestCase):
             self.assertEqual(result["status"], "verified")
             self.assertTrue(result["verification"]["ir_matches_authorized_plan"])
             self.assertTrue(result["verification"]["manifest_matches_authorized_plan"])
+            self.assertTrue(result["verification"]["resolution_matches_authorized_plan"])
             self.assertTrue(result["verification"]["execution_ok"])
             self.assertFalse(result["verification"]["recurring_ai_used"])
             self.assertTrue((processed / "demo.txt").exists())
+            self.assertEqual(
+                result["manifest"]["resolved_execution_digest"],
+                result["result"]["resolved_execution_digest"],
+            )
 
     def test_failed_execution_is_not_reported_as_verified(self):
         with tempfile.TemporaryDirectory() as td:
