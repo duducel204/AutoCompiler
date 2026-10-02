@@ -29,6 +29,8 @@ need → consult canonical registry / local bindings / existing skills
 
 The runtime source of truth remains `data/canonical_capabilities.json` plus validated local `CapabilityCatalog` bindings. The current registry contains 40 validated records: 36 builtin and four resource-bound (`schedule`, `vault.read`, `vault.write`, `vault.search`). This is an inventory of existing records, not a new blanket validation of all providers or user journeys.
 
+Read provider behavior and evidence scope together with the trust label. The 2026-10-02 static review found that several named capabilities implement narrower behavior than a complete user workflow, and that the gate does not execute every referenced test module. Those limits are recorded in [NEXT_TASK_PREP.md](NEXT_TASK_PREP.md#limites-observados-na-leitura-do-codigo); this documentation does not change catalog trust states.
+
 Reuse a record when its provider/version and contract still match the task and its required resources are usable. For new successful evidence, attach the actual contract/test or execution reference, scope and limitations to the existing canonical record, or promote a candidate through `CapabilityCatalog` after verification. Record resource-specific configuration as a local binding rather than declaring it globally available.
 
 | Situation | Work rule |

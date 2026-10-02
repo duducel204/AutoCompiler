@@ -56,6 +56,8 @@ Repository decisions and roadmaps must remain subordinate to the canonical produ
 
 ## Current implementation snapshot — 2026-10-02
 
+Start with [docs/INDEX.md](docs/INDEX.md) for purpose, repository structure, a concrete execution flow, rules and current limitations. Follow [docs/REPOSITORY_MAP.md](docs/REPOSITORY_MAP.md) for generated file relationships, inputs, outputs and contracts.
+
 Merged code includes capability discovery/resolution, Windows assessment and preparation, independent Python/SQLite compilation, state/reliability primitives, starter templates, optional AI drafting/chat, and Basic/Builder visual development with a horizontal Canvas.
 
 W-01 through W-05 are recorded as verified engine benchmarks. The Basic utility catalog is more conservative: only Organize PDFs is marked ready; the other four local utilities remain in validation. Authenticated external integrations and the one-package Windows release still require completion evidence. This is a developed prototype, not a completed Basic 1.0 release.
