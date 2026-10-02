@@ -1,7 +1,8 @@
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from types import SimpleNamespace
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -26,10 +27,10 @@ class AssistantActionsTests(unittest.TestCase):
     @patch("autocompiler.assistant_actions.detect_browser")
     @patch("autocompiler.assistant_actions.subprocess.Popen")
     def test_browser_search_uses_detected_browser_without_shell(self, popen, detect):
-        detect.return_value = Mock(
+        detect.return_value = SimpleNamespace(
             detected=True,
             path=r"C:\Browser\browser.exe",
-            providers=[Mock(name="Browser", path=r"C:\Browser\browser.exe")],
+            providers=[SimpleNamespace(name="Browser", path=r"C:\Browser\browser.exe")],
         )
         set_actions_enabled(True)
         result = execute_assistant_action("browser_search", {"query": "tradutor"})
@@ -45,10 +46,10 @@ class AssistantActionsTests(unittest.TestCase):
     @patch("autocompiler.assistant_actions.detect_browser")
     @patch("autocompiler.assistant_actions.subprocess.Popen")
     def test_browser_open_launches_only_detected_browser(self, popen, detect):
-        detect.return_value = Mock(
+        detect.return_value = SimpleNamespace(
             detected=True,
             path=r"C:\Browser\browser.exe",
-            providers=[Mock(name="Browser", path=r"C:\Browser\browser.exe")],
+            providers=[SimpleNamespace(name="Browser", path=r"C:\Browser\browser.exe")],
         )
         set_actions_enabled(True)
         result = execute_assistant_action("browser_open", {})
