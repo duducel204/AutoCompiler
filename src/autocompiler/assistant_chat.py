@@ -240,8 +240,6 @@ def _gemini_chat(
         SYSTEM_PROMPT
         + "\n\nESTADO OPERACIONAL DO AY (projeção, não nova fonte de verdade):\n"
         + _ay_self_context(message)
-        + "\n\nESTADO OPERACIONAL DO AY (projeção, não nova fonte de verdade):\n"
-        + _ay_self_context(message)
         + "\n\nCATÁLOGO ATUAL DE UTILIDADES:\n"
         + _catalog_context(utilities)
     )
@@ -275,6 +273,8 @@ def _gemini_action_chat(
         SYSTEM_PROMPT
         + "\n\nAÇÕES LOCAIS: habilitadas para navegador nesta sessão."
         + "\nUse função somente para pedido explícito do usuário."
+        + "\n\nESTADO OPERACIONAL DO AY (projeção, não nova fonte de verdade):\n"
+        + _ay_self_context(message)
         + "\n\nCATÁLOGO ATUAL DE UTILIDADES:\n"
         + _catalog_context(utilities)
     )
