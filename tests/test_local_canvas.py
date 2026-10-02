@@ -103,6 +103,12 @@ class LocalCanvasTests(unittest.TestCase):
             self.assertTrue(preflight_res["ok"])
             self.assertTrue(preflight_res["automation_ready"])
 
+            with urlopen(f"{base_url}/api/utilities") as resp:
+                utilities_res = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(utilities_res["ok"])
+            self.assertTrue(any(u["user_title"] == "Organizar PDFs" and u["status"] == "ready" for u in utilities_res["utilities"]))
+            self.assertTrue(any(u["user_title"] == "Organizar Downloads" and u["status"] == "planned" for u in utilities_res["utilities"]))
+
             with urlopen(f"{base_url}/favicon.ico") as resp:
                 self.assertEqual(resp.status, 204)
 
