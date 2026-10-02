@@ -102,5 +102,38 @@ class DevelopmentCycleDispatchTests(unittest.TestCase):
             self.assertEqual(stored["source_sha"], "abcdef1234567890")
 
 
+class DevelopmentCycleWorkflowTests(unittest.TestCase):
+    def test_workflow_consumes_spider_handoff_and_never_pushes_main(self):
+        workflow = (
+            Path(__file__).resolve().parents[1]
+            / ".github"
+            / "workflows"
+            / "development-cycle.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn('workflows: ["Post-cycle Spider"]', workflow)
+        self.assertIn("actions: read", workflow)
+        self.assertIn("contents: write", workflow)
+        self.assertIn("pull-requests: write", workflow)
+        self.assertIn("actions/download-artifact@v5", workflow)
+        self.assertIn("scripts/development_cycle_dispatch.py", workflow)
+        self.assertIn("steps.dispatch.outputs.status == 'EXECUTE'", workflow)
+        self.assertIn("git switch -c", workflow)
+        self.assertIn("python scripts/trust_gate.py", workflow)
+        self.assertIn("gh pr create", workflow)
+        self.assertNotIn("git push origin main", workflow)
+        self.assertIn('git push origin "HEAD:refs/heads/$BRANCH"', workflow)
+
+    def test_workflow_requires_trusted_main_spider_completion(self):
+        workflow = (
+            Path(__file__).resolve().parents[1]
+            / ".github"
+            / "workflows"
+            / "development-cycle.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", workflow)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'", workflow)
+        self.assertIn("Enforce declared change scope", workflow)
+
+
 if __name__ == "__main__":
     unittest.main()
