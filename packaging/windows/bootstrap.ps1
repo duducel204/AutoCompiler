@@ -74,8 +74,21 @@ if ($Uninstall) {
         }
     }
 
-    if (Test-Path $InstallRoot) {
-        Remove-Item -Recurse -Force $InstallRoot
+    foreach ($name in @(
+        "app", "runtime", "tools", "state", "generated", "browser",
+        "app.next", "runtime.next", "tools.next"
+    )) {
+        $path = Join-Path $InstallRoot $name
+        if (Test-Path $path) {
+            Remove-Item -Recurse -Force $path
+        }
+    }
+
+    foreach ($name in @("install-manifest.json", "install.log")) {
+        $path = Join-Path $InstallRoot $name
+        if (Test-Path $path) {
+            Remove-Item -Force $path
+        }
     }
     exit 0
 }
@@ -128,12 +141,6 @@ $env:AUTOCOMPILER_HOME = $InstallRoot
 $env:AUTOCOMPILER_STATE_ROOT = $StateTarget
 $env:AUTOCOMPILER_GENERATED_ROOT = $GeneratedTarget
 
-Write-InstallLog "Verifying private Python runtime and AutoCompiler imports."
-& $PythonNext -c "import sys; import autocompiler; import autocompiler.local_canvas; import autocompiler.workflow_lifecycle; print(sys.version)"
-if ($LASTEXITCODE -ne 0) {
-    throw "Private runtime verification failed."
-}
-
 foreach ($pair in @(
     @($AppTarget, $AppNext),
     @($RuntimeTarget, $RuntimeNext),
@@ -151,6 +158,17 @@ $Python = Join-Path $RuntimeTarget "python.exe"
 $PythonW = Join-Path $RuntimeTarget "pythonw.exe"
 if (-not (Test-Path $PythonW)) {
     $PythonW = $Python
+}
+
+Write-InstallLog "Verifying private Python runtime and AutoCompiler imports."
+Push-Location $AppTarget
+try {
+    & $Python -c "import sys; import autocompiler; import autocompiler.local_canvas; import autocompiler.workflow_lifecycle; print(sys.version)"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Private runtime verification failed."
+    }
+} finally {
+    Pop-Location
 }
 
 $BridgeExe = Join-Path $ToolsTarget "AutoCompilerReadyBridge.exe"
