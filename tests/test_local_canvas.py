@@ -76,13 +76,32 @@ class LocalCanvasTests(unittest.TestCase):
         self.assertEqual(result["status"], "provisioned")
         run.assert_called_once()
 
-    def test_workflow_endpoints_require_plan_authorize_apply_verify(self):
+    @patch("autocompiler.local_canvas.build_machine_preflight")
+    def test_workflow_endpoints_require_plan_authorize_apply_verify(self, preflight):
+        preflight.return_value = (
+            {
+                "automation_ready": True,
+                "supported_platform": True,
+                "phase": "ready",
+                "machine": {"os": "Windows"},
+                "readiness_summary": {"required": 7, "usable": 7, "missing": 0},
+                "statuses": [],
+                "missing_required": [],
+                "preparation": {"can_apply": False, "changes": [], "unresolved_capabilities": []},
+            },
+            None,
+        )
         server = ThreadingHTTPServer(("127.0.0.1", 0), CanvasHandler)
         port = server.server_port
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
             base_url = f"http://127.0.0.1:{port}"
+
+            with urlopen(f"{base_url}/api/preflight") as resp:
+                preflight_res = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(preflight_res["ok"])
+            self.assertTrue(preflight_res["automation_ready"])
 
             with urlopen(f"{base_url}/favicon.ico") as resp:
                 self.assertEqual(resp.status, 204)
@@ -213,6 +232,35 @@ class LocalCanvasTests(unittest.TestCase):
                 with self.assertRaises(HTTPError) as replay_error:
                     urlopen(replay)
                 self.assertEqual(replay_error.exception.code, 403)
+        finally:
+            server.shutdown()
+
+    @patch("autocompiler.local_canvas.build_machine_preflight")
+    def test_workflow_authorization_is_blocked_when_machine_is_not_ready(self, preflight):
+        preflight.return_value = (
+            {
+                "automation_ready": False,
+                "supported_platform": True,
+                "phase": "blocked",
+                "missing_required": ["schedule"],
+            },
+            None,
+        )
+        server = ThreadingHTTPServer(("127.0.0.1", 0), CanvasHandler)
+        port = server.server_port
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            req = Request(
+                f"http://127.0.0.1:{port}/api/workflow/authorize",
+                data=json.dumps({"plan_id": "anything"}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with self.assertRaises(HTTPError) as error:
+                urlopen(req)
+            self.assertEqual(error.exception.code, 409)
+            body = json.loads(error.exception.read().decode("utf-8"))
+            self.assertEqual(body["status"], "machine_not_automation_ready")
         finally:
             server.shutdown()
 

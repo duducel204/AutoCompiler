@@ -17,21 +17,50 @@ class PreparationPlan:
     changes: list[Change]
     automation_ready_before: bool
 
+    @property
+    def covered_capabilities(self) -> list[str]:
+        return sorted({
+            str(change.metadata.get("capability"))
+            for change in self.changes
+            if change.metadata.get("capability")
+        })
+
+    @property
+    def unresolved_capabilities(self) -> list[str]:
+        covered = set(self.covered_capabilities)
+        return [cap for cap in self.missing_capabilities if cap not in covered]
+
+    @property
+    def can_apply(self) -> bool:
+        return (
+            not self.automation_ready_before
+            and bool(self.changes)
+            and not self.unresolved_capabilities
+        )
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "intent": self.intent,
             "missing_capabilities": self.missing_capabilities,
+            "covered_capabilities": self.covered_capabilities,
+            "unresolved_capabilities": self.unresolved_capabilities,
             "changes": [asdict(c) for c in self.changes],
             "automation_ready_before": self.automation_ready_before,
+            "can_apply": self.can_apply,
         }
 
 
 def plan_windows_preparation(
     inventory: dict[str, Any] | None = None,
     acquisition_recipes: dict[str, dict[str, Any]] | None = None,
+    *,
+    local_catalog_path: str | Path | None = None,
 ) -> PreparationPlan:
     """DISCOVER -> RESOLVE -> PLAN stage of Windows preparation without environment mutation."""
-    inspection = inspect_windows_automation_base(inventory=inventory)
+    inspection = inspect_windows_automation_base(
+        inventory=inventory,
+        local_catalog_path=str(local_catalog_path) if local_catalog_path is not None else None,
+    )
     missing = inspection.get("missing_required", [])
 
     if not missing:
@@ -80,11 +109,21 @@ def apply_windows_preparation(
     acquisition_runner: Callable[[Change], bool] | None = None,
 ) -> dict[str, Any]:
     """USER AUTHORIZATION -> REUSE/CONFIGURE/ACQUIRE -> VERIFY -> REGISTER OWNERSHIP -> AUTOMATION_READY."""
-    if plan.automation_ready_before or not plan.changes:
+    if plan.automation_ready_before:
         return {
             "ok": True,
             "status": "already_automation_ready",
             "automation_ready": True,
+            "changes_applied": 0,
+        }
+
+    if plan.unresolved_capabilities or not plan.changes:
+        return {
+            "ok": False,
+            "status": "unresolved_capabilities",
+            "automation_ready": False,
+            "missing_capabilities": plan.missing_capabilities,
+            "unresolved_capabilities": plan.unresolved_capabilities or plan.missing_capabilities,
             "changes_applied": 0,
         }
 
@@ -139,8 +178,9 @@ def apply_windows_preparation(
             )
         return {
             "ok": True,
-            "status": "automation_ready",
-            "automation_ready": True,
+            "status": "changes_applied_verified",
+            "automation_ready": False,
+            "requires_reinspection": True,
             "changes_applied": len(plan.changes),
             "applied": result.get("applied"),
         }

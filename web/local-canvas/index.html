@@ -1,9 +1,21 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AutoCompiler Causal Canvas</title>
 <style>
-:root{font-family:Segoe UI,Arial,sans-serif;color:#e8edf2;background:#0b0f14}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}.top{padding:12px 18px;border-bottom:1px solid #26313d;display:flex;justify-content:space-between;align-items:center}.layout{display:grid;grid-template-columns:310px 1fr 280px;min-height:0}.side{padding:14px;border-right:1px solid #26313d;background:#10161d;overflow:auto}.side.right{border-right:0;border-left:1px solid #26313d}.canvas{padding:18px;overflow:auto;display:flex;flex-direction:column;gap:18px}.card,.node{border:1px solid #334150;border-radius:12px;background:#121a22;padding:14px}.muted{color:#8fa1b3;font-size:12px}.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.palette button,.actions button{padding:6px 10px;border:1px solid #486078;border-radius:6px;background:#182b3d;color:#fff;cursor:pointer;font-size:13px}.palette button:hover,.actions button:hover{background:#233e54}.flow{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:14px}.block-card{width:100%;max-width:680px;border:1px solid #2f4052;border-radius:10px;background:#16222e;padding:12px;position:relative}.block-header{display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:bold;margin-bottom:8px}.block-type{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;background:#276fb7;color:#fff}.type-WHEN{background:#8a42ad}.type-GET{background:#1f8272}.type-TRANSFORM{background:#d97706}.type-IF{background:#2563eb}.type-REPEAT{background:#4b5563}.type-ACT{background:#059669}.type-SAVE{background:#0284c7}.type-NOTIFY{background:#b91c1c}.flow-arrow{color:#6aa8e8;font-size:18px;font-weight:bold}.chat{display:flex;gap:8px;margin-top:12px}.chat input{flex:1;padding:8px;border-radius:6px;border:1px solid #334150;background:#0e141a;color:#fff}.stream{border-top:1px solid #26313d;padding:10px 16px;background:#10161d;max-height:180px;overflow:auto;font:12px Consolas,monospace}.event{padding:3px 0}.status-ok{color:#72c792}.status-err{color:#f87171}.field-group{display:flex;flex-direction:column;gap:4px;margin-top:8px}.field-group label{font-size:12px;color:#8fa1b3}.field-group input{padding:6px;border-radius:4px;border:1px solid #334150;background:#0e141a;color:#fff;font-size:12px}@media(max-width:800px){.layout{grid-template-columns:1fr}.side{display:none}}
-</style></head><body><div class="app">
-<header class="top"><div><strong>AutoCompiler Causal Canvas</strong> <span class="muted">(Local Canvas · J-012 Trust Gate)</span></div><span class="muted" id="repo-head">LOCAL · carregando workspace…</span></header>
+:root{font-family:Segoe UI,Arial,sans-serif;color:#e8edf2;background:#0b0f14}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}.top{padding:12px 18px;border-bottom:1px solid #26313d;display:flex;justify-content:space-between;align-items:center}.layout{display:grid;grid-template-columns:310px 1fr 280px;min-height:0}.side{padding:14px;border-right:1px solid #26313d;background:#10161d;overflow:auto}.side.right{border-right:0;border-left:1px solid #26313d}.canvas{padding:18px;overflow:auto;display:flex;flex-direction:column;gap:18px}.card,.node{border:1px solid #334150;border-radius:12px;background:#121a22;padding:14px}.muted{color:#8fa1b3;font-size:12px}.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.palette button,.actions button{padding:6px 10px;border:1px solid #486078;border-radius:6px;background:#182b3d;color:#fff;cursor:pointer;font-size:13px}.palette button:hover,.actions button:hover{background:#233e54}.flow{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:14px}.block-card{width:100%;max-width:680px;border:1px solid #2f4052;border-radius:10px;background:#16222e;padding:12px;position:relative}.block-header{display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:bold;margin-bottom:8px}.block-type{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;background:#276fb7;color:#fff}.type-WHEN{background:#8a42ad}.type-GET{background:#1f8272}.type-TRANSFORM{background:#d97706}.type-IF{background:#2563eb}.type-REPEAT{background:#4b5563}.type-ACT{background:#059669}.type-SAVE{background:#0284c7}.type-NOTIFY{background:#b91c1c}.flow-arrow{color:#6aa8e8;font-size:18px;font-weight:bold}.chat{display:flex;gap:8px;margin-top:12px}.chat input{flex:1;padding:8px;border-radius:6px;border:1px solid #334150;background:#0e141a;color:#fff}.stream{border-top:1px solid #26313d;padding:10px 16px;background:#10161d;max-height:180px;overflow:auto;font:12px Consolas,monospace}.event{padding:3px 0}.status-ok{color:#72c792}.status-err{color:#f87171}.field-group{display:flex;flex-direction:column;gap:4px;margin-top:8px}.field-group label{font-size:12px;color:#8fa1b3}.field-group input{padding:6px;border-radius:4px;border:1px solid #334150;background:#0e141a;color:#fff;font-size:12px}.readiness-badge{padding:3px 8px;border-radius:999px;border:1px solid #486078;font-size:11px}.readiness-ok{color:#72c792;border-color:#2f7d50}.readiness-blocked{color:#f87171;border-color:#991b1b}.preflight{display:none;max-width:980px;width:calc(100% - 36px);margin:28px auto;padding:20px;border:1px solid #334150;border-radius:12px;background:#121a22}.preflight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:14px}.preflight-item{padding:10px;border:1px solid #2f4052;border-radius:8px;background:#0e141a}.preflight-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.preflight-actions button{padding:8px 12px;border:1px solid #486078;border-radius:6px;background:#182b3d;color:#fff;cursor:pointer}body.preflight-pending .layout,body.preflight-pending .stream,body.preflight-blocked .layout,body.preflight-blocked .stream{display:none}body.preflight-pending .preflight,body.preflight-blocked .preflight{display:block}.cap-summary{padding:8px;border:1px solid #334150;border-radius:8px;background:#121a22;margin-bottom:8px}@media(max-width:800px){.layout{grid-template-columns:1fr}.side{display:none}}
+</style></head><body class="preflight-pending"><div class="app">
+<header class="top"><div><strong>AutoCompiler Causal Canvas</strong> <span class="muted">(Local Canvas · J-012 Trust Gate)</span></div><div style="display:flex;gap:10px;align-items:center"><span id="readiness-badge" class="readiness-badge">CHECKING MACHINE…</span><span class="muted" id="repo-head">LOCAL · carregando workspace…</span></div></header>
+<section id="preflight" class="preflight">
+  <div class="muted">FIRST RUN · DISCOVER → AUTOMATION_READY</div>
+  <h2 id="preflight-title" style="margin:6px 0">Verificando esta máquina…</h2>
+  <div id="preflight-message" class="muted">Inspeção somente-leitura. Nenhuma instalação ocorre nesta etapa.</div>
+  <div id="preflight-summary" class="preflight-grid"></div>
+  <div id="preflight-statuses" class="preflight-grid"></div>
+  <div id="preflight-actions" class="preflight-actions">
+    <button id="btn-preflight-recheck">Verificar novamente</button>
+    <button id="btn-preflight-authorize" style="display:none;background:#92400e;border-color:#d97706">Autorizar preparação</button>
+    <button id="btn-preflight-apply" disabled style="display:none;background:#047857;border-color:#10b981">Aplicar + verificar preparação</button>
+  </div>
+</section>
 <div class="layout">
 <aside class="side">
 <strong>Gerar Rascunho com IA (Opcional - J-011)</strong>
@@ -69,7 +81,14 @@
 </section>
 </main>
 
-<aside class="side right"><strong>Capabilities Disponíveis</strong><div id="caps" class="caps" style="margin-top:12px"><div class="muted">Carregando catálogo…</div></div></aside>
+<aside class="side right">
+<strong>Automation Base</strong>
+<div id="machine-caps" style="margin-top:10px"><div class="muted">Aguardando preflight…</div></div>
+<details style="margin-top:12px">
+<summary class="muted" style="cursor:pointer">Todos os recursos resolvidos (<span id="resource-count">0</span>)</summary>
+<div id="caps" class="caps" style="margin-top:10px"><div class="muted">Carregando catálogo…</div></div>
+</details>
+</aside>
 </div>
 
 <footer class="stream"><div><strong>Execution Stream & Logs</strong></div><div id="events"></div></footer>
@@ -82,12 +101,159 @@ let currentPlan = null;
 let currentSource = 'canvas';
 let buildTimeAI = false;
 let currentAIProvider = null;
+let machinePlanId = null;
+let canvasBooted = false;
+let latestPreflight = null;
 let currentIR = {
   schema_version: "0.1",
   name: "Automação Manual Canvas",
   trigger: { type: "manual" },
   steps: [],
   state: { file: "history.db" }
+};
+
+function renderMachineBase(data){
+  const box = document.querySelector('#machine-caps');
+  if(!box) return;
+  const statuses = data.statuses || [];
+  box.innerHTML = statuses.map(s => {
+    const ok = s.status === 'usable';
+    return '<div class="cap-summary"><div class="'+(ok?'status-ok':'status-err')+'">'+(ok?'✓ ':'✗ ')+s.capability+'</div><div class="muted">'+(ok?s.provider:(s.resolution_plan||'não resolvida'))+'</div></div>';
+  }).join('') || '<div class="muted">Sem baseline disponível.</div>';
+}
+
+function preflightCard(label, value){
+  return '<div class="preflight-item"><div class="muted">'+label+'</div><strong>'+value+'</strong></div>';
+}
+
+function renderPreflight(data){
+  latestPreflight = data;
+  machinePlanId = data.plan_id || null;
+  const badge = document.querySelector('#readiness-badge');
+  const title = document.querySelector('#preflight-title');
+  const message = document.querySelector('#preflight-message');
+  const summary = document.querySelector('#preflight-summary');
+  const statuses = document.querySelector('#preflight-statuses');
+  const auth = document.querySelector('#btn-preflight-authorize');
+  const apply = document.querySelector('#btn-preflight-apply');
+  const rs = data.readiness_summary || {};
+  const machine = data.machine || {};
+
+  renderMachineBase(data);
+  summary.innerHTML =
+    preflightCard('Máquina', (machine.os||'?')+' '+(machine.release||''))+
+    preflightCard('Arquitetura', machine.architecture||'?')+
+    preflightCard('Baseline', (rs.usable||0)+' / '+(rs.required||0)+' usable')+
+    preflightCard('Gaps', String(rs.missing||0));
+
+  statuses.innerHTML = (data.statuses||[]).map(s =>
+    '<div class="preflight-item"><div class="'+(s.status==='usable'?'status-ok':'status-err')+'"><strong>'+(s.status==='usable'?'✓ ':'✗ ')+s.capability+'</strong></div><div class="muted">'+(s.status==='usable'?s.provider:(s.resolution_plan||'não resolvida'))+'</div></div>'
+  ).join('');
+
+  auth.style.display = 'none';
+  apply.style.display = 'none';
+  apply.disabled = true;
+
+  if(data.automation_ready){
+    document.body.classList.remove('preflight-pending','preflight-blocked');
+    badge.textContent = 'AUTOMATION_READY · '+(rs.usable||0)+'/'+(rs.required||0);
+    badge.className = 'readiness-badge readiness-ok';
+    title.textContent = 'Máquina pronta para automação';
+    message.textContent = data.message || 'Automation Base verificada.';
+    bootCanvas();
+    return;
+  }
+
+  document.body.classList.remove('preflight-pending');
+  document.body.classList.add('preflight-blocked');
+  badge.textContent = data.supported_platform === false ? 'PLATFORM BLOCKED' : 'PREPARE REQUIRED · '+(rs.missing||0)+' gap(s)';
+  badge.className = 'readiness-badge readiness-blocked';
+  title.textContent = data.supported_platform === false ? 'Plataforma ainda não validada' : 'Esta máquina ainda não está AUTOMATION_READY';
+  message.textContent = data.message || 'Há gaps obrigatórios antes de liberar o Canvas.';
+
+  if(data.preparation && data.preparation.can_apply && machinePlanId){
+    auth.style.display = '';
+    apply.style.display = '';
+  } else if((data.missing_required||[]).length){
+    statuses.innerHTML += '<div class="preflight-item status-err"><strong>Preparação bloqueada</strong><div class="muted">Não existe ainda uma receita validada que cubra todos os gaps. Nenhuma mutação será feita parcialmente.</div></div>';
+  }
+}
+
+async function loadPreflight(){
+  document.body.classList.add('preflight-pending');
+  try{
+    const r = await fetch('/api/preflight');
+    const data = await r.json();
+    if(!data.ok) throw new Error(data.error || data.status || 'preflight_failed');
+    renderPreflight(data);
+  }catch(e){
+    document.body.classList.remove('preflight-pending');
+    document.body.classList.add('preflight-blocked');
+    const badge = document.querySelector('#readiness-badge');
+    badge.textContent = 'PREFLIGHT ERROR';
+    badge.className = 'readiness-badge readiness-blocked';
+    document.querySelector('#preflight-title').textContent = 'Falha ao verificar a máquina';
+    document.querySelector('#preflight-message').textContent = e.message;
+  }
+}
+
+async function bootCanvas(){
+  if(canvasBooted) return;
+  canvasBooted = true;
+  fetch('/api/workspace').then(r=>r.json()).then(w=>{
+    document.querySelector('#repo-head').textContent = 'LOCAL · ' + w.name + ' · ' + (w.branch || 'sem branch');
+  });
+  fetch('/api/state').then(r=>r.json()).then(s=>{
+    const box = document.querySelector('#caps');
+    const resources = s.resources || [];
+    document.querySelector('#resource-count').textContent = String(resources.length);
+    box.innerHTML = '';
+    if(!resources.length){
+      box.innerHTML = '<div class="muted">Nenhuma capability resolvida nesta máquina.</div>';
+      return;
+    }
+    resources.forEach(c=>{
+      const d = document.createElement('div');
+      d.className = 'cap';
+      d.style.padding = '6px';
+      d.style.marginBottom = '6px';
+      d.style.background = '#18222c';
+      d.style.borderRadius = '6px';
+      const source = c.source ? ' · '+c.source : '';
+      d.innerHTML = `<div>${c.capability}</div><div class="muted">${c.state} · ${c.provider}${source}</div>`;
+      box.appendChild(d);
+    });
+  }).catch(e=>log('state.error', e.message, true));
+  loadTemplates();
+  renderFlow();
+  log('canvas.ready', 'AUTOMATION_READY confirmado; Canvas liberado com J-012 Trust Gate');
+}
+
+document.querySelector('#btn-preflight-recheck').onclick = loadPreflight;
+document.querySelector('#btn-preflight-authorize').onclick = async () => {
+  if(!machinePlanId) return;
+  const r = await fetch('/api/preflight/authorize', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({plan_id:machinePlanId})
+  });
+  const res = await r.json();
+  if(res.ok){
+    document.querySelector('#btn-preflight-apply').disabled = false;
+    document.querySelector('#btn-preflight-authorize').disabled = true;
+  } else {
+    document.querySelector('#preflight-message').textContent = res.status || res.error || 'Falha na autorização.';
+  }
+};
+document.querySelector('#btn-preflight-apply').onclick = async () => {
+  if(!machinePlanId) return;
+  const r = await fetch('/api/preflight/apply', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({plan_id:machinePlanId})
+  });
+  const res = await r.json();
+  if(res.preflight){
+    renderPreflight(res.preflight);
+  } else {
+    document.querySelector('#preflight-message').textContent = res.status || res.error || 'Falha na preparação.';
+  }
 };
 
 function resetPlan(reason){
@@ -393,35 +559,5 @@ document.querySelector('#btn-apply').onclick = async () => {
   } catch(e) { log('error', e.message, true); }
 };
 
-fetch('/api/workspace').then(r=>r.json()).then(w=>{
-  document.querySelector('#repo-head').textContent = 'LOCAL · ' + w.name + ' · ' + (w.branch || 'sem branch');
-});
-
-fetch('/api/state').then(r=>r.json()).then(s=>{
-  const box = document.querySelector('#caps');
-  box.innerHTML = '';
-  const resources = s.resources || [];
-  if(!resources.length){
-    box.innerHTML = '<div class="muted">Nenhuma capability resolvida nesta máquina.</div>';
-    return;
-  }
-  resources.forEach(c=>{
-    const d = document.createElement('div');
-    d.className = 'cap';
-    d.style.padding = '6px';
-    d.style.marginBottom = '6px';
-    d.style.background = '#18222c';
-    d.style.borderRadius = '6px';
-    const source = c.source ? ' · '+c.source : '';
-    d.innerHTML = `<div>${c.capability}</div><div class="muted">${c.state} · ${c.provider}${source}</div>`;
-    box.appendChild(d);
-  });
-}).catch(e=>{
-  document.querySelector('#caps').innerHTML = '<div class="status-err">Falha ao carregar capabilities</div>';
-  log('state.error', e.message, true);
-});
-
-loadTemplates();
-renderFlow();
-log('canvas.ready', 'Causal Canvas com Plan → Authorize → Apply → Verify (J-012)');
+loadPreflight();
 </script></body></html>

@@ -3,9 +3,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from .canonical_capabilities import canonical_resource_graph
+from .environment import build_unified_resource_graph
 from .discover import discover
-from .providers import get_provider_for_capability
 from .provisioning import CapabilityRegistry
 
 
@@ -92,10 +91,15 @@ class CapabilityStatus:
 def inspect_windows_automation_base(
     inventory: dict[str, Any] | None = None,
     manifest: dict[str, Any] = WINDOWS_AUTOMATION_BASE_MANIFEST,
+    *,
+    local_catalog_path: str | None = None,
 ) -> dict[str, Any]:
     """Inspect local machine capabilities against Windows Automation Base without environment mutation."""
     inventory_data = inventory if inventory is not None else discover()
-    resource_graph = canonical_resource_graph()
+    graph_kwargs = {"inventory": inventory_data}
+    if local_catalog_path is not None:
+        graph_kwargs["local_catalog_path"] = local_catalog_path
+    resource_graph = build_unified_resource_graph(**graph_kwargs)
 
     # Build map of detected/usable capabilities from discovery inventory
     detected_map: dict[str, dict[str, Any]] = {}
@@ -130,22 +134,6 @@ def inspect_windows_automation_base(
             )
             continue
 
-        # Check builtin provider instances
-        builtin_prov = get_provider_for_capability(cap_name)
-        if builtin_prov and builtin_prov.provider_name in accepted_providers:
-            health = builtin_prov.health_check()
-            if health.get("ok"):
-                statuses.append(
-                    CapabilityStatus(
-                        capability=cap_name,
-                        required=True,
-                        status="usable",
-                        provider=builtin_prov.provider_name,
-                        details="Verified health check for builtin provider.",
-                    )
-                )
-                continue
-
         # Check inventory fallback
         inv_match = None
         for prov_id in accepted_providers:
@@ -178,9 +166,16 @@ def inspect_windows_automation_base(
 
     automation_ready = len(missing_required) == 0
 
+    usable_required = sum(1 for s in statuses if s.required and s.status == "usable")
     return {
         "automation_ready": automation_ready,
         "target_os": manifest.get("target_os", "windows"),
+        "machine": inventory_data.get("machine", {}),
+        "summary": {
+            "required": len(statuses),
+            "usable": usable_required,
+            "missing": len(missing_required),
+        },
         "statuses": [s.to_dict() for s in statuses],
         "missing_required": missing_required,
         "manifest": manifest,

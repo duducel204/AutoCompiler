@@ -1,11 +1,12 @@
 import sys
 import unittest
+from unittest.mock import Mock, patch
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from autocompiler.discover import discover
+from autocompiler.discover import detect_native_scheduler, discover
 
 
 class CapabilityDiscoveryTests(unittest.TestCase):
@@ -31,6 +32,29 @@ class CapabilityDiscoveryTests(unittest.TestCase):
         filesystem = next(c for c in result["capabilities"] if c["id"] == "filesystem")
         self.assertTrue(filesystem["detected"])
         self.assertEqual(filesystem["authorized"], "unknown")
+
+    @patch("autocompiler.discover.platform.system", return_value="Windows")
+    @patch("autocompiler.discover.shutil.which")
+    @patch("autocompiler.discover.subprocess.run")
+    def test_windows_scheduler_requires_read_only_probe_before_usable(self, run, which, system):
+        which.return_value = r"C:\Windows\System32\schtasks.exe"
+        run.return_value = Mock(returncode=0)
+        scheduler = detect_native_scheduler()
+        self.assertTrue(scheduler.detected)
+        self.assertEqual(scheduler.accessible, "yes")
+        self.assertEqual(scheduler.authorized, "unknown")
+        self.assertEqual(scheduler.usable, "yes")
+        run.assert_called_once()
+
+    @patch("autocompiler.discover.platform.system", return_value="Windows")
+    @patch("autocompiler.discover.shutil.which")
+    @patch("autocompiler.discover.subprocess.run")
+    def test_windows_scheduler_probe_failure_does_not_claim_usable(self, run, which, system):
+        which.return_value = r"C:\Windows\System32\schtasks.exe"
+        run.return_value = Mock(returncode=1)
+        scheduler = detect_native_scheduler()
+        self.assertTrue(scheduler.detected)
+        self.assertEqual(scheduler.usable, "no")
 
 
 if __name__ == "__main__":
