@@ -2,6 +2,8 @@ from __future__ import annotations
 import os, re, subprocess, sys
 from pathlib import Path
 
+from scripts.ci_failure_context import build_failure_context, write_failure_context
+
 ROOT=Path(__file__).resolve().parents[1]
 MAX_ATTEMPTS=3
 TESTS=[
@@ -58,10 +60,26 @@ def main():
         print(f"Attempt {attempt} failed. Trying bounded deterministic repair.",file=sys.stderr)
         changed=repair(log)
         if not changed:
+            payload = build_failure_context(
+                log,
+                check="ci_self_heal",
+                stage="local_ci",
+                exit_code=1,
+                source_sha=os.environ.get("GITHUB_SHA", ""),
+            )
+            write_failure_context(payload)
             print("AUTOCOMPILER_CI_NEEDS_REVIEW: no safe deterministic repair matched.",file=sys.stderr)
             print(log[-12000:],file=sys.stderr)
             return 1
         print("Repaired: "+", ".join(changed))
+    payload = build_failure_context(
+        log,
+        check="ci_self_heal",
+        stage="local_ci",
+        exit_code=1,
+        source_sha=os.environ.get("GITHUB_SHA", ""),
+    )
+    write_failure_context(payload)
     print("AUTOCOMPILER_CI_NEEDS_REVIEW: repair limit reached.",file=sys.stderr)
     return 1
 
