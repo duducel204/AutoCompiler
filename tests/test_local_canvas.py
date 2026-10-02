@@ -309,6 +309,59 @@ class LocalCanvasTests(unittest.TestCase):
                 with self.assertRaises(HTTPError) as replay_error:
                     urlopen(replay)
                 self.assertEqual(replay_error.exception.code, 403)
+
+                # Applied workflows become persistent installations exposed by the Canvas.
+                with urlopen(f"{base_url}/api/installations") as resp:
+                    installations_res = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(installations_res["ok"])
+                self.assertEqual(len(installations_res["installations"]), 1)
+                installation = installations_res["installations"][0]
+                installation_id = installation["installation_id"]
+                self.assertEqual(installation["workflow_name"], "W01 Canvas Test")
+                self.assertGreaterEqual(installation["history"]["count"], 1)
+
+                run_req = Request(
+                    f"{base_url}/api/installations/run",
+                    data=json.dumps({
+                        "installation_id": installation_id,
+                        "authorization": f"run:{installation_id}",
+                    }).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with urlopen(run_req) as resp:
+                    run_res = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(run_res["ok"])
+
+                with urlopen(f"{base_url}/api/installations/history?id={installation_id}") as resp:
+                    history_res = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(history_res["ok"])
+                self.assertGreaterEqual(history_res["count"], 2)
+
+                disable_req = Request(
+                    f"{base_url}/api/installations/disable",
+                    data=json.dumps({
+                        "installation_id": installation_id,
+                        "authorization": f"disable:{installation_id}",
+                    }).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with urlopen(disable_req) as resp:
+                    disabled = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(disabled["ok"])
+                self.assertEqual(disabled["installation"]["status"], "disabled")
+
+                enable_req = Request(
+                    f"{base_url}/api/installations/enable",
+                    data=json.dumps({
+                        "installation_id": installation_id,
+                        "authorization": f"enable:{installation_id}",
+                    }).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with urlopen(enable_req) as resp:
+                    enabled = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(enabled["ok"])
+                self.assertEqual(enabled["installation"]["status"], "ready")
         finally:
             server.shutdown()
             generated_patch.stop()
