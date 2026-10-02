@@ -36,7 +36,41 @@ body.preflight-pending .preflight,body.preflight-blocked .preflight{display:bloc
 .primary{background:#1d4ed8!important;border-color:#3b82f6!important}.success-btn{background:#047857!important;border-color:#10b981!important}.warning-btn{background:#92400e!important;border-color:#d97706!important}
 .human-plan h2{margin:0 0 4px}.human-plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:15px}.human-box{border:1px solid var(--line);border-radius:10px;background:#0e151c;padding:13px}.human-box h3{font-size:13px;margin:0 0 8px}.human-line{font-size:13px;color:#b8c5d1;margin:5px 0}.okline{color:#8ad6a5}.warnline{color:#f3c86a}.technical-details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}.technical-details summary{cursor:pointer;color:#9fb1c3;font-size:12px}
 .basic-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:17px}.basic-actions button{padding:10px 15px;border:1px solid #486078;border-radius:7px;color:#fff;background:#182b3d}
-.builder-shell{display:none}.builder-shell.active{display:grid;grid-template-columns:310px 1fr 300px;min-height:calc(100vh - 58px)}.side{padding:16px;border-right:1px solid var(--line);background:#0b121c;overflow:auto}.side.right{border-right:0;border-left:1px solid var(--line)}.canvas{padding:20px;overflow:auto;display:flex;flex-direction:column;gap:16px;background-color:#060a10;background-image:radial-gradient(#182638 1px,transparent 1px);background-size:24px 24px}.card{border:1px solid #203147;border-radius:12px;background:rgba(14,23,36,.96);padding:15px;box-shadow:0 10px 26px rgba(0,0,0,.22)}.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.palette button,.actions button{padding:6px 10px;border:1px solid #486078;border-radius:6px;background:#182b3d;color:#fff;font-size:13px}.flow{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:14px}.block-card{width:100%;max-width:680px;border:1.5px solid #203147;border-radius:10px;background:#0e1724;padding:0;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.38)}.block-card:hover{border-color:#3b5375}.block-header{display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:bold;margin-bottom:0;padding:10px 12px;background:#111d2e;border-bottom:1px solid #18273a}.block-card>.muted,.block-card>pre,.block-card>button{margin-left:12px;margin-right:12px}.block-card>.muted{margin-top:10px}.block-card>button{margin-bottom:10px}.block-type{padding:2px 7px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.05em;background:rgba(37,99,235,.15);color:#60a5fa;border:1px solid rgba(37,99,235,.4)}.flow-arrow{color:#3b82f6;font-size:18px;font-weight:bold;text-shadow:0 0 10px rgba(59,130,246,.5)}.cap-summary{padding:8px;border:1px solid #334150;border-radius:8px;background:#121a22;margin-bottom:8px}.status-ok{color:#72c792}.status-err{color:#f87171}
+.builder-shell{
+  display:none;
+  --c-bg:#0a0e14;--c-panel:#181c22;--c-panel-low:#10141a;--c-panel-high:#262a31;
+  --c-border:#31353c;--c-outline:#3e4a3d;--c-text:#dfe2eb;--c-muted:#889484;
+  --c-primary:#6fdd78;--c-primary-strong:#34a547;--c-blue:#a2c9ff;--c-purple:#d5bbff;
+  font-family:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+.builder-shell.active{display:flex;flex-direction:column;height:calc(100vh - 58px);min-height:620px;background:var(--c-bg);color:var(--c-text);overflow:hidden}
+.builder-topbar{flex:0 0 auto;padding:9px 16px;background:#181c22;border-bottom:1px solid var(--c-border);box-shadow:0 2px 10px rgba(0,0,0,.28);display:flex;flex-direction:column;gap:7px}
+.builder-toprow,.builder-subrow{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.builder-identity{display:flex;align-items:center;gap:8px;min-width:0;font:500 11px "JetBrains Mono",Consolas,monospace;color:#becab9}
+.builder-tree-icon{width:26px;height:26px;border-radius:4px;background:#1c2026;display:grid;place-items:center;color:var(--c-primary);font-size:15px;border:1px solid #31353c}
+.builder-crumb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.builder-crumb strong{color:var(--c-text)}.builder-badge{padding:3px 7px;border-radius:4px;background:#1c2026;color:var(--c-blue);border:1px solid #31353c;white-space:nowrap}
+.builder-statuses{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}.builder-status{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:4px;background:#0a0e14;color:#becab9;font:500 10px "JetBrains Mono",Consolas,monospace;border:1px solid #262a31}.builder-status .dot{width:6px;height:6px;border-radius:50%;background:var(--c-primary);box-shadow:0 0 8px rgba(111,221,120,.55)}
+.builder-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.builder-actions button,.canvas-controls button,.view-tabs button{height:30px;padding:0 10px;border-radius:4px;border:1px solid #31353c;background:#1c2026;color:#becab9;font-size:11px;font-weight:650}.builder-actions button:hover,.canvas-controls button:hover,.view-tabs button:hover{background:#262a31;color:#fff}.builder-actions .primary{background:#34a547!important;border-color:#4fc15f!important;color:#07140a!important}.builder-actions .warning-btn{background:#6b4a16!important;border-color:#9b6c21!important;color:#ffe3ac!important}.builder-actions .success-btn{background:#246f34!important;border-color:#46a855!important;color:#e8ffeb!important}
+.builder-workspace{display:grid;grid-template-columns:284px minmax(0,1fr) 340px;flex:1;min-height:0;overflow:hidden}
+.builder-left{background:#10141a;border-right:1px solid #31353c;padding:12px;overflow:auto;display:flex;flex-direction:column;gap:13px}
+.builder-panel{background:#181c22;border:1px solid #262a31;border-radius:4px;padding:11px}.builder-panel-title{font:700 10px "JetBrains Mono",Consolas,monospace;letter-spacing:.07em;text-transform:uppercase;color:#becab9;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}.builder-panel-title span{color:var(--c-primary)}
+.builder-left .field-group input,.builder-left .field-group textarea,.builder-left .field-group select{background:#0a0e14;border-color:#31353c;border-radius:4px;font-size:12px}.builder-left .btn{border-radius:4px;background:#1c2026;border-color:#31353c;font-size:11px}
+.palette{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px}.palette button{padding:7px 8px;border:1px solid #31353c;border-radius:4px;background:#0a0e14;color:#becab9;font:650 10px "JetBrains Mono",Consolas,monospace;text-align:left}.palette button:hover{border-color:#59645a;background:#1c2026;color:#fff}.palette button[data-kind="WHEN"]{color:#d5bbff}.palette button[data-kind="GET"]{color:#a2c9ff}.palette button[data-kind="IF"]{color:#ffd18a}.palette button[data-kind="ACT"]{color:#6fdd78}
+.builder-center{min-width:0;display:flex;flex-direction:column;background:#0a0e14}
+.canvas-toolbar{height:42px;flex:0 0 42px;padding:5px 10px;background:#10141a;border-bottom:1px solid #31353c;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.view-tabs,.canvas-controls{display:flex;align-items:center;gap:4px}.view-tabs button{border-color:transparent;background:transparent}.view-tabs button.active{background:#262a31;border-color:#3d4249;color:#fff}.canvas-controls{font:500 11px "JetBrains Mono",Consolas,monospace;color:#889484}.canvas-controls .zoom-label{min-width:43px;text-align:center;color:#dfe2eb}
+.canvas-view{display:none;flex:1;min-height:0}.canvas-view.active{display:flex;flex-direction:column}.canvas-viewport{position:relative;flex:1;min-height:0;overflow:auto;cursor:grab;background-color:#0a0e14;background-image:radial-gradient(rgba(136,148,132,.32) 1px,transparent 1px);background-size:24px 24px}.canvas-viewport:active{cursor:grabbing}.canvas-corner-info{position:sticky;top:10px;left:14px;z-index:4;display:inline-flex;gap:8px;padding:4px 7px;border-radius:4px;background:rgba(10,14,20,.78);border:1px solid rgba(62,74,61,.65);font:500 10px "JetBrains Mono",Consolas,monospace;color:#667064;pointer-events:none}
+.graph-stage-shell{position:relative;min-width:100%;min-height:100%;padding:38px 34px 80px}.graph-stage{position:relative;transform-origin:0 0;min-width:900px;min-height:470px}.graph-wires{position:absolute;inset:0;overflow:visible;pointer-events:none;z-index:1}.wire-base{fill:none;stroke:#262a31;stroke-width:4}.wire-path{fill:none;stroke:var(--c-primary);stroke-width:2;stroke-linecap:round;filter:drop-shadow(0 0 5px rgba(111,221,120,.3));stroke-dasharray:8 5;animation:wireFlow 1.5s linear infinite}.wire-path.blue{stroke:var(--c-blue);filter:drop-shadow(0 0 5px rgba(162,201,255,.28))}@keyframes wireFlow{to{stroke-dashoffset:-26}}
+.graph-node{position:absolute;width:242px;min-height:134px;background:#181c22;border:1px solid #31353c;border-radius:6px;box-shadow:0 10px 24px rgba(0,0,0,.34);z-index:3;cursor:move;user-select:none;transition:border-color .15s,box-shadow .15s,transform .12s}.graph-node:hover{border-color:#59645a;box-shadow:0 13px 28px rgba(0,0,0,.44)}.graph-node.selected{border-color:var(--c-primary);box-shadow:0 0 0 1px rgba(111,221,120,.32),0 14px 30px rgba(0,0,0,.5)}
+.graph-node-header{height:34px;padding:7px 9px;border-bottom:1px solid #262a31;background:#1c2026;display:flex;align-items:center;justify-content:space-between;gap:8px;border-radius:6px 6px 0 0}.graph-node-kind{font:750 9px "JetBrains Mono",Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:rgba(111,221,120,.1);color:var(--c-primary)}.kind-WHEN{color:#d5bbff;background:rgba(213,187,255,.1)}.kind-GET{color:#a2c9ff;background:rgba(162,201,255,.1)}.kind-TRANSFORM{color:#ffd18a;background:rgba(255,209,138,.1)}.kind-IF{color:#ffd18a;background:rgba(255,209,138,.1)}.kind-ACT{color:#6fdd78;background:rgba(111,221,120,.1)}.kind-SAVE{color:#8edcf8;background:rgba(142,220,248,.1)}.kind-NOTIFY{color:#ffb4ab;background:rgba(255,180,171,.1)}
+.graph-node-state{display:flex;align-items:center;gap:5px;font:650 9px "JetBrains Mono",Consolas,monospace;color:#6fdd78}.graph-node-state i{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}.graph-node-body{padding:11px}.graph-node-title{font-size:13px;font-weight:700;color:#f3f5f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.graph-node-subtitle{margin-top:3px;color:#889484;font:500 10px "JetBrains Mono",Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.node-param-row{margin-top:9px;display:flex;gap:5px;flex-wrap:wrap}.node-param{max-width:100%;padding:3px 5px;border-radius:3px;background:#0a0e14;border:1px solid #262a31;font:500 9px "JetBrains Mono",Consolas,monospace;color:#becab9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.node-port{position:absolute;top:50%;width:15px;height:15px;border-radius:50%;background:#31353c;display:grid;place-items:center;z-index:6;transform:translateY(-50%);border:1px solid #4a4f55}.node-port:after{content:"";width:7px;height:7px;border-radius:50%;background:var(--c-primary)}.node-port.in{left:-8px}.node-port.out{right:-8px}.graph-node.trigger-node .node-port.in{display:none}.edge-insert{position:absolute;z-index:5;width:22px;height:22px;border-radius:50%;border:1px solid #4e6550;background:#181c22;color:#6fdd78;display:grid;place-items:center;font-size:15px;line-height:1;box-shadow:0 5px 14px rgba(0,0,0,.38)}.edge-insert:hover{background:#34a547;color:#07140a}.insert-menu{position:absolute;z-index:20;width:180px;padding:6px;background:#181c22;border:1px solid #4a4f55;border-radius:5px;box-shadow:0 16px 35px rgba(0,0,0,.55)}.insert-menu button{width:100%;padding:7px 8px;text-align:left;border:0;border-radius:3px;background:transparent;color:#dfe2eb;font-size:11px}.insert-menu button:hover{background:#262a31;color:#fff}
+.empty-graph{position:absolute;inset:80px;display:grid;place-items:center;text-align:center;color:#889484}.empty-graph strong{display:block;color:#dfe2eb;margin-bottom:5px}
+.plan-view,.ir-view{padding:18px;overflow:auto;background:#0a0e14}.plan-card,.ir-card{max-width:980px;width:100%;margin:0 auto;background:#10141a;border:1px solid #31353c;border-radius:5px;padding:15px;box-shadow:0 12px 28px rgba(0,0,0,.28)}.ir-card pre{margin:10px 0 0;padding:13px;background:#05080c;border:1px solid #262a31;border-radius:4px;color:#becab9;overflow:auto;white-space:pre-wrap;font:12px/1.55 "JetBrains Mono",Consolas,monospace}
+.builder-inspector{background:#10141a;border-left:1px solid #31353c;display:flex;flex-direction:column;min-width:0;overflow:hidden}.inspector-head{height:46px;flex:0 0 46px;padding:0 13px;background:#1c2026;border-bottom:1px solid #31353c;display:flex;align-items:center;justify-content:space-between;gap:8px}.inspector-title{display:flex;align-items:center;gap:7px;min-width:0;font-size:13px;font-weight:700}.inspector-title .dot{width:7px;height:7px;border-radius:50%;background:var(--c-blue)}.inspector-node-badge{padding:2px 5px;border-radius:3px;background:#0a0e14;color:#889484;font:500 9px "JetBrains Mono",Consolas,monospace}.inspector-body{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:11px}.inspector-empty{padding:24px 10px;text-align:center;color:#889484;font-size:12px}.inspector-card{padding:10px;background:#181c22;border:1px solid #262a31;border-radius:4px}.inspector-card-label{font:700 9px "JetBrains Mono",Consolas,monospace;letter-spacing:.07em;text-transform:uppercase;color:#889484;margin-bottom:7px}.inspector-skill{font:650 11px "JetBrains Mono",Consolas,monospace;color:var(--c-blue)}.inspector-param{display:flex;flex-direction:column;gap:4px;margin-top:8px}.inspector-param label{font-size:10px;color:#889484}.inspector-param input,.inspector-param select,.inspector-param textarea{width:100%;padding:7px 8px;border-radius:3px;border:1px solid #31353c;background:#0a0e14;color:#dfe2eb;font:11px "JetBrains Mono",Consolas,monospace}.inspector-param textarea{min-height:115px;resize:vertical}.inspector-footer{padding:9px 12px;background:#1c2026;border-top:1px solid #31353c;display:flex;gap:7px}.inspector-footer button{flex:1;padding:8px;border-radius:4px;border:1px solid #3e4a3d;background:#262a31;color:#dfe2eb;font-size:11px}.inspector-footer .apply{background:#34a547;color:#07140a;border-color:#58c867;font-weight:750}.inspector-footer .danger{color:#ffb4ab;border-color:#6c3734;background:#2a1b1b}
+.cap-summary{padding:7px;border:1px solid #262a31;border-radius:3px;background:#0a0e14;margin-bottom:6px;font-size:11px}.status-ok{color:#6fdd78}.status-err{color:#ffb4ab}
+.builder-console{height:34px;flex:0 0 34px;padding:0 14px;background:#181c22;border-top:1px solid #31353c;display:flex;align-items:center;justify-content:space-between;gap:12px;font:500 10px "JetBrains Mono",Consolas,monospace;color:#889484}.builder-console-feed{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#becab9}.builder-console-feed strong{color:#6fdd78}.builder-mode .stream{display:none}
+@media(max-width:1120px){.builder-workspace{grid-template-columns:245px minmax(0,1fr) 300px}.builder-left{padding:9px}}
+@media(max-width:900px){.builder-shell.active{height:auto;min-height:calc(100vh - 58px);overflow:visible}.builder-workspace{grid-template-columns:1fr;overflow:visible}.builder-left{display:none}.builder-inspector{display:none}.builder-center{min-height:650px}.builder-toprow,.builder-subrow{align-items:flex-start;flex-direction:column}.builder-actions,.builder-statuses{justify-content:flex-start}.canvas-toolbar{overflow-x:auto}.basic-page{padding:24px 16px 50px}.human-plan-grid{grid-template-columns:1fr}.top{align-items:flex-start}.top-right{justify-content:flex-end}.hero h1{font-size:30px}.assistant-config{flex-direction:column;align-items:stretch}.assistant-config .field-group{max-width:none!important}}
 .stream{border-top:1px solid var(--line);padding:10px 16px;background:#10161d;max-height:180px;overflow:auto;font:12px Consolas,monospace}.event{padding:3px 0}
 @media(max-width:900px){.basic-page{padding:24px 16px 50px}.builder-shell.active{grid-template-columns:1fr}.builder-shell .side{display:none}.human-plan-grid{grid-template-columns:1fr}.top{align-items:flex-start}.top-right{justify-content:flex-end}.hero h1{font-size:30px}.assistant-config{flex-direction:column;align-items:stretch}.assistant-config .field-group{max-width:none!important}}
 </style>
@@ -155,61 +189,150 @@ body.preflight-pending .preflight,body.preflight-blocked .preflight{display:bloc
   </section>
 
   <section id="builder-shell" class="builder-shell">
-    <aside class="side">
-      <strong>Descrever uma automação</strong>
-      <div class="field-group" style="margin-top:8px"><textarea id="ai-prompt" rows="4" placeholder="Ex.: organize PDFs e mova para outra pasta"></textarea></div>
-      <div class="field-group"><label>Interpretação</label><select id="ai-provider"><option value="deterministic-rules">Regras locais</option><option value="google-gemini">Google Gemini</option></select></div>
-      <div id="gemini-key-box" class="field-group" style="display:none"><label>Chave Gemini</label><input type="password" id="ai-key"></div>
-      <button id="btn-ai-draft" class="btn primary" style="width:100%;margin-top:8px">Gerar rascunho</button>
-
-      <hr style="border-color:#26313d;margin:18px 0">
-      <strong>Automações de referência</strong>
-      <div class="field-group"><select id="tmpl-select"><option value="">Carregando…</option></select></div>
-      <div id="tmpl-fields"></div>
-      <button id="btn-instantiate" class="btn primary" style="width:100%;margin-top:8px">Abrir no Construtor</button>
-
-      <hr style="border-color:#26313d;margin:18px 0">
-      <strong>Ferramentas técnicas</strong>
-      <div class="actions" style="display:flex;flex-direction:column;gap:7px;margin-top:9px">
-        <button id="btn-validate">Validar IR</button>
-        <button id="btn-save">Salvar IR</button>
-        <button id="btn-plan" class="primary">1. Gerar plano</button>
-        <button id="btn-authorize" disabled class="warning-btn">2. Autorizar plano</button>
-        <button id="btn-apply" disabled class="success-btn">3. Aplicar + verificar</button>
+    <header class="builder-topbar">
+      <div class="builder-toprow">
+        <div class="builder-identity">
+          <div class="builder-tree-icon">⌘</div>
+          <div class="builder-crumb"><span>autocompiler</span> / <strong id="wf-title">Automação Manual Canvas</strong></div>
+          <span id="builder-source-badge" class="builder-badge">canvas</span>
+        </div>
+        <div class="builder-statuses">
+          <span class="builder-status"><span class="dot"></span><span id="builder-ir-status">IR EDITÁVEL</span></span>
+          <span class="builder-status">TRIGGER <strong id="builder-trigger-status" style="color:#d5bbff">manual</strong></span>
+          <span class="builder-status">STEPS <strong id="builder-step-count" style="color:#a2c9ff">0</strong></span>
+          <span class="builder-status">PLAN <strong id="builder-plan-status" style="color:#889484">—</strong></span>
+        </div>
       </div>
-
-      <hr style="border-color:#26313d;margin:18px 0">
-      <strong>Blocos causais</strong>
-      <div class="palette">
-        <button onclick="addBlock('WHEN','Trigger','manual')">+ WHEN</button>
-        <button onclick="addBlock('GET','Scan','filesystem.scan')">+ GET</button>
-        <button onclick="addBlock('TRANSFORM','Filter','filter.extension')">+ TRANSFORM</button>
-        <button onclick="addBlock('IF','Condition','flow.condition')">+ IF / ELSE</button>
-        <button onclick="addBlock('ACT','Action','filesystem.copy')">+ ACT</button>
-        <button onclick="addBlock('SAVE','State','state.record')">+ SAVE</button>
-        <button onclick="addBlock('NOTIFY','Notify','notify')">+ NOTIFY</button>
+      <div class="builder-subrow">
+        <div id="wf-desc" class="muted">Edite o fluxo visualmente. O IR continua sendo a fonte do workflow e o Trust Gate continua obrigatório.</div>
+        <div class="builder-actions">
+          <button id="btn-validate">Validar IR</button>
+          <button id="btn-save">Salvar IR</button>
+          <button id="btn-plan" class="primary">Gerar plano</button>
+          <button id="btn-authorize" disabled class="warning-btn">Autorizar</button>
+          <button id="btn-apply" disabled class="success-btn">Aplicar + verificar</button>
+        </div>
       </div>
-      <div id="validation-msg" class="muted" style="margin-top:14px"></div>
-    </aside>
+    </header>
 
-    <main class="canvas">
-      <section class="card">
-        <div class="eyebrow">Construtor causal</div>
-        <h2 id="wf-title" style="margin:5px 0">Crie ou edite uma automação</h2>
-        <div id="wf-desc" class="muted">O Construtor trabalha sobre o mesmo IR e o mesmo Trust Gate das utilidades.</div>
-      </section>
-      <section class="card" id="plan-panel">
-        <div class="muted" id="plan-status-label">PLANO DE IMPACTO · ainda não gerado</div>
-        <div id="plan-content" style="margin-top:8px">Gere o plano para revisar impacto técnico.</div>
-      </section>
-      <section class="card" style="min-height:330px"><div id="flow-container" class="flow"></div></section>
-    </main>
+    <div class="builder-workspace">
+      <aside class="builder-left">
+        <section class="builder-panel">
+          <div class="builder-panel-title">Adicionar bloco <span>+</span></div>
+          <div class="palette">
+            <button data-kind="GET" onclick="addBlock('GET','Scan','filesystem.scan')">GET · arquivos</button>
+            <button data-kind="GET" onclick="addBlock('GET','HTTP','http.request')">GET · HTTP</button>
+            <button data-kind="TRANSFORM" onclick="addBlock('TRANSFORM','Filter','filter.extension')">TRANSFORM</button>
+            <button data-kind="IF" onclick="addBlock('IF','Condition','state.check')">IF · condição</button>
+            <button data-kind="ACT" onclick="addBlock('ACT','Action','filesystem.copy')">ACT · copiar</button>
+            <button data-kind="SAVE" onclick="addBlock('SAVE','State','state.record')">SAVE · estado</button>
+            <button data-kind="NOTIFY" onclick="addBlock('NOTIFY','Notify','notify')">NOTIFY</button>
+            <button data-kind="GET" onclick="addBlock('GET','CSV','csv.read')">GET · CSV</button>
+          </div>
+        </section>
 
-    <aside class="side right">
-      <strong>Seu computador</strong>
-      <div id="machine-caps" style="margin-top:10px"><div class="muted">Aguardando verificação…</div></div>
-      <details style="margin-top:12px"><summary class="muted" style="cursor:pointer">Detalhes técnicos (<span id="resource-count">0</span>)</summary><div id="caps" style="margin-top:10px"></div></details>
-    </aside>
+        <section class="builder-panel">
+          <div class="builder-panel-title">Descrever automação <span>AI</span></div>
+          <div class="field-group"><textarea id="ai-prompt" rows="3" placeholder="Ex.: organize PDFs e mova para outra pasta"></textarea></div>
+          <div class="field-group"><label>Interpretação</label><select id="ai-provider"><option value="deterministic-rules">Regras locais</option><option value="google-gemini">Google Gemini</option></select></div>
+          <div id="gemini-key-box" class="field-group" style="display:none"><label>Chave Gemini</label><input type="password" id="ai-key"></div>
+          <button id="btn-ai-draft" class="btn" style="width:100%;margin-top:8px">Gerar rascunho</button>
+        </section>
+
+        <section class="builder-panel">
+          <div class="builder-panel-title">Referências <span>W</span></div>
+          <div class="field-group"><select id="tmpl-select"><option value="">Carregando…</option></select></div>
+          <div id="tmpl-fields"></div>
+          <button id="btn-instantiate" class="btn" style="width:100%;margin-top:8px">Carregar fluxo</button>
+        </section>
+
+        <section class="builder-panel">
+          <div class="builder-panel-title">Validação <span>✓</span></div>
+          <div id="validation-msg" class="muted">O rascunho ainda não foi validado nesta edição.</div>
+        </section>
+      </aside>
+
+      <main class="builder-center">
+        <div class="canvas-toolbar">
+          <div class="view-tabs">
+            <button id="canvas-tab-graph" class="active" onclick="setCanvasView('graph')">Workflow Graph</button>
+            <button id="canvas-tab-plan" onclick="setCanvasView('plan')">Impact Plan</button>
+            <button id="canvas-tab-ir" onclick="setCanvasView('ir')">IR JSON</button>
+          </div>
+          <div class="canvas-controls">
+            <button id="canvas-fit" title="Ajustar o fluxo à área visível">Fit View</button>
+            <button id="canvas-zoom-out" title="Diminuir zoom">−</button>
+            <span id="canvas-zoom-label" class="zoom-label">100%</span>
+            <button id="canvas-zoom-in" title="Aumentar zoom">+</button>
+          </div>
+        </div>
+
+        <section id="canvas-view-graph" class="canvas-view active">
+          <div id="canvas-viewport" class="canvas-viewport">
+            <div class="canvas-corner-info"><span>FLOW DAG</span><span>•</span><span id="canvas-layout-info">LR · 0 nodes</span></div>
+            <div id="graph-stage-shell" class="graph-stage-shell">
+              <div id="flow-container" class="graph-stage">
+                <svg id="graph-wires" class="graph-wires" aria-hidden="true"></svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="canvas-view-plan" class="canvas-view plan-view">
+          <div class="plan-card" id="plan-panel">
+            <div class="builder-panel-title">Plano de impacto <span id="plan-status-label">ainda não gerado</span></div>
+            <div id="plan-content">Gere o plano para revisar arquivos, rede, providers, IA, custo e rollback.</div>
+          </div>
+        </section>
+
+        <section id="canvas-view-ir" class="canvas-view ir-view">
+          <div class="ir-card">
+            <div class="builder-panel-title">Automation IR <span>draft</span></div>
+            <pre id="ir-preview"></pre>
+          </div>
+        </section>
+      </main>
+
+      <aside class="builder-inspector">
+        <div class="inspector-head">
+          <div class="inspector-title"><span class="dot"></span><span>Node Inspector</span></div>
+          <span id="inspector-node-badge" class="inspector-node-badge">nenhum</span>
+        </div>
+        <div class="inspector-body">
+          <div id="inspector-empty" class="inspector-empty">Selecione um nó no Canvas para editar seus parâmetros.</div>
+          <div id="inspector-content" class="hidden">
+            <section class="inspector-card">
+              <div class="inspector-card-label">Identidade</div>
+              <div id="inspector-skill" class="inspector-skill"></div>
+              <div id="inspector-summary" class="muted" style="margin-top:5px"></div>
+            </section>
+            <section class="inspector-card">
+              <div class="inspector-card-label">Parâmetros</div>
+              <div id="inspector-params"></div>
+            </section>
+            <section class="inspector-card">
+              <div class="inspector-card-label">JSON do nó</div>
+              <div class="inspector-param"><textarea id="inspector-raw" spellcheck="false"></textarea></div>
+            </section>
+          </div>
+
+          <details class="inspector-card" open>
+            <summary class="inspector-card-label" style="cursor:pointer;margin:0">Automation Base</summary>
+            <div id="machine-caps" style="margin-top:9px"><div class="muted">Aguardando verificação…</div></div>
+            <details style="margin-top:8px"><summary class="muted" style="cursor:pointer">Recursos técnicos (<span id="resource-count">0</span>)</summary><div id="caps" style="margin-top:8px"></div></details>
+          </details>
+        </div>
+        <div id="inspector-footer" class="inspector-footer hidden">
+          <button id="inspector-remove" class="danger">Remover</button>
+          <button id="inspector-apply" class="apply">Aplicar ao rascunho</button>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="builder-console">
+      <div id="builder-console-feed" class="builder-console-feed"><strong>[READY]</strong> Canvas causal carregado.</div>
+      <div><span id="builder-console-source">LOCAL</span> · <span id="builder-console-plan">NO PLAN</span></div>
+    </footer>
   </section>
 </div>
 
