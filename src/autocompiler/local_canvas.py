@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 import sys
 from urllib.parse import parse_qs, urlparse
 
+from .capability_closure import CapabilityClosureService
 from .catalog import CapabilityCatalog
 from .environment import build_unified_resource_graph
 from .first_run import MachinePreparationStore, build_machine_preflight
@@ -131,6 +132,49 @@ def apply_git_acquisition(authorized: bool = False) -> dict:
         "stderr": result.stderr[-4000:],
         "verification": verified,
         "plan": plan,
+    }
+
+
+def workflow_gap_resolution(plan_id: str, catalog_path: Path = DEFAULT_CATALOG) -> dict:
+    """Inspect a stored workflow's unresolved capabilities without mutating state."""
+    record = WORKFLOW_PLANS.get(plan_id)
+    if record is None:
+        return {"ok": False, "status": "unknown_plan", "plan_id": plan_id}
+
+    missing = list(record.get("plan", {}).get("missing_capabilities", []))
+    service = CapabilityClosureService(local_catalog_path=catalog_path)
+    closures = [service.plan_closure(capability).to_dict() for capability in missing]
+    return {
+        "ok": True,
+        "status": "capability_gap" if missing else "resolved",
+        "plan_id": plan_id,
+        "blocked": bool(missing),
+        "missing_capabilities": missing,
+        "closure_plans": closures,
+        "mutated": False,
+    }
+
+
+def replan_stored_workflow(plan_id: str, catalog_path: Path = DEFAULT_CATALOG) -> dict:
+    """Re-resolve the original stored IR against fresh validated capability memory."""
+    previous = WORKFLOW_PLANS.get(plan_id)
+    if previous is None:
+        return {"ok": False, "status": "unknown_plan", "plan_id": plan_id}
+
+    replanned = WORKFLOW_PLANS.replan(plan_id, local_catalog_path=catalog_path)
+    if replanned is None:
+        return {"ok": False, "status": "replan_failed", "plan_id": plan_id}
+
+    new_plan = replanned["plan"]
+    return {
+        "ok": True,
+        "status": "ready_for_authorization" if new_plan.get("can_apply") else "still_blocked",
+        "old_plan_id": plan_id,
+        "new_plan_id": new_plan["plan_id"],
+        "authorization_inherited": False,
+        "authorized": bool(replanned.get("authorized")),
+        "missing_capabilities": list(new_plan.get("missing_capabilities", [])),
+        "plan": new_plan,
     }
 
 
@@ -417,9 +461,27 @@ class CanvasHandler(BaseHTTPRequestHandler):
                     ai_provider=body.get("ai_provider"),
                 )
                 WORKFLOW_PLANS.create(ir_data, workflow_plan)
-                self._json({"ok": True, "plan": workflow_plan})
+                response = {"ok": True, "plan": workflow_plan}
+                if workflow_plan.get("missing_capabilities"):
+                    response["gap_resolution"] = workflow_gap_resolution(
+                        workflow_plan["plan_id"],
+                        DEFAULT_CATALOG,
+                    )
+                self._json(response)
             except Exception as exc:
                 self._json({"ok": False, "error": str(exc)}, 400)
+            return
+        if path == "/api/workflow/gaps":
+            body = self._body()
+            plan_id = str(body.get("plan_id", ""))
+            result = workflow_gap_resolution(plan_id, DEFAULT_CATALOG)
+            self._json(result, 200 if result.get("ok") else 404)
+            return
+        if path == "/api/workflow/replan":
+            body = self._body()
+            plan_id = str(body.get("plan_id", ""))
+            result = replan_stored_workflow(plan_id, DEFAULT_CATALOG)
+            self._json(result, 200 if result.get("ok") else 404)
             return
         if path == "/api/workflow/authorize":
             preflight, _ = build_machine_preflight(local_catalog_path=DEFAULT_CATALOG)
