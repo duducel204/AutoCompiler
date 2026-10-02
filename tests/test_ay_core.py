@@ -61,40 +61,17 @@ def test_self_state_carries_plan_gap_without_promoting_it():
     assert resolve_next(state).status is ResolutionStatus.NEED_CAPABILITY
 
 
-def test_muscle_maturity_requires_repository_evidence(tmp_path):
-    scripts = tmp_path / "scripts"
-    scripts.mkdir()
-    (scripts / "render_repository_map.py").write_text("# test\n", encoding="utf-8")
-
-    from src.autocompiler.ay.muscles import list_existing_muscles
-
-    first = {item.id: item for item in list_existing_muscles(tmp_path)}
-    assert first["repo.map"].maturity == "known"
-    assert first["repo.map"].evidence_refs == ()
-
-    evidence = tmp_path / "docs" / "evidence"
-    evidence.mkdir(parents=True)
-    (evidence / "REPOSITORY_MAP_EXECUTION.md").write_text("observed proof\n", encoding="utf-8")
-
-    second = {item.id: item for item in list_existing_muscles(tmp_path)}
-    assert second["repo.map"].maturity == "evidence_backed"
-    assert second["repo.map"].evidence_refs == ("docs/evidence/REPOSITORY_MAP_EXECUTION.md",)
-
-
-def test_resolver_reuses_existing_muscle_before_generating_script(tmp_path):
-    scripts = tmp_path / "scripts"
-    scripts.mkdir()
-    (scripts / "trust_gate.py").write_text("# test\n", encoding="utf-8")
-
-    state = build_ay_state(resource_graph={"resources": []}, root=tmp_path)
+def test_resolver_reuses_concrete_script_before_generating_another():
+    state = build_ay_state(resource_graph={"resources": []})
     decision = resolve_next(
         state,
-        requested_muscle="repo.trust_gate",
+        reusable_script="scripts/trust_gate.py",
         deterministic_repetition=True,
     )
 
-    assert decision.status is ResolutionStatus.NEED_REUSE
-    assert decision.next_action == "reuse_existing_muscle"
+    assert decision.status is ResolutionStatus.READY
+    assert decision.next_action == "run_existing_script"
+    assert decision.target == "scripts/trust_gate.py"
 
 
 def test_resolver_prefers_script_for_repetitive_deterministic_gap():
