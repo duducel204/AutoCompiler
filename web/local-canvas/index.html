@@ -511,7 +511,7 @@ async function generateAssistantDraft(){
       const q=(res.questions||[]).join(' ');appendAssistantMessage('assistant',q||'Ainda falta uma informação para fechar o rascunho.');return;
     }
     if(!res.ok||!res.ir)throw new Error(res.details||res.error||'Não foi possível gerar o rascunho');
-    currentIR=res.ir;currentSource='assistant';buildTimeAI=true;currentAIProvider=res.provider||'google-gemini';resetPlan('rascunho atualizado pela conversa com IA');
+    currentIR=res.ir;currentSource='assistant';buildTimeAI=true;currentAIProvider=res.provider||'google-gemini';nodePositions={};selectedCanvasNode=null;resetPlan('rascunho atualizado pela conversa com IA');
     document.querySelector('#wf-title').textContent=currentIR.name;document.querySelector('#wf-desc').textContent='Rascunho criado pela conversa com IA. Revise antes de gerar um plano.';renderFlow();
     appendAssistantMessage('assistant','Rascunho atualizado. Você pode continuar conversando ou abrir no Construtor para revisar os blocos.');
     log('assistant.draft_ready','Conversation → Automation IR validado');
@@ -563,8 +563,8 @@ document.querySelector('#utility-close').onclick=()=>document.querySelector('#ut
 async function instantiateTemplate(templateId,params,source='template'){
   const r=await fetch('/api/templates/instantiate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template_id:templateId,params})});
   const res=await r.json();if(!res.ok)throw new Error(res.error||'Falha ao preparar utilidade');
-  currentIR=res.ir;currentSource=source;buildTimeAI=false;currentAIProvider=null;resetPlan('novo fluxo preparado');
-  document.querySelector('#wf-title').textContent=currentIR.name;document.querySelector('#wf-desc').textContent='Fluxo carregado. Revise ou edite antes de gerar o plano.';renderFlow();
+  currentIR=res.ir;currentSource=source;buildTimeAI=false;currentAIProvider=null;nodePositions={};selectedCanvasNode=null;resetPlan('novo fluxo preparado');
+  document.querySelector('#wf-title').textContent=currentIR.name;document.querySelector('#wf-desc').textContent='Fluxo carregado. Revise ou edite antes de gerar o plano.';renderFlow();renderInspector();
   return res;
 }
 async function prepareSelectedUtility(){
@@ -589,7 +589,9 @@ async function generatePlan(forBasic=false){
 function planList(title,items,formatter){const values=items||[];const body=values.length?values.map(formatter).join('<br>'):'nenhum';return '<div style="margin-top:8px"><strong>'+title+'</strong><div class="muted" style="margin-top:3px">'+body+'</div></div>';}
 function renderTechnicalPlan(plan){
   const ai=plan.ai||{},schedule=plan.schedule||{},providers=Object.entries(plan.providers||{});
-  document.querySelector('#plan-status-label').textContent='PLANO DE IMPACTO · gerado';
+  document.querySelector('#plan-status-label').textContent='gerado';
+  const status=document.querySelector('#builder-plan-status');if(status){status.textContent=plan.can_apply?'READY':'BLOCKED';status.style.color=plan.can_apply?'#6fdd78':'#ffb4ab';}
+  const consolePlan=document.querySelector('#builder-console-plan');if(consolePlan)consolePlan.textContent=plan.can_apply?'PLAN READY':'PLAN BLOCKED';
   let html='<div><strong>'+esc(plan.workflow.name)+'</strong> · <span class="muted">'+esc(plan.plan_id.slice(0,12))+'</span></div>';
   html+=planList('Ações',plan.actions,x=>esc(x.step+' → '+x.skill));
   html+=planList('Arquivos / pastas',plan.filesystem,x=>esc(x.mode+' · '+x.path+' ('+x.reason+')'));
@@ -623,11 +625,17 @@ document.querySelector('#btn-basic-back').onclick=()=>{document.querySelector('#
 async function authorizeCurrentPlan(){
   if(!currentPlan)throw new Error('Plano não gerado');
   const r=await fetch('/api/workflow/authorize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan_id:currentPlan.plan_id})});
-  const res=await r.json();if(!res.ok)throw new Error(res.status||res.error||'Falha na autorização');log('authorization.approved','Plano autorizado explicitamente');return res;
+  const res=await r.json();if(!res.ok)throw new Error(res.status||res.error||'Falha na autorização');
+  const status=document.querySelector('#builder-plan-status');if(status){status.textContent='AUTHORIZED';status.style.color='#ffd18a';}
+  const consolePlan=document.querySelector('#builder-console-plan');if(consolePlan)consolePlan.textContent='AUTHORIZED';
+  log('authorization.approved','Plano autorizado explicitamente');return res;
 }
 async function applyCurrentPlan(){
   const r=await fetch('/api/workflow/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan_id:currentPlan.plan_id})});
-  const res=await r.json();if(!res.ok||!res.verification||!res.verification.ok)throw new Error(res.status||res.error||'Verificação falhou');log('verify.success','Aplicação e verificação concluídas');return res;
+  const res=await r.json();if(!res.ok||!res.verification||!res.verification.ok)throw new Error(res.status||res.error||'Verificação falhou');
+  const status=document.querySelector('#builder-plan-status');if(status){status.textContent='VERIFIED';status.style.color='#6fdd78';}
+  const consolePlan=document.querySelector('#builder-console-plan');if(consolePlan)consolePlan.textContent='VERIFIED';
+  log('verify.success','Aplicação e verificação concluídas');return res;
 }
 document.querySelector('#btn-basic-activate').onclick=async()=>{
   if(!currentPlan)return;const btn=document.querySelector('#btn-basic-activate');btn.disabled=true;btn.textContent='Ativando…';
@@ -710,10 +718,10 @@ function previousStepId(index){
 function defaultWithForSkill(skill,index){
   const from=previousStepId(index);
   if(skill==='filesystem.scan')return {path:'.',glob:'*'};
-  if(skill==='filter.extension')return {from:from||'s1',extension:'.pdf'};
-  if(skill==='filesystem.copy')return {from:from||'s1',destination:'./output'};
+  if(skill==='filter.extension')return {from:from||'',extension:'.pdf'};
+  if(skill==='filesystem.copy')return {from:from||'',destination:'./output'};
   if(skill==='http.request')return {url:'https://example.com',method:'GET'};
-  if(skill==='state.record')return {from:from||'s1'};
+  if(skill==='state.record')return {from:from||''};
   if(skill==='state.check')return {key:'item'};
   if(skill==='notify')return {message:'Automação concluída'};
   if(skill==='csv.read')return {path:'input.csv'};
@@ -876,7 +884,7 @@ flowContainer.addEventListener('click',e=>{if(e.target===flowContainer)flowConta
 document.querySelector('#ai-provider').onchange=e=>document.querySelector('#gemini-key-box').style.display=e.target.value==='google-gemini'?'flex':'none';
 async function createDraft(prompt,provider='deterministic-rules',apiKey=null){
   const r=await fetch('/api/ai/draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,provider,api_key:apiKey})});const res=await r.json();
-  if(res.ok&&res.ir){currentIR=res.ir;currentSource='ai';buildTimeAI=true;currentAIProvider=provider;resetPlan('novo rascunho');document.querySelector('#wf-title').textContent=currentIR.name;document.querySelector('#wf-desc').textContent='Rascunho criado. Revise o fluxo antes de ativar.';renderFlow();return res;}
+  if(res.ok&&res.ir){currentIR=res.ir;currentSource='ai';buildTimeAI=true;currentAIProvider=provider;nodePositions={};selectedCanvasNode=null;resetPlan('novo rascunho');document.querySelector('#wf-title').textContent=currentIR.name;document.querySelector('#wf-desc').textContent='Rascunho criado. Revise o fluxo antes de ativar.';renderFlow();renderInspector();return res;}
   if(res.ambiguous)throw new Error((res.questions||[]).join(' '));throw new Error(res.error||res.message||'Não foi possível interpretar a descrição');
 }
 document.querySelector('#btn-ai-draft').onclick=async()=>{try{await createDraft(document.querySelector('#ai-prompt').value.trim(),document.querySelector('#ai-provider').value,document.querySelector('#ai-key').value);log('ai.draft_success','Rascunho criado');}catch(e){log('ai.error',e.message,true);}};
@@ -886,11 +894,11 @@ document.querySelector('#btn-basic-intent').onclick=async()=>{
   catch(e){showBasicError(e.message);}
 };
 
-document.querySelector('#btn-validate').onclick=async()=>{const r=await fetch('/api/workflow/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ir:currentIR})});const res=await r.json();document.querySelector('#validation-msg').innerHTML=res.ok?'<span class="status-ok">IR válido.</span>':'<span class="status-err">'+esc(res.error)+'</span>';};
+document.querySelector('#btn-validate').onclick=async()=>{const r=await fetch('/api/workflow/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ir:currentIR})});const res=await r.json();document.querySelector('#validation-msg').innerHTML=res.ok?'<span class="status-ok">IR válido.</span>':'<span class="status-err">'+esc(res.error)+'</span>';const s=document.querySelector('#builder-ir-status');if(s){s.textContent=res.ok?'IR VALID':'IR ERROR';s.style.color=res.ok?'#6fdd78':'#ffb4ab';}log(res.ok?'ir.valid':'ir.invalid',res.ok?'Automation IR validado':(res.error||'IR inválido'),!res.ok);};
 document.querySelector('#btn-save').onclick=async()=>{const r=await fetch('/api/workflow/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'workflow.ir.json',ir:currentIR})});const res=await r.json();log(res.ok?'workflow.saved':'workflow.save_error',res.ok?'Fluxo salvo em '+res.path:res.error,!res.ok);};
-document.querySelector('#btn-plan').onclick=async()=>{try{await generatePlan(false);}catch(e){log('plan.failed',e.message,true);}};
+document.querySelector('#btn-plan').onclick=async()=>{try{await generatePlan(false);setCanvasView('plan');}catch(e){log('plan.failed',e.message,true);}};
 document.querySelector('#btn-authorize').onclick=async()=>{try{await authorizeCurrentPlan();document.querySelector('#btn-authorize').disabled=true;document.querySelector('#btn-apply').disabled=false;}catch(e){log('authorization.failed',e.message,true);}};
-document.querySelector('#btn-apply').onclick=async()=>{try{document.querySelector('#btn-apply').disabled=true;await applyCurrentPlan();document.querySelector('#plan-status-label').textContent='PLANO DE IMPACTO · aplicado e verificado';document.querySelector('#plan-content').innerHTML+='<div class="status-ok" style="margin-top:10px">Aplicado e verificado.</div>';}catch(e){log('verify.failed',e.message,true);}};
+document.querySelector('#btn-apply').onclick=async()=>{try{document.querySelector('#btn-apply').disabled=true;await applyCurrentPlan();document.querySelector('#plan-status-label').textContent='aplicado e verificado';document.querySelector('#plan-content').innerHTML+='<div class="status-ok" style="margin-top:10px">Aplicado e verificado.</div>';}catch(e){log('verify.failed',e.message,true);}};
 
 loadPreflight();
 </script>
