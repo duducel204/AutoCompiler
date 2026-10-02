@@ -81,6 +81,7 @@ def make_plan(model: list[dict[str, Any]], context: dict[str, Any]) -> dict[str,
     by = {item["id"]: item for item in model}
     spider = context.get("spider", {})
     cycle = context.get("cycle", {})
+    index = context.get("index", {})
     affected = set(spider.get("affected_sources", []))
 
     actionable = [
@@ -115,6 +116,8 @@ def make_plan(model: list[dict[str, Any]], context: dict[str, Any]) -> dict[str,
             "semantic_labels": semantic_labels,
             "logic_nodes": logic_nodes,
             "truncated": bool(spider.get("truncated")),
+            "cache_state": str(index.get("cache_state", "unknown")),
+            "contract_fingerprint": str(index.get("contract_fingerprint", "")),
         },
         "selected": selected,
         "candidates": candidates,
@@ -124,6 +127,7 @@ def make_plan(model: list[dict[str, Any]], context: dict[str, Any]) -> dict[str,
             "declared_work_only": True,
             "direct_main_mutation": False,
             "next_cycle_requires_branch_pr": bool(selected),
+            "context_integrity_required_for_dispatch": True,
         },
     }
 
