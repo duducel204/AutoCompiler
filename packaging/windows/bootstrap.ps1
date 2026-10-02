@@ -210,7 +210,8 @@ import os
 from pathlib import Path
 from autocompiler.first_run import build_machine_preflight
 
-preflight, _ = build_machine_preflight()
+state_root = Path(os.environ["AUTOCOMPILER_STATE_ROOT"])
+preflight, _ = build_machine_preflight(local_catalog_path=state_root / "capabilities.json")
 target = Path(os.environ["AUTOCOMPILER_PREFLIGHT_OUTPUT"])
 target.write_text(json.dumps(preflight, indent=2, ensure_ascii=False), encoding="utf-8")
 print(json.dumps({
