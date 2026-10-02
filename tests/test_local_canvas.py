@@ -95,10 +95,8 @@ class LocalCanvasTests(unittest.TestCase):
         managed_root = Path(managed.name)
         workflow_patch = patch("autocompiler.local_canvas.WORKFLOW_ROOT", managed_root / "workflows")
         generated_patch = patch("autocompiler.local_canvas.GENERATED_ROOT", managed_root / "generated")
-        state_patch = patch("autocompiler.local_canvas.STATE_ROOT", managed_root / "state")
         workflow_patch.start()
         generated_patch.start()
-        state_patch.start()
         server = ThreadingHTTPServer(("127.0.0.1", 0), CanvasHandler)
         port = server.server_port
         thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -366,7 +364,6 @@ class LocalCanvasTests(unittest.TestCase):
                 self.assertEqual(enabled["installation"]["status"], "ready")
         finally:
             server.shutdown()
-            state_patch.stop()
             generated_patch.stop()
             workflow_patch.stop()
             managed.cleanup()

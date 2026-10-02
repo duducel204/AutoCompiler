@@ -250,6 +250,37 @@ def build_workflow_plan(
     }
 
 
+def replan_workflow(
+    ir: dict[str, Any],
+    *,
+    target: str = "python-sqlite",
+    out_dir: str | Path = "generated/canvas_run",
+    source: str = "canvas",
+    build_time_ai: bool = False,
+    ai_provider: str | None = None,
+    resource_graph: dict[str, Any] | None = None,
+    local_catalog_path: str | Path | None = None,
+) -> dict[str, Any]:
+    """Replan a workflow against fresh unified capability memory.
+
+    Re-evaluates requirements from scratch without reusing old resolution or authorization.
+    """
+    if resource_graph is None and local_catalog_path is not None:
+        graph = build_unified_resource_graph(local_catalog_path=local_catalog_path)
+    else:
+        graph = resource_graph
+
+    return build_workflow_plan(
+        ir,
+        target=target,
+        out_dir=out_dir,
+        source=source,
+        build_time_ai=build_time_ai,
+        ai_provider=ai_provider,
+        resource_graph=graph,
+    )
+
+
 def verify_workflow_application(
     *,
     ir: dict[str, Any],
@@ -436,3 +467,34 @@ class WorkflowPlanStore:
             if record is not None:
                 record["applied"] = True
                 record["authorized"] = False
+
+    def replan(
+        self,
+        plan_id: str,
+        *,
+        resource_graph: dict[str, Any] | None = None,
+        local_catalog_path: str | Path | None = None,
+    ) -> dict[str, Any] | None:
+        """Replan a stored workflow from its preserved IR and create a new unauthorized plan.
+
+        Does not edit old resolution data in place or inherit prior authorization.
+        """
+        with self._lock:
+            record = self._records.get(plan_id)
+            if record is None:
+                return None
+            ir = deepcopy(record["ir"])
+            old_plan = record["plan"]
+
+        new_plan = replan_workflow(
+            ir,
+            target=old_plan.get("target", "python-sqlite"),
+            out_dir=old_plan.get("out_dir", "generated/canvas_run"),
+            source=old_plan.get("workflow", {}).get("source", "canvas"),
+            build_time_ai=old_plan.get("ai", {}).get("build_time", False),
+            ai_provider=old_plan.get("ai", {}).get("build_provider"),
+            resource_graph=resource_graph,
+            local_catalog_path=local_catalog_path,
+        )
+
+        return self.create(ir, new_plan)
