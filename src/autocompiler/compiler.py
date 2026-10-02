@@ -8,7 +8,7 @@ from typing import Any
 from .ir import validate_ir
 
 PYTHON_RUNTIME_TEMPLATE = r'''from __future__ import annotations
-import csv, json, shutil, sqlite3, time, zipfile
+import csv, json, shutil, sqlite3, subprocess, sys, time, zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -359,6 +359,47 @@ def run():
             context[sid] = {"ok": True, "path": str(file_path)}
             history = str(file_path)
 
+        elif skill == "act":
+            cap = args.get("capability")
+            if not cap:
+                raise RuntimeError(f"Step {sid} of type 'act' has no capability specified")
+            item = None
+            resolved = MANIFEST.get("resolved_execution") or {}
+            for req in resolved.get("requirements", []):
+                if req.get("capability") == cap and req.get("status") == "resolved":
+                    item = req
+                    break
+            if not item:
+                raise RuntimeError(f"Unresolved capability for act step {sid}: {cap}")
+            binding = item.get("binding")
+            if not isinstance(binding, dict) or not binding.get("executable"):
+                raise RuntimeError(f"Missing executable binding for capability {cap} in step {sid}")
+            exe = Path(str(binding["executable"])).expanduser()
+            if not exe.is_file():
+                raise RuntimeError(f"Executable for capability {cap} does not exist: {exe}")
+
+            act_args = args.get("args", [])
+            resolved_args = _resolve(act_args, context)
+            if not isinstance(resolved_args, list):
+                resolved_args = [resolved_args]
+
+            cmd_args = []
+            for a in resolved_args:
+                if isinstance(a, (dict, list)):
+                    cmd_args.append(json.dumps(a, ensure_ascii=False))
+                elif a is not None:
+                    cmd_args.append(str(a))
+            cmd = [str(exe)] + cmd_args
+            proc = subprocess.run(cmd, capture_output=True, text=True)
+            if proc.returncode != 0:
+                raise RuntimeError(f"Capability {cap} execution failed with code {proc.returncode}: {proc.stderr}")
+            stdout = proc.stdout.strip()
+            try:
+                result_data = json.loads(stdout)
+            except json.JSONDecodeError:
+                result_data = stdout
+            context[sid] = result_data
+
         else:
             raise RuntimeError("Unsupported compiled skill: " + str(skill))
 
@@ -403,6 +444,7 @@ TARGETS = {
 
 TARGET_SKILLS = {
     "python-sqlite": {
+        "act",
         "filesystem.scan",
         "filter.extension",
         "filesystem.copy",
@@ -417,6 +459,7 @@ TARGET_SKILLS = {
         "state.update",
     },
     "python-json": {
+        "act",
         "filesystem.scan",
         "filter.extension",
         "filesystem.copy",
@@ -497,18 +540,50 @@ def analyze_compile_support(
     provider_mismatches: list[dict[str, Any]] = []
     if resolved_execution:
         provider_rules = TARGET_CAPABILITY_PROVIDERS.get(target, {})
+        req_map = {item.get("capability"): item for item in resolved_execution.get("requirements", [])}
+
+        for step in _iter_steps(ir.get("steps", [])):
+            skill = step.get("skill") or step.get("type") or step.get("action")
+            if skill == "act":
+                args = step.get("with", {})
+                cap = args.get("capability") if isinstance(args, dict) else None
+                if cap and cap not in req_map:
+                    provider_mismatches.append({
+                        "capability": cap,
+                        "provider": None,
+                        "reason": "capability_not_in_resolved_execution",
+                    })
+
         for item in resolved_execution.get("requirements", []):
             capability = item.get("capability")
             provider = item.get("provider")
+            status = item.get("status")
+            binding = item.get("binding")
             if not capability or capability in DEPLOYMENT_CAPABILITIES:
                 continue
             accepted = provider_rules.get(capability)
             if accepted is None:
-                provider_mismatches.append({
-                    "capability": capability,
-                    "provider": provider,
-                    "reason": "target_has_no_materializer",
-                })
+                if status != "resolved" or not provider:
+                    provider_mismatches.append({
+                        "capability": capability,
+                        "provider": provider,
+                        "reason": "capability_not_resolved",
+                    })
+                elif not isinstance(binding, dict) or not binding.get("executable"):
+                    provider_mismatches.append({
+                        "capability": capability,
+                        "provider": provider,
+                        "reason": "missing_executable_binding",
+                    })
+                else:
+                    exe_path = Path(str(binding["executable"])).expanduser()
+                    if not exe_path.is_file():
+                        provider_mismatches.append({
+                            "capability": capability,
+                            "provider": provider,
+                            "executable": str(binding["executable"]),
+                            "reason": "binding_executable_not_found",
+                        })
             elif provider not in accepted:
                 provider_mismatches.append({
                     "capability": capability,

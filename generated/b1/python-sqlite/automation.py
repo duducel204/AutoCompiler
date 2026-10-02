@@ -1,5 +1,5 @@
 from __future__ import annotations
-import csv, json, shutil, sqlite3, time, zipfile
+import csv, json, shutil, sqlite3, subprocess, sys, time, zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -349,6 +349,47 @@ def run():
                 f.write(json.dumps(value, ensure_ascii=False) + "\n")
             context[sid] = {"ok": True, "path": str(file_path)}
             history = str(file_path)
+
+        elif skill == "act":
+            cap = args.get("capability")
+            if not cap:
+                raise RuntimeError(f"Step {sid} of type 'act' has no capability specified")
+            item = None
+            resolved = MANIFEST.get("resolved_execution") or {}
+            for req in resolved.get("requirements", []):
+                if req.get("capability") == cap and req.get("status") == "resolved":
+                    item = req
+                    break
+            if not item:
+                raise RuntimeError(f"Unresolved capability for act step {sid}: {cap}")
+            binding = item.get("binding")
+            if not isinstance(binding, dict) or not binding.get("executable"):
+                raise RuntimeError(f"Missing executable binding for capability {cap} in step {sid}")
+            exe = Path(str(binding["executable"])).expanduser()
+            if not exe.is_file():
+                raise RuntimeError(f"Executable for capability {cap} does not exist: {exe}")
+
+            act_args = args.get("args", [])
+            resolved_args = _resolve(act_args, context)
+            if not isinstance(resolved_args, list):
+                resolved_args = [resolved_args]
+
+            cmd_args = []
+            for a in resolved_args:
+                if isinstance(a, (dict, list)):
+                    cmd_args.append(json.dumps(a, ensure_ascii=False))
+                elif a is not None:
+                    cmd_args.append(str(a))
+            cmd = [str(exe)] + cmd_args
+            proc = subprocess.run(cmd, capture_output=True, text=True)
+            if proc.returncode != 0:
+                raise RuntimeError(f"Capability {cap} execution failed with code {proc.returncode}: {proc.stderr}")
+            stdout = proc.stdout.strip()
+            try:
+                result_data = json.loads(stdout)
+            except json.JSONDecodeError:
+                result_data = stdout
+            context[sid] = result_data
 
         else:
             raise RuntimeError("Unsupported compiled skill: " + str(skill))
