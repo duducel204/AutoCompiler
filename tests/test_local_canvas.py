@@ -115,8 +115,10 @@ class LocalCanvasTests(unittest.TestCase):
             self.assertIn('id="mode-basic"', page)
             self.assertIn('id="mode-builder"', page)
             self.assertIn("Permitir e ativar", page)
-            self.assertIn("Converse com a IA", page)
+            self.assertIn("Desenvolver com IA", page)
+            self.assertIn('class="brand-logo"', page)
             self.assertIn('id="assistant-input"', page)
+            self.assertIn('id="assistant-draft"', page)
             self.assertNotIn("AUTOCOMPILER_CHAT_API_KEY", page)
 
             with urlopen(f"{base_url}/favicon.ico") as resp:
@@ -265,7 +267,8 @@ class LocalCanvasTests(unittest.TestCase):
             "reply": "Posso ajudar a estruturar essa automação.",
             "provider": "google-gemini",
             "model": "test-model",
-            "can_mutate": False,
+            "can_edit_draft": True,
+            "can_mutate_machine": False,
             "can_authorize": False,
             "can_apply": False,
         }
@@ -291,10 +294,73 @@ class LocalCanvasTests(unittest.TestCase):
             with urlopen(req) as resp:
                 chat_res = json.loads(resp.read().decode("utf-8"))
             self.assertTrue(chat_res["ok"])
-            self.assertFalse(chat_res["can_mutate"])
+            self.assertTrue(chat_res["can_edit_draft"])
+            self.assertFalse(chat_res["can_mutate_machine"])
             self.assertFalse(chat_res["can_authorize"])
             self.assertFalse(chat_res["can_apply"])
             chat.assert_called_once()
+        finally:
+            server.shutdown()
+
+    @patch("autocompiler.local_canvas.draft_from_conversation")
+    @patch("autocompiler.local_canvas.configure_assistant")
+    def test_basic_assistant_can_configure_session_and_create_draft_only(self, configure, draft):
+        configure.return_value = {
+            "ok": True,
+            "configured": True,
+            "provider": "google-gemini",
+            "model": "gemini-3.8-flash",
+            "storage": "process_memory_only",
+        }
+        draft.return_value = {
+            "ok": True,
+            "ir": {
+                "schema_version": "0.1",
+                "name": "Draft",
+                "trigger": {"type": "manual"},
+                "steps": [{"id": "s1", "skill": "filesystem.scan", "with": {"path": "."}}],
+                "state": {"file": "history.db"},
+            },
+            "draft_only": True,
+            "can_authorize": False,
+            "can_apply": False,
+        }
+        server = ThreadingHTTPServer(("127.0.0.1", 0), CanvasHandler)
+        port = server.server_port
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            base_url = f"http://127.0.0.1:{port}"
+            req = Request(
+                f"{base_url}/api/assistant/configure",
+                data=json.dumps({
+                    "api_key": "AQ.temporary",
+                    "provider": "google-gemini",
+                    "model": "gemini-3.8-flash",
+                }).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with urlopen(req) as resp:
+                configured = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(configured["configured"])
+            self.assertNotIn("api_key", configured)
+
+            req = Request(
+                f"{base_url}/api/assistant/draft",
+                data=json.dumps({
+                    "history": [{"role": "user", "text": "Organize meus PDFs"}],
+                    "current_ir": {},
+                }).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with urlopen(req) as resp:
+                draft_res = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(draft_res["ok"])
+            self.assertTrue(draft_res["draft_only"])
+            self.assertFalse(draft_res["can_authorize"])
+            self.assertFalse(draft_res["can_apply"])
+            configure.assert_called_once()
+            draft.assert_called_once()
         finally:
             server.shutdown()
 
