@@ -6,7 +6,7 @@ identify the next gap, and choose the smallest safe mechanism.
 """
 
 from .cycle_state import CycleStateStore, VerifiedCycle
-from .orchestrator import OrchestrationRequest, OrchestrationResult, orchestrate
+from .orchestrator import OrchestrationRequest, OrchestrationResult, orchestrate, record_verified_cycle
 from .resolver import ResolutionDecision, ResolutionStatus, resolve_next
 from .state import AYState, StateFact, build_ay_state
 
@@ -22,4 +22,5 @@ __all__ = [
     "build_ay_state",
     "resolve_next",
     "orchestrate",
+    "record_verified_cycle",
 ]
