@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import difflib
 import json
 import re
 import subprocess
@@ -195,8 +196,18 @@ def main() -> int:
         return 1
     output = ROOT / OUTPUT
     if args.check:
-        if not output.exists() or output.read_text(encoding="utf-8") != content:
+        existing = output.read_text(encoding="utf-8") if output.exists() else ""
+        if existing != content:
             print("Repository map is stale: run python scripts/render_repository_map.py")
+            diff = difflib.unified_diff(
+                existing.splitlines(),
+                content.splitlines(),
+                fromfile=OUTPUT,
+                tofile=OUTPUT + " (expected)",
+                lineterm="",
+            )
+            for line in diff:
+                print(line)
             return 1
         print("Repository map: references and generated content are consistent")
     else:
