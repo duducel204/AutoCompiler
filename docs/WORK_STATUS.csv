@@ -11,4 +11,4 @@ AY-C2B,ay-closed-loop,Bounded node-context spider for complex gaps,P0,SYSTEM_PRO
 AY-C3,ay-closed-loop,Resolver routes complex gaps to node context,P0,SYSTEM_PROOF_WIRED,yes,yes,yes,yes,yes,yes,observe system proof execution
 AY-C4,ay-closed-loop,Crystallize repeated complex analysis into task scripts,P0,SYSTEM_PROOF_WIRED,yes,yes,yes,yes,yes,yes,observe system proof execution
 AY-C5,ay-closed-loop,Close resolution into evidence state and cheaper reuse,P0,SYSTEM_PROOF_WIRED,yes,yes,yes,yes,yes,yes,observe system proof execution
-AY-C6,ay-closed-loop,Post-cycle Spider assimilation via GitHub Actions,P0,COMPONENT_GATE_WIRED,yes,yes,yes,yes,no,yes,integrate
+AY-C6,ay-closed-loop,Post-cycle Spider assimilation via GitHub Actions,P0,SYSTEM_PROOF_WIRED,yes,yes,yes,yes,yes,yes,observe system proof execution
