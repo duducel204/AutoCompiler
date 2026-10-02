@@ -304,6 +304,7 @@ body.builder-mode .lifecycle-strip{background:#0c1016;border-color:#292e36}
             <button data-kind="TRANSFORM" onclick="addBlock('TRANSFORM','Filter','filter.extension')">TRANSFORM</button>
             <button data-kind="IF" onclick="addBlock('IF','Condition','state.check')">IF · condição</button>
             <button data-kind="ACT" onclick="addBlock('ACT','Action','filesystem.copy')">ACT · copiar</button>
+            <button data-kind="ACT" onclick="addBlock('ACT','Move','filesystem.move')">ACT · mover</button>
             <button data-kind="SAVE" onclick="addBlock('SAVE','State','state.record')">SAVE · estado</button>
             <button data-kind="NOTIFY" onclick="addBlock('NOTIFY','Notify','notify')">NOTIFY</button>
             <button data-kind="GET" onclick="addBlock('GET','CSV','csv.read')">GET · CSV</button>
@@ -567,6 +568,7 @@ const humanSkill={
   "filesystem.scan":"Ler os arquivos da pasta escolhida",
   "filter.extension":"Selecionar apenas os arquivos que atendem à regra",
   "filesystem.copy":"Copiar os arquivos para o destino",
+  "filesystem.move":"Mover os arquivos para o destino",
   "state.record":"Registrar o que já foi processado",
   "state.record_jsonl":"Guardar uma cópia dos dados recebidos",
   "http.request":"Consultar um endereço na internet",
