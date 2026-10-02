@@ -73,21 +73,75 @@ body.preflight-pending .preflight,body.preflight-blocked .preflight{display:bloc
 @media(max-width:900px){.builder-shell.active{height:auto;min-height:calc(100vh - 58px);overflow:visible}.builder-workspace{grid-template-columns:1fr;overflow:visible}.builder-left{display:none}.builder-inspector{display:none}.builder-center{min-height:650px}.builder-toprow,.builder-subrow{align-items:flex-start;flex-direction:column}.builder-actions,.builder-statuses{justify-content:flex-start}.canvas-toolbar{overflow-x:auto}.basic-page{padding:24px 16px 50px}.human-plan-grid{grid-template-columns:1fr}.top{align-items:flex-start}.top-right{justify-content:flex-end}.hero h1{font-size:30px}.assistant-config{flex-direction:column;align-items:stretch}.assistant-config .field-group{max-width:none!important}}
 .stream{border-top:1px solid var(--line);padding:10px 16px;background:#10161d;max-height:180px;overflow:auto;font:12px Consolas,monospace}.event{padding:3px 0}
 @media(max-width:900px){.basic-page{padding:24px 16px 50px}.builder-shell.active{grid-template-columns:1fr}.builder-shell .side{display:none}.human-plan-grid{grid-template-columns:1fr}.top{align-items:flex-start}.top-right{justify-content:flex-end}.hero h1{font-size:30px}.assistant-config{flex-direction:column;align-items:stretch}.assistant-config .field-group{max-width:none!important}}
+
+/* ===== Canvas Studio refresh · 2026-10-02 ===== */
+.top{min-height:64px;padding:10px 16px;background:rgba(6,10,16,.97)}
+.brand-logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(145deg,#0f172a,#1d4ed8);border:1px solid #28466d;font-size:12px;letter-spacing:.04em}
+.brand-copy{display:block}.brand-copy strong{display:block;font-size:14px}.brand-copy .muted{display:block;margin-top:2px;font:500 10px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em}
+.lifecycle-strip{height:38px;border-bottom:1px solid var(--line);background:#080d14;display:flex;align-items:center;gap:5px;padding:0 16px;overflow:auto;white-space:nowrap;box-shadow:inset 0 -1px 0 rgba(255,255,255,.015)}
+.lifecycle-step{display:flex;align-items:center;gap:5px;padding:4px 7px;border:1px solid transparent;border-radius:5px;color:#607184;font:650 9px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.045em;transition:.15s}
+.lifecycle-step .n{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;border:1px solid #334155;font-size:8px}
+.lifecycle-step.completed{color:#80d69b}.lifecycle-step.completed .n{border-color:#287c4a;background:rgba(16,185,129,.1)}
+.lifecycle-step.active{color:#b9d9ff;background:#0f1c2e;border-color:#29466a}.lifecycle-step.active .n{border-color:#3b82f6;background:#172d4d;color:#fff;box-shadow:0 0 10px rgba(59,130,246,.22)}
+.lifecycle-step.blocked{color:#f3c86a}.lifecycle-sep{color:#29394b;font-size:10px}
+body.builder-mode .lifecycle-strip{background:#0c1016;border-color:#292e36}
+.basic-page{max-width:1320px}.hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(330px,.75fr);gap:24px;align-items:start}
+.hero-main{min-width:0}.hero-side{min-width:0;position:sticky;top:116px}
+.hero h1{font-size:42px;max-width:760px}.hero .assistant-chat{margin-top:0;max-width:none}
+.intent-box{max-width:none}.utility-grid{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+.utility-card{min-height:174px;border-radius:10px}.utility-card h3{font-size:16px}
+.builder-shell.active{height:calc(100vh - 102px);min-height:600px}
+.builder-topbar{padding:8px 12px;background:#14181e}
+.builder-workspace{grid-template-columns:264px minmax(0,1fr) 326px}
+.builder-left{padding:10px;gap:10px}.builder-panel{padding:10px}
+.canvas-toolbar{height:46px;flex:0 0 46px;padding:6px 10px}
+.canvas-toolbar-left{display:flex;align-items:center;gap:10px;min-width:0}
+.canvas-search-box{height:30px;min-width:250px;max-width:380px;display:flex;align-items:center;gap:6px;padding:0 8px;border:1px solid #2d333b;border-radius:5px;background:#090d12}
+.canvas-search-box:focus-within{border-color:#4d7454;box-shadow:0 0 0 2px rgba(111,221,120,.08)}
+.canvas-search-box input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:#dfe2eb;font:500 10px ui-monospace,SFMono-Regular,Menlo,monospace}
+.search-count{font:650 9px ui-monospace,SFMono-Regular,Menlo,monospace;color:#6fdd78;white-space:nowrap}
+.simulation-bar{height:38px;flex:0 0 38px;padding:4px 10px;border-bottom:1px solid #292e36;background:#0d1117;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.simulation-actions,.simulation-status{display:flex;align-items:center;gap:6px}.simulation-bar button{height:27px;padding:0 8px;border-radius:4px;border:1px solid #31353c;background:#171c22;color:#becab9;font-size:10px}
+.simulation-bar button:hover{border-color:#4e6150;color:#fff}.simulation-bar button.playing{border-color:#4fc15f;color:#9cf2a5;background:#16331d}
+.simulation-status{font:500 9px ui-monospace,SFMono-Regular,Menlo,monospace;color:#7e8a7c}.simulation-status .dot{width:6px;height:6px;border-radius:50%;background:#59645a}.simulation-status.active .dot{background:#6fdd78;box-shadow:0 0 8px rgba(111,221,120,.55)}
+.sim-progress{color:#a2c9ff}.sim-note{color:#687469}
+.graph-node.search-match{border-color:#a2c9ff!important;box-shadow:0 0 0 1px rgba(162,201,255,.28),0 14px 30px rgba(0,0,0,.5)!important}
+.graph-node.sim-active{border-color:#6fdd78!important;box-shadow:0 0 0 2px rgba(111,221,120,.2),0 0 24px rgba(111,221,120,.14),0 14px 30px rgba(0,0,0,.5)!important;transform:translateY(-2px)}
+.graph-node.sim-done .graph-node-state{color:#80d69b}
+.builder-console{height:34px;flex:0 0 34px}
+.canvas-corner-info{top:8px}.studio-kicker{font:700 9px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;color:#6fdd78}
+@media(max-width:980px){
+  .hero{grid-template-columns:1fr}.hero-side{position:static}.builder-workspace{grid-template-columns:230px minmax(0,1fr)}.builder-inspector{display:none}
+}
+@media(max-width:760px){
+  .lifecycle-strip{padding:0 10px}.lifecycle-step{padding:4px}.lifecycle-step span:not(.n){display:none}.builder-left{display:none}.builder-workspace{grid-template-columns:1fr}.canvas-search-box{min-width:140px}.hero h1{font-size:34px}
+}
+
 </style>
 </head>
 <body class="preflight-pending">
 <div class="app">
 <header class="top">
-  <div class="brand"><div class="brand-logo">A</div><div class="brand-copy"><strong>AutoCompiler</strong><span class="muted">automatize o que você repete</span></div></div>
+  <div class="brand"><div class="brand-logo">AC</div><div class="brand-copy"><strong>AutoCompiler</strong><span class="muted">CAUSAL AUTOMATION STUDIO</span></div></div>
   <div class="top-right">
     <div id="mode-switch" class="mode-switch hidden">
-      <button id="mode-basic" class="active">Utilidades</button>
-      <button id="mode-builder">Construtor</button>
+      <button id="mode-basic" class="active">Início</button>
+      <button id="mode-builder">Canvas</button>
     </div>
     <span id="readiness-badge" class="readiness-badge">VERIFICANDO MÁQUINA…</span>
     <span class="muted" id="repo-head">LOCAL</span>
   </div>
 </header>
+
+<nav id="lifecycle-strip" class="lifecycle-strip" aria-label="Ciclo canônico do AutoCompiler">
+  <div class="lifecycle-step completed" id="step-discover"><span class="n">1</span><span>DISCOVER</span></div><span class="lifecycle-sep">→</span>
+  <div class="lifecycle-step completed" id="step-ready"><span class="n">2</span><span>AUTOMATION_READY</span></div><span class="lifecycle-sep">→</span>
+  <div class="lifecycle-step active" id="step-create"><span class="n">3</span><span>CREATE</span></div><span class="lifecycle-sep">→</span>
+  <div class="lifecycle-step" id="step-plan"><span class="n">4</span><span>PLAN</span></div><span class="lifecycle-sep">→</span>
+  <div class="lifecycle-step" id="step-auth"><span class="n">5</span><span>AUTHORIZE</span></div><span class="lifecycle-sep">→</span>
+  <div class="lifecycle-step" id="step-apply"><span class="n">6</span><span>APPLY</span></div><span class="lifecycle-sep">→</span>
+  <div class="lifecycle-step" id="step-verify"><span class="n">7</span><span>VERIFY</span></div>
+</nav>
 
 <section id="preflight" class="preflight">
   <div class="eyebrow">Primeira verificação</div>
@@ -105,7 +159,8 @@ body.preflight-pending .preflight,body.preflight-blocked .preflight{display:bloc
 <div class="product-shell">
   <section id="basic-shell" class="basic-page">
     <div class="hero">
-      <div class="eyebrow">Utilidades prontas</div>
+      <div class="hero-main">
+      <div class="eyebrow">Automation Ready · utilidades + criação</div>
       <h1>O que você quer parar de fazer manualmente?</h1>
       <p>Escolha uma rotina pronta ou descreva o que se repete. O AutoCompiler cuida da parte técnica e mostra exatamente o que vai acontecer antes de ativar.</p>
       <div class="intent-box">
@@ -113,6 +168,9 @@ body.preflight-pending .preflight,body.preflight-blocked .preflight{display:bloc
         <button id="btn-basic-intent">Criar a partir da descrição</button>
       </div>
 
+      </div>
+      <div class="hero-side">
+      <div class="studio-kicker">CO-PILOTO LOCAL</div>
       <section class="assistant-chat" aria-label="Desenvolver automação com IA">
         <div class="assistant-chat-head">
           <div><h2>Desenvolver com IA</h2><div class="muted" style="margin-top:3px">Converse, refine requisitos e transforme a conversa em um rascunho real de automação.</div></div>
@@ -136,6 +194,7 @@ body.preflight-pending .preflight,body.preflight-blocked .preflight{display:bloc
         </div>
         <div class="assistant-note">A IA pode criar e editar o rascunho. Autorizar, aplicar e executar continuam separados e exigem sua ação explícita.</div>
       </section>
+      </div>
     </div>
 
     <div class="section-title">
@@ -254,17 +313,32 @@ body.preflight-pending .preflight,body.preflight-blocked .preflight{display:bloc
 
       <main class="builder-center">
         <div class="canvas-toolbar">
-          <div class="view-tabs">
-            <button id="canvas-tab-graph" class="active" onclick="setCanvasView('graph')">Workflow Graph</button>
-            <button id="canvas-tab-plan" onclick="setCanvasView('plan')">Impact Plan</button>
-            <button id="canvas-tab-ir" onclick="setCanvasView('ir')">IR JSON</button>
+          <div class="canvas-toolbar-left">
+            <div class="view-tabs">
+              <button id="canvas-tab-graph" class="active" onclick="setCanvasView('graph')">Workflow Graph</button>
+              <button id="canvas-tab-plan" onclick="setCanvasView('plan')">Impact Plan</button>
+              <button id="canvas-tab-ir" onclick="setCanvasView('ir')">IR JSON</button>
+            </div>
+            <div class="canvas-search-box">
+              <span style="color:#667064;font-size:10px">⌕</span>
+              <input id="canvas-node-search" autocomplete="off" placeholder="buscar #s1, http, state…">
+              <span id="search-match-count" class="search-count"></span>
+            </div>
           </div>
           <div class="canvas-controls">
-            <button id="canvas-fit" title="Ajustar o fluxo à área visível">Fit View</button>
+            <button id="canvas-fit" title="Ajustar o fluxo à área visível">Fit</button>
             <button id="canvas-zoom-out" title="Diminuir zoom">−</button>
             <span id="canvas-zoom-label" class="zoom-label">100%</span>
             <button id="canvas-zoom-in" title="Aumentar zoom">+</button>
           </div>
+        </div>
+        <div id="simulation-bar" class="simulation-bar">
+          <div class="simulation-actions">
+            <button id="btn-sim-play">▶ Prévia</button>
+            <button id="btn-sim-step">Passo</button>
+            <button id="btn-sim-reset">↺ Reset</button>
+          </div>
+          <div id="sim-status" class="simulation-status"><span class="dot"></span><span id="sim-status-text">Prévia causal pronta</span><span id="sim-progress" class="sim-progress">0/0</span><span class="sim-note">não executa ações</span></div>
         </div>
 
         <section id="canvas-view-graph" class="canvas-view active">
