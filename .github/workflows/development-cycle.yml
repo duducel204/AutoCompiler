@@ -1,0 +1,119 @@
+name: Development cycle dispatcher
+
+on:
+  workflow_run:
+    workflows: ["Post-cycle Spider"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: development-cycle-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve source cycle
+        id: cycle
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            echo "run_id=${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "run_id=manual" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.cycle.outputs.sha }}
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download trusted post-cycle handoff
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: post-cycle-context-${{ steps.cycle.outputs.sha }}
+          path: .autocompiler
+          run-id: ${{ steps.cycle.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build manual handoff
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          mkdir -p .autocompiler
+          python scripts/post_cycle_spider.py \
+            --cycle-sha "${{ steps.cycle.outputs.sha }}" \
+            --graph .autocompiler/node_context_graph.json \
+            --report .autocompiler/post_cycle_context.json
+          python scripts/next_cycle_plan.py \
+            --context .autocompiler/post_cycle_context.json \
+            --output .autocompiler/next_cycle.json
+
+      - name: Route declared work
+        id: route
+        shell: bash
+        run: |
+          python scripts/development_cycle_dispatch.py \
+            --next-cycle .autocompiler/next_cycle.json \
+            --executors data/development_executors.json \
+            --output .autocompiler/development_cycle_dispatch.json \
+            | tee .autocompiler/development_cycle_dispatch_run.json
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          data = json.loads(Path(".autocompiler/development_cycle_dispatch.json").read_text(encoding="utf-8"))
+          print(f"status={data['status']}")
+          print(f"work_item={(data.get('work_item') or {}).get('id', '')}")
+          print(f"executor={(data.get('executor') or {}).get('id', '')}")
+          PY
+
+      - name: Publish dispatch summary
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          data = json.loads(Path(".autocompiler/development_cycle_dispatch.json").read_text(encoding="utf-8"))
+          print("## Development cycle")
+          print()
+          print(f"- Status: `{data['status']}`")
+          work = data.get("work_item") or {}
+          if work:
+              print(f"- Work item: `{work.get('id')}` — {work.get('title', '')}")
+          executor = data.get("executor") or {}
+          if executor:
+              print(f"- Executor: `{executor.get('id')}`")
+              print(f"- Mode: `{executor.get('mode')}`")
+              print(f"- Branch boundary: `{data.get('branch')}`")
+          else:
+              print(f"- Reason: {data.get('reason', '')}")
+          print("- Direct main mutation: forbidden")
+          PY
+
+      - name: Upload dispatch envelope
+        uses: actions/upload-artifact@v4
+        with:
+          name: development-cycle-${{ steps.cycle.outputs.sha }}
+          path: |
+            .autocompiler/development_cycle_dispatch.json
+            .autocompiler/development_cycle_dispatch_run.json
+            .autocompiler/next_cycle.json
+          if-no-files-found: error
+          retention-days: 30
