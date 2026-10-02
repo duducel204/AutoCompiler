@@ -8,9 +8,9 @@ O CSV declara trabalho e evidência; estado operacional é derivado. Merge, test
 
 ## Agora
 
-- Ready: `AY-C8`, `SEC-OS1`, `UI-CANVAS1`, `REPO-H1`, `TARGET-PS1`, `IMPORT-N8N1`
+- Ready: `SEC-OS1`, `UI-CANVAS1`, `REPO-H1`, `TARGET-PS1`, `IMPORT-N8N1`
 - Dívida de verificação: nenhuma
-- Bloqueados: nenhum
+- Bloqueados: `AY-C8`
 - Conflitos de ownership acionáveis: 0
 
 ## Grafo
@@ -30,8 +30,9 @@ flowchart LR
   W_AY_C4["AY-C4<br/>Crystallize repeated complex analysis into task scripts<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C5["AY-C5<br/>Close resolution into evidence state and cheaper reuse<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C6["AY-C6<br/>Post-cycle Spider assimilation via GitHub Actions<br/>SYSTEM_PROOF_WIRED"]
+  W_AY_C6H["AY-C6H<br/>Post-cycle context integrity hardening<br/>COMPONENT_GATE_WIRED"]
   W_AY_C7["AY-C7<br/>Post-cycle next-work synthesis<br/>SYSTEM_PROOF_WIRED"]
-  W_AY_C8["AY-C8<br/>GitHub Actions development-cycle dispatcher<br/>READY"]
+  W_AY_C8["AY-C8<br/>Development-cycle continuity dispatcher<br/>BLOCKED"]
   W_SEC_OS1["SEC-OS1<br/>Native OS secret storage provider<br/>READY"]
   W_UI_CANVAS1["UI-CANVAS1<br/>Modularize local Canvas without behavior change<br/>READY"]
   W_REPO_H1["REPO-H1<br/>Consolidate root demo and build entrypoints<br/>READY"]
@@ -56,8 +57,10 @@ flowchart LR
   W_AY_C2A -->|build| W_AY_C6
   W_AY_C2B -->|build| W_AY_C6
   W_AY_C5 -->|build| W_AY_C6
+  W_AY_C6 -->|build| W_AY_C6H
   W_AY_C6 -->|build| W_AY_C7
   W_AY_C7 -->|build| W_AY_C8
+  W_AY_C6H -->|build| W_AY_C8
   W_CC_04 -->|build| W_TARGET_PS1
   W_CC_04 -->|build| W_IMPORT_N8N1
 ```
@@ -79,8 +82,9 @@ flowchart LR
 | `AY-C4` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C5` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C6` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
+| `AY-C6H` | ✓ | ✓ | ✓ | — | ✓ | `COMPONENT_GATE_WIRED` | integrate |
 | `AY-C7` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
-| `AY-C8` | — | — | — | — | — | `READY` | implement |
+| `AY-C8` | ✓ | ✓ | ✓ | — | ✓ | `BLOCKED` | wait for AY-C6H |
 | `SEC-OS1` | — | — | — | — | — | `READY` | implement |
 | `UI-CANVAS1` | — | — | — | — | — | `READY` | implement |
 | `REPO-H1` | — | — | — | — | — | `READY` | implement |
