@@ -10,7 +10,7 @@ O CSV declara trabalho e evidência; estado operacional é derivado. Merge, test
 
 - Ready: nenhum
 - Dívida de verificação: nenhuma
-- Bloqueados: `AY-C4`, `AY-C5`
+- Bloqueados: nenhum
 - Conflitos de ownership acionáveis: 0
 
 ## Grafo
@@ -22,13 +22,13 @@ flowchart LR
   W_CC_03["CC-03<br/>Workflow capability-gap resume<br/>SYSTEM_PROOF_WIRED"]
   W_CC_03S["CC-03S<br/>Product/API gap inspection and resume seam<br/>SYSTEM_PROOF_WIRED"]
   W_CC_02["CC-02<br/>Generic compiled capability consumption<br/>SYSTEM_PROOF_WIRED"]
-  W_CC_04["CC-04<br/>Full capability-closure end-to-end proof<br/>COMPONENT_GATE_WIRED"]
+  W_CC_04["CC-04<br/>Full capability-closure end-to-end proof<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C1["AY-C1<br/>Self state and truth projection<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C2A["AY-C2A<br/>Incremental semantic and logic node index<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C2B["AY-C2B<br/>Bounded node-context spider for complex gaps<br/>SYSTEM_PROOF_WIRED"]
-  W_AY_C3["AY-C3<br/>Resolver routes complex gaps to node context<br/>COMPONENT_GATE_WIRED"]
-  W_AY_C4["AY-C4<br/>Crystallize repeated complex analysis into task scripts<br/>BLOCKED"]
-  W_AY_C5["AY-C5<br/>Close resolution into evidence state and cheaper reuse<br/>BLOCKED"]
+  W_AY_C3["AY-C3<br/>Resolver routes complex gaps to node context<br/>SYSTEM_PROOF_WIRED"]
+  W_AY_C4["AY-C4<br/>Crystallize repeated complex analysis into task scripts<br/>SYSTEM_PROOF_WIRED"]
+  W_AY_C5["AY-C5<br/>Close resolution into evidence state and cheaper reuse<br/>SYSTEM_PROOF_WIRED"]
   W_CC_01 -->|build| W_CC_01T
   W_CC_03 -->|build| W_CC_03S
   W_CC_01T -.->|proof| W_CC_03S
@@ -56,13 +56,13 @@ flowchart LR
 | `CC-03` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `CC-03S` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `CC-02` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
-| `CC-04` | ✓ | ✓ | ✓ | — | ✓ | `COMPONENT_GATE_WIRED` | integrate |
+| `CC-04` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C1` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C2A` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C2B` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
-| `AY-C3` | ✓ | ✓ | ✓ | — | ✓ | `COMPONENT_GATE_WIRED` | integrate |
-| `AY-C4` | ✓ | ✓ | ✓ | — | ✓ | `BLOCKED` | wait for AY-C3 |
-| `AY-C5` | ✓ | ✓ | ✓ | — | ✓ | `BLOCKED` | wait for AY-C3,AY-C4 |
+| `AY-C3` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
+| `AY-C4` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
+| `AY-C5` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 
 ## Dívida de verificação
 
@@ -86,6 +86,10 @@ Nenhuma colisão de ownership entre trabalhos acionáveis.
 | `AY-C1` | `merged_pr` | PR#81 | `pass` | integration | 2026-10-02 | AY self-state/resolver/orchestrator and concrete task scripts merged; canonical Trust Gate passed on Ubuntu and Windows before merge. |
 | `AY-C2A` | `merged_pr` | PR#82 | `pass` | integration | 2026-10-02 | Incremental semantic/logic node index merged; changed-file reuse and node-kind extraction are covered by Trust Gate. |
 | `AY-C2B` | `merged_pr` | PR#82 | `pass` | integration | 2026-10-02 | Bounded node-context spider merged over derived graph; semantic seed, limits and empty-context behavior passed Trust Gate on Ubuntu and Windows. |
+| `CC-04` | `merged_pr` | PR#84 | `pass` | integration | 2026-10-02 | Full A→gap→authorized closure→validated memory→resume→compile→run and B→reuse→compile→run proof merged; exact-head Trust Gate passed on Ubuntu and Windows. |
+| `AY-C3` | `merged_pr` | PR#84 | `pass` | integration | 2026-10-02 | AY NEED_CONTEXT now routes through the bounded node-context spider as a safe read-only mechanism; Trust Gate passed on Ubuntu and Windows. |
+| `AY-C4` | `merged_pr` | PR#84 | `pass` | integration | 2026-10-02 | Repeated IR-vs-compiler analysis crystallized into scripts/repo_contract_diff.py with deterministic structured output and gated proof. |
+| `AY-C5` | `merged_pr` | PR#84 | `pass` | integration | 2026-10-02 | Verified successful derived results can be cached with evidence refs and source fingerprint; equivalent next resolution reuses only matching-fingerprint state. |
 
 ## Comandos
 
