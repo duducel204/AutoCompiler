@@ -197,33 +197,57 @@ After Spider assimilation, build a bounded handoff for the next development cycl
 
 **Success:** every trusted cycle produces either one explicit next-cycle handoff or an explicit stop reason.
 
-
 ## AY-C8 — GitHub Actions development-cycle dispatcher
 
-Consume the handoff from AY-C7 and start a supported executor only through an isolated development boundary.
+Consume the trusted `next_cycle.json` after a successful Post-cycle Spider run and route it to an explicit repository-owned executor.
 
-Target sequence:
+**Trigger:** successful `Post-cycle Spider` workflow on `main`, or explicit manual dispatch with source run/SHA.
+
+**Reads:** the immutable `post-cycle-context-<sha>` artifact from the triggering Spider run.
+
+**Routing rules:**
+- no selected work → `STOP_NO_WORK`;
+- selected declared work without a fixed repository executor → `NEEDS_EXECUTOR`;
+- executor present at `scripts/cycle_executors/<work-id>.py` → `EXECUTE`.
+
+The handoff artifact cannot provide a shell command or arbitrary executor path.
+
+**Mutation boundary for EXECUTE:**
+1. checkout the trusted source SHA;
+2. create an isolated `autocycle/*` branch;
+3. execute only the fixed repository-owned executor;
+4. reject changes outside the work item's declared owner/implementation/test scope;
+5. run canonical `scripts/trust_gate.py`;
+6. push only the isolated branch;
+7. open a pull request against `main`.
+
+The workflow has no path that runs `git push origin main`.
+
+**Loop rule:** opening a PR does not trigger a new Spider assimilation. A new cycle starts only after work reaches `main` and the main Trust Gate succeeds.
+
+
+## AY-C9 — First automated branch/PR cycle proof
+
+Provide one deterministic single-purpose executor for a declared work item so AY-C8 can prove the full Actions development boundary.
+
+**Executor:** `scripts/cycle_executors/ay_c9.py`.
+
+**Target change:** `docs/evidence/AUTOMATED_DEVELOPMENT_CYCLE.md`.
+
+**Expected sequence:**
 
 ```text
-next_cycle.json
-→ executor supported?
-   ├─ no  → STOP / needs executor
-   └─ yes
-       ↓
-    isolated branch
-       ↓
-    bounded development work
-       ↓
-    tests
-       ↓
-    pull request
-       ↓
-    Trust Gate
-       ↓
-    merge
-       ↓
-    Post-cycle Spider
+C8 integrated
+→ next_cycle.json selects AY-C9
+→ Development cycle dispatcher downloads the trusted handoff
+→ finds explicit ay_c9.py executor
+→ creates autocycle/ay-c9-<sha>
+→ executor writes the bounded proof file
+→ Trust Gate PASS
+→ branch push
+→ pull request
+→ STOP at PR boundary
 ```
 
-The dispatcher must never write directly to `main`. Unsupported or ambiguous work stops rather than being guessed.
+No auto-merge is part of this proof.
 
