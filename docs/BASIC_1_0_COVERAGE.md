@@ -270,12 +270,16 @@ MVP requires:
 - error/retry evidence;
 - logs sufficient to diagnose failures.
 
+### Limited browser action proof
+
+The installed assistant may expose a session-scoped, explicitly authorized browser function allowlist (`browser_open`, `browser_search`, `browser_navigate`). This is a narrow local action proof, not general RPA: no arbitrary shell, no blind keyboard/mouse injection and no unrestricted DOM control.
+
 ## 8. Explicitly deferred
 
 Not required for the first MVP:
 
 - WhatsApp;
-- browser/RPA automation;
+- full browser/RPA automation (DOM-level click/type/read loops);
 - large connector marketplace;
 - macOS/Linux packaging;
 - multi-user/team collaboration;
