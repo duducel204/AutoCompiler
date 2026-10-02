@@ -52,6 +52,8 @@ def _filesystem_impact(ir: dict[str, Any], out_dir: str) -> list[dict[str, str]]
             add("read", args.get("path"), "scan source")
         elif skill == "filesystem.copy":
             add("write", args.get("destination"), "copy destination")
+        elif skill == "filesystem.move":
+            add("write", args.get("destination"), "move destination")
         elif skill in {"filesystem.read", "csv.read", "xlsx.read", "pdf.detect", "pdf.basic_text"}:
             add("read", args.get("path") or args.get("file"), skill)
         elif skill in {"filesystem.write", "csv.write", "xlsx.write"}:
