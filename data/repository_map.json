@@ -63,10 +63,10 @@
       "id": "documentation",
       "name": "Atualizar documentação a partir das fontes",
       "input": "CSVs, catálogo, mapa editorial e relações estáticas entre arquivos",
-      "stages": ["data/repository_map.json", "data/roadmap.csv", "data/discoveries.csv", "data/hypotheses.csv", "data/resources.csv", "scripts/render_readme.py", "scripts/render_repository_map.py", "README.md", "docs/REPOSITORY_MAP.md"],
-      "output": "Seções do README e mapa navegável determinístico",
+      "stages": ["data/repository_map.json", "data/roadmap.csv", "data/discoveries.csv", "data/hypotheses.csv", "data/resources.csv", "scripts/render_readme.py", "scripts/render_repository_map.py", "scripts/render_repository_index.py", "README.md", "docs/REPOSITORY_MAP.md", "docs/REPOSITORY_INDEX.xlsx"],
+      "output": "Seções do README, mapa navegável e planilha principal",
       "limits": "Não executa providers, não promove trust e não comprova comportamentos por presença de arquivos.",
-      "docs": ["docs/INDEX.md", "docs/evidence/INDEX.md", "docs/experiments/INDEX.md"]
+      "docs": ["docs/INDEX.md", "docs/REPOSITORY_INDEX.md", "docs/evidence/INDEX.md", "docs/experiments/INDEX.md"]
     }
   ]
 }

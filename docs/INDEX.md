@@ -14,6 +14,8 @@ Fonte de autoridade: [PRODUCT_INTENT.md](PRODUCT_INTENT.md). Contexto: [ORIGIN.m
 
 ## 2. Estrutura
 
+Para filtrar todos os arquivos e consultar seus links e relações, use a [planilha principal de desenvolvimento](REPOSITORY_INDEX.md).
+
 | Área | Responsabilidade | Entrada de leitura |
 |---|---|---|
 | `data` | Capacidades canônicas, descobertas, hipóteses e experimentos | [Catálogo](../data/canonical_capabilities.json), [experimentos](../data/roadmap.csv) |
