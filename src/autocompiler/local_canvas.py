@@ -14,6 +14,7 @@ from .environment import build_unified_resource_graph
 from .first_run import MachinePreparationStore, build_machine_preflight
 from .git_acquisition import plan_git_capability
 from .ai_draft import draft_intent_to_ir
+from .assistant_chat import assistant_status, chat_with_assistant
 from .ir import validate_ir
 from .templates import instantiate_template, list_templates, list_utilities
 from .workflow_lifecycle import WorkflowPlanStore, apply_workflow_plan, build_workflow_plan
@@ -119,6 +120,9 @@ class CanvasHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/utilities":
             self._json({"ok": True, "utilities": list_utilities()})
+            return
+        if path == "/api/assistant/status":
+            self._json(assistant_status())
             return
         if path == "/api/workflow/load":
             qs = parse_qs(parsed_url.query)
@@ -226,6 +230,18 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 self._json(res)
             except Exception as exc:
                 self._json({"ok": False, "error": str(exc)}, 400)
+            return
+        if path == "/api/assistant/chat":
+            body = self._body()
+            try:
+                res = chat_with_assistant(
+                    body.get("message", ""),
+                    history=body.get("history", []),
+                    utilities=list_utilities(),
+                )
+                self._json(res, 200 if res.get("ok") else 503 if res.get("error") == "assistant_not_configured" else 400)
+            except Exception as exc:
+                self._json({"ok": False, "error": "assistant_failed", "details": str(exc)}, 500)
             return
         if path == "/api/workflow/validate":
             body = self._body()

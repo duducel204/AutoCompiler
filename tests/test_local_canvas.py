@@ -115,6 +115,9 @@ class LocalCanvasTests(unittest.TestCase):
             self.assertIn('id="mode-basic"', page)
             self.assertIn('id="mode-builder"', page)
             self.assertIn("Permitir e ativar", page)
+            self.assertIn("Converse com a IA", page)
+            self.assertIn('id="assistant-input"', page)
+            self.assertNotIn("AUTOCOMPILER_CHAT_API_KEY", page)
 
             with urlopen(f"{base_url}/favicon.ico") as resp:
                 self.assertEqual(resp.status, 204)
@@ -245,6 +248,53 @@ class LocalCanvasTests(unittest.TestCase):
                 with self.assertRaises(HTTPError) as replay_error:
                     urlopen(replay)
                 self.assertEqual(replay_error.exception.code, 403)
+        finally:
+            server.shutdown()
+
+    @patch("autocompiler.local_canvas.chat_with_assistant")
+    @patch("autocompiler.local_canvas.assistant_status")
+    def test_basic_assistant_chat_is_server_side_and_advisory(self, status, chat):
+        status.return_value = {
+            "ok": True,
+            "configured": True,
+            "provider": "google-gemini",
+            "model": "test-model",
+        }
+        chat.return_value = {
+            "ok": True,
+            "reply": "Posso ajudar a estruturar essa automação.",
+            "provider": "google-gemini",
+            "model": "test-model",
+            "can_mutate": False,
+            "can_authorize": False,
+            "can_apply": False,
+        }
+        server = ThreadingHTTPServer(("127.0.0.1", 0), CanvasHandler)
+        port = server.server_port
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            base_url = f"http://127.0.0.1:{port}"
+            with urlopen(f"{base_url}/api/assistant/status") as resp:
+                status_res = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(status_res["configured"])
+            self.assertNotIn("api_key", status_res)
+
+            req = Request(
+                f"{base_url}/api/assistant/chat",
+                data=json.dumps({
+                    "message": "Quero automatizar meus PDFs",
+                    "history": [{"role": "user", "text": "Tenho uma pasta Downloads"}],
+                }).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with urlopen(req) as resp:
+                chat_res = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(chat_res["ok"])
+            self.assertFalse(chat_res["can_mutate"])
+            self.assertFalse(chat_res["can_authorize"])
+            self.assertFalse(chat_res["can_apply"])
+            chat.assert_called_once()
         finally:
             server.shutdown()
 
