@@ -43,6 +43,7 @@ class NextCyclePlanTests(unittest.TestCase):
         context = {
             "schema_version": 1,
             "cycle": {"sha": "abc", "changed_files": ["src/b.py"], "removed_files": []},
+            "index": {"cache_state": "reused", "contract_fingerprint": "a" * 64},
             "spider": {
                 "affected_sources": ["src/b.py"],
                 "semantic_labels": ["schedule"],
@@ -55,6 +56,8 @@ class NextCyclePlanTests(unittest.TestCase):
         self.assertEqual(plan["selected"]["context_overlap"], ["src/b.py"])
         self.assertTrue(plan["policy"]["declared_work_only"])
         self.assertFalse(plan["policy"]["spider_decides_work"])
+        self.assertEqual(plan["context_summary"]["contract_fingerprint"], "a" * 64)
+        self.assertTrue(plan["policy"]["context_integrity_required_for_dispatch"])
 
     def test_higher_priority_beats_context_overlap(self):
         model = [
