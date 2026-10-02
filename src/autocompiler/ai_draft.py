@@ -161,8 +161,8 @@ class GeminiDraftProvider(AIProvider):
                 timeout=40,
             )
             text_content = extract_text(payload)
-            clean_json = re.sub(r"^\`\`\`json\s*", "", text_content.strip(), flags=re.MULTILINE)
-            clean_json = re.sub(r"\s*\`\`\`$", "", clean_json, flags=re.MULTILINE).strip()
+            clean_json = re.sub(r"^```json\\s*", "", text_content.strip(), flags=re.MULTILINE)
+            clean_json = re.sub(r"\\s*```$", "", clean_json, flags=re.MULTILINE).strip()
 
             parsed = json.loads(clean_json)
             if parsed.get("ambiguous"):
