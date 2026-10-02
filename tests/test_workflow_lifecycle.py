@@ -1,12 +1,16 @@
+import json
 import sys
 import tempfile
+import threading
 import unittest
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from autocompiler.templates import instantiate_template
 from autocompiler.workflow_lifecycle import (
     WorkflowPlanStore,
     apply_workflow_plan,
@@ -20,7 +24,7 @@ def usable_graph(filesystem_provider: str = "stdlib"):
             {"capability": "filesystem.read", "provider": filesystem_provider, "state": "usable", "cost": "free"},
             {"capability": "filesystem.write", "provider": filesystem_provider, "state": "usable", "cost": "free"},
             {"capability": "durable_state", "provider": "sqlite", "state": "usable", "cost": "free"},
-            {"capability": "http.request", "provider": "stdlib-http", "state": "usable", "cost": "free"},
+            {"capability": "http.request", "provider": "autocompiler.http_provider", "state": "usable", "cost": "free"},
         ]
     }
 
@@ -94,7 +98,7 @@ class WorkflowLifecycleTests(unittest.TestCase):
         self.assertEqual(plan["external_services"], ["example.com"])
         self.assertFalse(plan["recurring_cost"]["known"])
         self.assertFalse(plan["can_apply"])
-        self.assertFalse(plan["compiler_support"]["supported"])
+        self.assertTrue(plan["compiler_support"]["supported"])
         self.assertFalse(plan["deployment_support"]["supported"])
 
     def test_plan_id_binds_provider_resolution(self):
@@ -166,6 +170,62 @@ class WorkflowLifecycleTests(unittest.TestCase):
                 result["manifest"]["resolved_execution_digest"],
                 result["result"]["resolved_execution_digest"],
             )
+
+    def test_w03_template_consumes_resolved_http_provider_in_independent_artifact(self):
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                payload = json.dumps({"items": [{"id": 1, "name": "alpha"}], "source": "local-proof"}).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+            def log_message(self, format, *args):
+                return
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                url = f"http://127.0.0.1:{server.server_address[1]}/snapshot"
+                instantiated = instantiate_template(
+                    "w03",
+                    {"api_url": url, "output_file": "snapshots.jsonl"},
+                )
+                ir = instantiated["ir"]
+                compiled = root / "compiled"
+                plan = build_workflow_plan(
+                    ir,
+                    out_dir=compiled,
+                    source="template",
+                    resource_graph=usable_graph(),
+                )
+
+                self.assertTrue(plan["can_apply"])
+                resolved = {
+                    x["capability"]: x["provider"]
+                    for x in plan["resolved_execution"]["requirements"]
+                }
+                self.assertEqual(resolved["http.request"], "autocompiler.http_provider")
+
+                store = WorkflowPlanStore()
+                store.create(ir, plan)
+                record = store.authorize(plan["plan_id"])
+                result = apply_workflow_plan(record)
+
+                self.assertTrue(result["ok"])
+                self.assertTrue(result["verification"]["resolution_matches_authorized_plan"])
+                self.assertFalse(result["result"]["autocompiler_runtime_used"])
+                row = json.loads((compiled / "snapshots.jsonl").read_text(encoding="utf-8").splitlines()[0])
+                self.assertEqual(row["source"], "local-proof")
+                self.assertEqual(row["items"][0]["name"], "alpha")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
 
     def test_failed_execution_is_not_reported_as_verified(self):
         with tempfile.TemporaryDirectory() as td:
