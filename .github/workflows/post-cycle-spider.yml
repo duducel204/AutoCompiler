@@ -1,0 +1,106 @@
+name: Post-cycle Spider
+
+on:
+  workflow_run:
+    workflows: ["AutoCompiler Trust Gate"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: post-cycle-spider-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  assimilate:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve completed cycle SHA
+        id: cycle
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            echo "run_id=${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "run_id=manual" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.cycle.outputs.sha }}
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Restore previous derived context graph
+        id: context-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .autocompiler/node_context_graph.json
+          key: node-context-main-${{ steps.cycle.outputs.sha }}
+          restore-keys: |
+            node-context-main-
+
+      - name: Read completed cycle with Spider
+        shell: bash
+        run: |
+          mkdir -p .autocompiler
+          python scripts/post_cycle_spider.py \
+            --cycle-sha "${{ steps.cycle.outputs.sha }}" \
+            --graph .autocompiler/node_context_graph.json \
+            --report .autocompiler/post_cycle_context.json \
+            --depth 2 \
+            --max-changed-files 20 \
+            | tee .autocompiler/post_cycle_run.json
+
+      - name: Publish cycle context summary
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          data = json.loads(Path(".autocompiler/post_cycle_context.json").read_text(encoding="utf-8"))
+          cycle = data["cycle"]
+          spider = data["spider"]
+          print("## Post-cycle Spider")
+          print()
+          print(f"- Cycle SHA: `{cycle['sha']}`")
+          print(f"- Changed files read: {len(spider['files_read_from_delta'])}")
+          print(f"- Removed files: {len(cycle['removed_files'])}")
+          print(f"- Affected sources: {len(spider['affected_sources'])}")
+          print(f"- Semantic labels: {len(spider['semantic_labels'])}")
+          print(f"- Logic nodes: {len(spider['logic_nodes'])}")
+          print(f"- Context nodes: {len(spider['nodes'])}")
+          print(f"- Context edges: {len(spider['edges'])}")
+          print(f"- Truncated: {spider['truncated']}")
+          PY
+
+      - name: Save refreshed derived context graph
+        if: success() && steps.context-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .autocompiler/node_context_graph.json
+          key: node-context-main-${{ steps.cycle.outputs.sha }}
+
+      - name: Upload context for the next cycle
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-cycle-context-${{ steps.cycle.outputs.sha }}
+          path: |
+            .autocompiler/node_context_graph.json
+            .autocompiler/post_cycle_context.json
+            .autocompiler/post_cycle_run.json
+          if-no-files-found: error
+          retention-days: 30
