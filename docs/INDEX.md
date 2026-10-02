@@ -10,7 +10,7 @@ AutoCompiler busca transformar uma intenção em automação que o usuário poss
 
 **Resultado esperado:** inspecionar o computador, reutilizar recursos, fechar lacunas reais com consentimento e gerar automações determinísticas que possam continuar sem a interface aberta. O instalador único e o conjunto completo do MVP ainda são metas de entrega.
 
-Fonte de autoridade: [PRODUCT_INTENT.md](PRODUCT_INTENT.md). Contexto: [ORIGIN.md](ORIGIN.md) e [VISION.md](VISION.md).
+Fonte de autoridade: [PRODUCT_INTENT.md](PRODUCT_INTENT.md). Contexto: [ORIGIN.md](ORIGIN.md) e [VISION.md](VISION.md). Organização e papéis de arquivos: [REPOSITORY_HYGIENE.md](REPOSITORY_HYGIENE.md).
 
 ## 2. Estrutura
 
@@ -57,7 +57,7 @@ O núcleo e a interface estão desenvolvidos, com evidências de execução dete
 
 Leia [NEXT_TASK_PREP.md](NEXT_TASK_PREP.md#limites-observados-na-leitura-do-codigo) para as diferenças entre catálogo, motor, compilador e prontidão do Basic. [BASIC_1_0_COVERAGE.md](BASIC_1_0_COVERAGE.md) conserva a cobertura declarada com seus limites de interpretação.
 
-Questões abertas incluem integração HTTP real no motor, consumo de novas capacidades pelos artefatos compilados, triggers persistentes, utilidades Basic completas, integração autenticada e instalador Windows. A política `SECURITY.md` ainda é um modelo inicial.
+O estado atual já inclui HTTP no motor/artefato em caminhos comprovados, deployment real pelo Windows Task Scheduler para o subconjunto suportado e política de segurança específica do projeto. Gaps atuais relevantes incluem o dispatcher AY-C8, integração autenticada com serviços externos, secret storage nativo do SO, modularização do Canvas, expansão opcional de targets e experimentos de importação. Esses gaps não reduzem automaticamente o que já foi provado.
 
 ## Como manter este guia útil
 
