@@ -1,6 +1,6 @@
 # Guia de leitura do AutoCompiler
 
-Esta é a entrada da documentação. Ela conecta propósito, estrutura, fluxo, regras e estado. Os registros operacionais continuam em `data` e no catálogo local; a implementação continua em `src`. Este guia é editorial. O [mapa do repositório](REPOSITORY_MAP.md) é gerado dos registros e referências nos arquivos: entradas, saídas, imports, links e contratos.
+Esta é a entrada da documentação. Ela conecta propósito, estrutura, fluxo, regras e estado. Os registros operacionais continuam em `data` e no catálogo local; a implementação continua em `src`. Use o [Development Control Map](WORK_MAP.md) para trabalho/dependências/verificação/next e o [mapa do repositório](REPOSITORY_MAP.md) para estrutura, imports, links e contratos.
 
 ## 1. Propósito
 
@@ -14,7 +14,7 @@ Fonte de autoridade: [PRODUCT_INTENT.md](PRODUCT_INTENT.md). Contexto: [ORIGIN.m
 
 ## 2. Estrutura
 
-Para filtrar todos os arquivos e consultar seus links e relações, use a [planilha principal de desenvolvimento](REPOSITORY_INDEX.md).
+Para filtrar arquivos e relações, use a [planilha principal de desenvolvimento](REPOSITORY_INDEX.md). Para coordenar execução multiagente e verificação, use [WORK_MAP.md](WORK_MAP.md) e sua projeção tabular [WORK_STATUS.csv](WORK_STATUS.csv), geradas a partir dos CSVs canônicos em `data/`.
 
 | Área | Responsabilidade | Entrada de leitura |
 |---|---|---|
@@ -63,4 +63,4 @@ Questões abertas incluem integração HTTP real no motor, consumo de novas capa
 
 Ao mudar uma área, atualizar sua explicação e as referências afetadas na mesma alteração. Estados de confiança vêm do catálogo; prontidão das utilidades vem de `templates.py`; estados de experimentos vêm dos CSVs. Evidências históricas permanecem datadas. Os índices não executam provas nem promovem capacidades por conta própria.
 
-Manter responsabilidades e fluxos em [repository_map.json](../data/repository_map.json). Após alterações, executar `python scripts/render_repository_map.py`. O [workflow](../.github/workflows/documentation-map.yml) verifica a atualização. Scripts reutilizáveis ficam versionados com contrato e evidência; veja [a prova do gerador](evidence/REPOSITORY_MAP_EXECUTION.md).
+Manter responsabilidades e fluxos em [repository_map.json](../data/repository_map.json). Manter work items/dependências/ownership em [work_graph.csv](../data/work_graph.csv) e registrar evidência imutável em [work_evidence.csv](../data/work_evidence.csv). Após alterações, executar `python scripts/work_map.py render` e `python scripts/render_repository_map.py`. O [workflow](../.github/workflows/documentation-map.yml) verifica a atualização. Scripts reutilizáveis ficam versionados com contrato e evidência; veja [a prova do gerador](evidence/REPOSITORY_MAP_EXECUTION.md).
