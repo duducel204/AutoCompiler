@@ -80,6 +80,93 @@ def _log_copy_event(db, name, source, destination, status):
                     (datetime.now(timezone.utc).isoformat(), name, source, destination, status))
 
 
+def _write_xlsx(path, rows):
+    rows = rows or []
+    fieldnames = list(rows[0].keys()) if rows and isinstance(rows[0], dict) else []
+    table = [fieldnames] if fieldnames else []
+    for row in rows:
+        if isinstance(row, dict):
+            table.append([str(row.get(name, "")) for name in fieldnames])
+        else:
+            table.append([str(value) for value in row])
+
+    strings = []
+    string_index = {}
+
+    def string_id(value):
+        if value not in string_index:
+            string_index[value] = len(strings)
+            strings.append(value)
+        return string_index[value]
+
+    def col_name(index):
+        name = ""
+        while index:
+            index, rem = divmod(index - 1, 26)
+            name = chr(65 + rem) + name
+        return name
+
+    sheet_rows = []
+    for r_idx, row in enumerate(table, start=1):
+        cells = []
+        for c_idx, value in enumerate(row, start=1):
+            ref = f"{col_name(c_idx)}{r_idx}"
+            cells.append(f'<c r="{ref}" t="s"><v>{string_id(value)}</v></c>')
+        sheet_rows.append(f'<row r="{r_idx}">{"".join(cells)}</row>')
+
+    shared_strings = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        f'<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="{len(strings)}" uniqueCount="{len(strings)}">'
+        + "".join(f"<si><t>{escape(value)}</t></si>" for value in strings)
+        + "</sst>"
+    )
+    sheet = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'
+        + "".join(sheet_rows)
+        + "</sheetData></worksheet>"
+    )
+    content_types = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+        '<Default Extension="xml" ContentType="application/xml"/>'
+        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+        '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+        '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>'
+        '</Types>'
+    )
+    rels = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+        '</Relationships>'
+    )
+    workbook_rels = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+        '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>'
+        '</Relationships>'
+    )
+    workbook = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        '<sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>'
+    )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("[Content_Types].xml", content_types)
+        zf.writestr("_rels/.rels", rels)
+        zf.writestr("xl/_rels/workbook.xml.rels", workbook_rels)
+        zf.writestr("xl/workbook.xml", workbook)
+        zf.writestr("xl/sharedStrings.xml", shared_strings)
+        zf.writestr("xl/worksheets/sheet1.xml", sheet)
+    return {"ok": True, "path": str(path), "count": len(rows)}
+
+
 def _record_copy_history(root, ir, pairs):
     if STATE_MODE == "sqlite":
         db = root / ir.get("state", {}).get("file", "history.db")
@@ -152,6 +239,21 @@ def run():
             fields = args.get("fields", {})
             context[sid] = {key: _resolve(value, context) for key, value in fields.items()}
 
+        elif skill == "csv.read":
+            if _provider("csv.read") != "python-stdlib-csv":
+                raise RuntimeError("Unsupported resolved csv.read provider: " + str(_provider("csv.read")))
+            path = Path(str(_resolve(args.get("path"), context))).expanduser()
+            with path.open("r", encoding=args.get("encoding", "utf-8"), newline="") as handle:
+                rows = [dict(row) for row in csv.DictReader(handle, delimiter=args.get("delimiter", ","))]
+            context[sid] = {"ok": True, "rows": rows}
+
+        elif skill == "xlsx.write":
+            if _provider("xlsx.write") != "python-stdlib-xlsx":
+                raise RuntimeError("Unsupported resolved xlsx.write provider: " + str(_provider("xlsx.write")))
+            path = Path(str(_resolve(args.get("path"), context))).expanduser()
+            rows = _resolve(args.get("rows"), context)
+            context[sid] = _write_xlsx(path, rows)
+
         elif skill == "state.record_jsonl":
             value = _resolve(args.get("value"), context)
             file_path = Path(str(_resolve(args.get("file"), context))).expanduser()
@@ -196,6 +298,8 @@ TARGET_SKILLS = {
         "http.request",
         "data.map",
         "state.record_jsonl",
+        "csv.read",
+        "xlsx.write",
     },
     "python-json": {
         "filesystem.scan",
@@ -205,6 +309,8 @@ TARGET_SKILLS = {
         "http.request",
         "data.map",
         "state.record_jsonl",
+        "csv.read",
+        "xlsx.write",
     },
 }
 
@@ -218,12 +324,16 @@ TARGET_CAPABILITY_PROVIDERS = {
         "filesystem.write": {"python-stdlib-filesystem", "stdlib"},
         "durable_state": {"sqlite"},
         "http.request": {"autocompiler.http_provider"},
+        "csv.read": {"python-stdlib-csv"},
+        "xlsx.write": {"python-stdlib-xlsx"},
     },
     "python-json": {
         "filesystem.read": {"python-stdlib-filesystem", "stdlib"},
         "filesystem.write": {"python-stdlib-filesystem", "stdlib"},
         "durable_state": {"jsonl", "python-json", "sqlite"},
         "http.request": {"autocompiler.http_provider"},
+        "csv.read": {"python-stdlib-csv"},
+        "xlsx.write": {"python-stdlib-xlsx"},
     },
 }
 
