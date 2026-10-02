@@ -15,8 +15,52 @@
 | Execução no projeto | `engine.py`, `runtime.py`, `providers.py` | Motor IR, executor de receitas legadas e provedores; são caminhos diferentes |
 | Aquisição | `acquisition.py`, `portable_provider.py`, `external_provider.py`, `provisioning_vertical.py` | Procedência, checksum, aplicação e propriedade |
 | Obsidian | `vault_provider.py`, `canvas_protocol.py`, `canvas_projector.py`, `canvas_bridge.py` | Vínculo com Vault, projeção e interação; o repositório continua canônico |
+| AY / seleção de mecanismo | `ay/state.py`, `ay/resolver.py`, `ay/orchestrator.py` | Projetar estado factual e escolher o menor mecanismo útil; não substitui planner, trust ou autorização |
+| Capability closure | `capability_closure.py`, `catalog.py` | Fechar uma capability ausente via reuse/acquire/verify/promote; não interpreta intenção nem escolhe workflow |
+| Contexto pós-ciclo | `node_context_index.py`, `node_context_spider.py`, `post_cycle_spider.py` | Manter contexto derivado incremental e atravessar relações; nunca promove trust nem decide trabalho canônico |
+| Controle de desenvolvimento | `work_graph.csv`, `work_evidence.csv`, `work_map.py`, `next_cycle_plan.py` | Declarar trabalho/evidência e escolher entre itens já declarados; Spider apenas fornece contexto |
 
 Os caminhos acima são relativos a `src/autocompiler`, exceto quando indicado. Veja o [mapa das pastas](INDEX.md#2-estrutura).
+
+
+## Fronteiras canônicas: quem decide o quê
+
+A arquitetura possui vários planejadores/orquestradores com escopos diferentes. Eles não são alternativas concorrentes.
+
+```text
+INTENT / REQUEST
+      ↓
+AY Resolver
+qual mecanismo é necessário?
+      ├─ fato simples → state/lookup
+      ├─ fato de sistema → discovery
+      ├─ relação complexa → Spider
+      ├─ repetição determinística → script
+      ├─ ambiguidade semântica → AI
+      └─ mutação protegida → lifecycle/autorização
+                         ↓
+Workflow planner / provisioning
+quais capabilities o workflow requer e quais providers podem satisfazê-las?
+                         ↓
+Capability Closure
+se faltar capability, como fechar o gap com reuse/acquire/verify/promote?
+                         ↓
+Workflow Lifecycle
+armazenar plano → autorizar → compilar/aplicar → verificar
+                         ↓
+Compiler / deployment
+materializar o artefato e, quando suportado, instalar seu gatilho
+```
+
+Regras de não-sobreposição:
+
+- **AY não promove capability** e não concede autorização.
+- **Planner não interpreta contexto amplo** e não substitui o AY.
+- **Capability Closure não escolhe o objetivo do usuário**; fecha um gap semântico já identificado.
+- **Workflow Lifecycle é a fronteira de mutação protegida**.
+- **Spider/Node Context é memória derivada de estrutura**, não memória canônica de capability, evidência ou decisão.
+- **Next-cycle planner não inventa trabalho**; apenas ordena work items declarados em `data/work_graph.csv`.
+- **Gitutty/Canvas/Obsidian são projeções**; nenhuma delas é fonte de verdade do runtime.
 
 ## Fluxo de criação pela interface
 
@@ -50,9 +94,9 @@ Entrada: arquivos e IR. Saída: cópias, histórico e resultado JSON. O exemplo 
 
 ## Alcance atual e evolução
 
-`compiler.py` oferece dois destinos Python e quatro skills B1. `engine.py` possui outras ações, mas executar no motor não significa poder compilar o mesmo fluxo para um artefato independente. A validação do IR também não garante suporte de cada destino.
+`compiler.py` continua tendo como targets canônicos `python-sqlite` e `python-json`, mas já materializa mais do que o B1 original (incluindo caminhos como HTTP, CSV/XLSX, state check/update e outras ações cobertas pelo contrato atual). `engine.py` ainda possui ações que não implicam automaticamente suporte equivalente em todos os targets. A validação do IR também não garante materialização por um target específico.
 
-Windows/PowerShell, scheduler, GitHub Actions, Apps Script e cron/systemd são recursos ou destinos possíveis do produto. Não são todos compiladores implementados neste repositório.
+O Windows Task Scheduler já possui adapter real de deployment em `deployment.py`, incluindo create/query/run/enable/disable/remove para o subconjunto de cron suportado. PowerShell puro, Bash/cron/systemd, Apps Script e outros targets continuam possibilidades de materialização, não targets canônicos comprovados hoje.
 
 O planner resolve recursos utilizáveis e aplica uma seleção simples; otimização ampla por custo, privacidade, latência e confiabilidade permanece uma direção de desenvolvimento.
 
