@@ -33,6 +33,7 @@ TESTS=[
  "tests.test_vault_provider",
  "tests.test_canonical_capabilities",
  "tests.test_capability_closure",
+ "tests.test_capability_closure_service",
  "tests.test_state_dedup",
  "tests.test_reliability",
  "tests.test_coverage_w01_w05",
