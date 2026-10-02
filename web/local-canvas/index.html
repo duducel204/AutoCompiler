@@ -1,563 +1,470 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AutoCompiler Causal Canvas</title>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AutoCompiler</title>
 <style>
-:root{font-family:Segoe UI,Arial,sans-serif;color:#e8edf2;background:#0b0f14}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}.top{padding:12px 18px;border-bottom:1px solid #26313d;display:flex;justify-content:space-between;align-items:center}.layout{display:grid;grid-template-columns:310px 1fr 280px;min-height:0}.side{padding:14px;border-right:1px solid #26313d;background:#10161d;overflow:auto}.side.right{border-right:0;border-left:1px solid #26313d}.canvas{padding:18px;overflow:auto;display:flex;flex-direction:column;gap:18px}.card,.node{border:1px solid #334150;border-radius:12px;background:#121a22;padding:14px}.muted{color:#8fa1b3;font-size:12px}.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.palette button,.actions button{padding:6px 10px;border:1px solid #486078;border-radius:6px;background:#182b3d;color:#fff;cursor:pointer;font-size:13px}.palette button:hover,.actions button:hover{background:#233e54}.flow{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:14px}.block-card{width:100%;max-width:680px;border:1px solid #2f4052;border-radius:10px;background:#16222e;padding:12px;position:relative}.block-header{display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:bold;margin-bottom:8px}.block-type{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;background:#276fb7;color:#fff}.type-WHEN{background:#8a42ad}.type-GET{background:#1f8272}.type-TRANSFORM{background:#d97706}.type-IF{background:#2563eb}.type-REPEAT{background:#4b5563}.type-ACT{background:#059669}.type-SAVE{background:#0284c7}.type-NOTIFY{background:#b91c1c}.flow-arrow{color:#6aa8e8;font-size:18px;font-weight:bold}.chat{display:flex;gap:8px;margin-top:12px}.chat input{flex:1;padding:8px;border-radius:6px;border:1px solid #334150;background:#0e141a;color:#fff}.stream{border-top:1px solid #26313d;padding:10px 16px;background:#10161d;max-height:180px;overflow:auto;font:12px Consolas,monospace}.event{padding:3px 0}.status-ok{color:#72c792}.status-err{color:#f87171}.field-group{display:flex;flex-direction:column;gap:4px;margin-top:8px}.field-group label{font-size:12px;color:#8fa1b3}.field-group input{padding:6px;border-radius:4px;border:1px solid #334150;background:#0e141a;color:#fff;font-size:12px}.readiness-badge{padding:3px 8px;border-radius:999px;border:1px solid #486078;font-size:11px}.readiness-ok{color:#72c792;border-color:#2f7d50}.readiness-blocked{color:#f87171;border-color:#991b1b}.preflight{display:none;max-width:980px;width:calc(100% - 36px);margin:28px auto;padding:20px;border:1px solid #334150;border-radius:12px;background:#121a22}.preflight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:14px}.preflight-item{padding:10px;border:1px solid #2f4052;border-radius:8px;background:#0e141a}.preflight-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.preflight-actions button{padding:8px 12px;border:1px solid #486078;border-radius:6px;background:#182b3d;color:#fff;cursor:pointer}body.preflight-pending .layout,body.preflight-pending .stream,body.preflight-blocked .layout,body.preflight-blocked .stream{display:none}body.preflight-pending .preflight,body.preflight-blocked .preflight{display:block}.cap-summary{padding:8px;border:1px solid #334150;border-radius:8px;background:#121a22;margin-bottom:8px}@media(max-width:800px){.layout{grid-template-columns:1fr}.side{display:none}}
-</style></head><body class="preflight-pending"><div class="app">
-<header class="top"><div><strong>AutoCompiler Causal Canvas</strong> <span class="muted">(Local Canvas · J-012 Trust Gate)</span></div><div style="display:flex;gap:10px;align-items:center"><span id="readiness-badge" class="readiness-badge">CHECKING MACHINE…</span><span class="muted" id="repo-head">LOCAL · carregando workspace…</span></div></header>
+:root{
+  font-family:Segoe UI,Arial,sans-serif;
+  color:#edf2f7;
+  background:#0a0f14;
+  --bg:#0a0f14;--panel:#111922;--panel2:#16212c;--line:#2d3b49;
+  --muted:#8fa1b3;--blue:#3b82f6;--green:#4ade80;--red:#f87171;--amber:#fbbf24;
+}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#edf2f7}button,input,select,textarea{font:inherit}
+button{cursor:pointer}.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}
+.top{padding:12px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:16px;background:#0d131a;position:sticky;top:0;z-index:10}
+.brand{display:flex;align-items:baseline;gap:10px}.brand strong{font-size:17px}.muted{color:var(--muted);font-size:12px}
+.top-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.mode-switch{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}.mode-switch button{border:0;background:#111922;color:#9fb1c3;padding:7px 12px}.mode-switch button.active{background:#20364d;color:#fff}
+.readiness-badge{padding:4px 9px;border-radius:999px;border:1px solid #486078;font-size:11px}.readiness-ok{color:#72c792;border-color:#2f7d50}.readiness-blocked{color:#f87171;border-color:#991b1b}
+.preflight{display:none;max-width:980px;width:calc(100% - 36px);margin:28px auto;padding:20px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.preflight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:14px}.preflight-item{padding:11px;border:1px solid var(--line);border-radius:9px;background:#0e141a}
+.preflight-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.preflight-actions button,.btn{padding:9px 13px;border:1px solid #486078;border-radius:7px;background:#182b3d;color:#fff}
+body.preflight-pending .product-shell,body.preflight-blocked .product-shell,body.preflight-pending .stream,body.preflight-blocked .stream{display:none}
+body.preflight-pending .preflight,body.preflight-blocked .preflight{display:block}
+.product-shell{min-height:0}.basic-page{max-width:1180px;margin:0 auto;padding:28px 22px 50px}.hero{padding:26px 0 20px}.eyebrow{font-size:12px;color:#76a9e6;text-transform:uppercase;letter-spacing:.08em}.hero h1{font-size:34px;line-height:1.1;margin:8px 0 10px;max-width:760px}.hero p{color:#a7b5c4;max-width:720px;line-height:1.55;margin:0}
+.intent-box{margin-top:22px;display:flex;gap:8px;max-width:820px}.intent-box input{flex:1;padding:13px 14px;border:1px solid #405367;border-radius:9px;background:#0e151c;color:#fff}.intent-box button{padding:12px 16px;border:1px solid #5b56d8;border-radius:9px;background:#4f46e5;color:#fff}
+.section-title{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:28px 0 12px}.section-title h2{font-size:19px;margin:0}.section-title p{margin:3px 0 0;color:var(--muted);font-size:12px}
+.utility-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:12px}.utility-card{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:16px;min-height:155px;display:flex;flex-direction:column;gap:8px;transition:.15s}.utility-card.ready:hover{border-color:#4d78a4;transform:translateY(-1px)}.utility-card.validation{opacity:.88}.utility-card.planned{opacity:.57}.utility-card .category{font-size:11px;color:#7f97ad;text-transform:uppercase;letter-spacing:.06em}.utility-card h3{margin:0;font-size:16px}.utility-card p{margin:0;color:#aab8c6;font-size:13px;line-height:1.45;flex:1}.utility-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:4px}.pill{display:inline-flex;padding:3px 7px;border:1px solid #405367;border-radius:999px;font-size:10px;color:#9fb1c3}.pill.ready{color:#72c792;border-color:#2f7d50}.pill.validation{color:#f3c86a;border-color:#765c24}.pill.planned{color:#8fa1b3}
+.text-link{border:0;background:transparent;color:#7db5f5;padding:0;font-size:12px;text-align:left}
+.detail-panel,.human-plan,.result-panel{margin-top:20px;border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:20px}.hidden{display:none!important}.detail-head{display:flex;justify-content:space-between;gap:16px}.detail-head h2{margin:3px 0 6px}.detail-head p{margin:0;color:#aab8c6}.close-btn{border:0;background:transparent;color:#8fa1b3;font-size:18px}.simple-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:18px}.field-group{display:flex;flex-direction:column;gap:5px}.field-group label{font-size:12px;color:#aab8c6}.field-group input,.field-group textarea,.field-group select{padding:10px;border-radius:7px;border:1px solid #405367;background:#0e151c;color:#fff}
+.primary{background:#1d4ed8!important;border-color:#3b82f6!important}.success-btn{background:#047857!important;border-color:#10b981!important}.warning-btn{background:#92400e!important;border-color:#d97706!important}
+.human-plan h2{margin:0 0 4px}.human-plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:15px}.human-box{border:1px solid var(--line);border-radius:10px;background:#0e151c;padding:13px}.human-box h3{font-size:13px;margin:0 0 8px}.human-line{font-size:13px;color:#b8c5d1;margin:5px 0}.okline{color:#8ad6a5}.warnline{color:#f3c86a}.technical-details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}.technical-details summary{cursor:pointer;color:#9fb1c3;font-size:12px}
+.basic-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:17px}.basic-actions button{padding:10px 15px;border:1px solid #486078;border-radius:7px;color:#fff;background:#182b3d}
+.builder-shell{display:none}.builder-shell.active{display:grid;grid-template-columns:310px 1fr 285px;min-height:calc(100vh - 58px)}.side{padding:14px;border-right:1px solid var(--line);background:#10161d;overflow:auto}.side.right{border-right:0;border-left:1px solid var(--line)}.canvas{padding:18px;overflow:auto;display:flex;flex-direction:column;gap:18px}.card{border:1px solid #334150;border-radius:12px;background:#121a22;padding:14px}.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.palette button,.actions button{padding:6px 10px;border:1px solid #486078;border-radius:6px;background:#182b3d;color:#fff;font-size:13px}.flow{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:14px}.block-card{width:100%;max-width:680px;border:1px solid #2f4052;border-radius:10px;background:#16222e;padding:12px}.block-header{display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:bold;margin-bottom:8px}.block-type{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;background:#276fb7}.flow-arrow{color:#6aa8e8;font-size:18px;font-weight:bold}.cap-summary{padding:8px;border:1px solid #334150;border-radius:8px;background:#121a22;margin-bottom:8px}.status-ok{color:#72c792}.status-err{color:#f87171}
+.stream{border-top:1px solid var(--line);padding:10px 16px;background:#10161d;max-height:180px;overflow:auto;font:12px Consolas,monospace}.event{padding:3px 0}
+@media(max-width:900px){.builder-shell.active{grid-template-columns:1fr}.builder-shell .side{display:none}.human-plan-grid{grid-template-columns:1fr}.top{align-items:flex-start}.top-right{justify-content:flex-end}.hero h1{font-size:29px}}
+</style>
+</head>
+<body class="preflight-pending">
+<div class="app">
+<header class="top">
+  <div class="brand"><strong>AutoCompiler</strong><span class="muted">automatize o que você repete</span></div>
+  <div class="top-right">
+    <div id="mode-switch" class="mode-switch hidden">
+      <button id="mode-basic" class="active">Utilidades</button>
+      <button id="mode-builder">Construtor</button>
+    </div>
+    <span id="readiness-badge" class="readiness-badge">VERIFICANDO MÁQUINA…</span>
+    <span class="muted" id="repo-head">LOCAL</span>
+  </div>
+</header>
+
 <section id="preflight" class="preflight">
-  <div class="muted">FIRST RUN · DISCOVER → AUTOMATION_READY</div>
-  <h2 id="preflight-title" style="margin:6px 0">Verificando esta máquina…</h2>
-  <div id="preflight-message" class="muted">Inspeção somente-leitura. Nenhuma instalação ocorre nesta etapa.</div>
+  <div class="eyebrow">Primeira verificação</div>
+  <h2 id="preflight-title" style="margin:6px 0">Preparando esta máquina para automação…</h2>
+  <div id="preflight-message" class="muted">Inspeção somente-leitura. Nada será instalado sem sua autorização.</div>
   <div id="preflight-summary" class="preflight-grid"></div>
   <div id="preflight-statuses" class="preflight-grid"></div>
-  <div id="preflight-actions" class="preflight-actions">
+  <div class="preflight-actions">
     <button id="btn-preflight-recheck">Verificar novamente</button>
-    <button id="btn-preflight-authorize" style="display:none;background:#92400e;border-color:#d97706">Autorizar preparação</button>
-    <button id="btn-preflight-apply" disabled style="display:none;background:#047857;border-color:#10b981">Aplicar + verificar preparação</button>
+    <button id="btn-preflight-authorize" style="display:none;background:#92400e;border-color:#d97706">Permitir preparação</button>
+    <button id="btn-preflight-apply" disabled style="display:none;background:#047857;border-color:#10b981">Preparar e verificar</button>
   </div>
 </section>
-<div class="layout">
-<aside class="side">
-<strong>Gerar Rascunho com IA (Opcional - J-011)</strong>
-<div class="field-group">
-<label>Sua Intenção em Linguagem Natural</label>
-<textarea id="ai-prompt" style="height:60px;padding:6px;border-radius:4px;border:1px solid #334150;background:#0e141a;color:#fff;font-size:12px" placeholder="Ex: Organize os PDFs recebidos e mova para ./processed_pdfs"></textarea>
-</div>
-<div class="field-group">
-<label>Provider de IA</label>
-<select id="ai-provider" style="padding:6px;border-radius:4px;border:1px solid #334150;background:#0e141a;color:#fff;font-size:12px">
-<option value="deterministic-rules">Deterministic Rules (Zero Tokens / Offline)</option>
-<option value="google-gemini">Google Gemini (Requer Chave do Usuário)</option>
-</select>
-</div>
-<div class="field-group" id="gemini-key-box" style="display:none">
-<label>Sua Chave API Gemini</label>
-<input type="password" id="ai-key" placeholder="AIzaSy...">
-</div>
-<button id="btn-ai-draft" style="width:100%;margin-top:8px;padding:8px;border:1px solid #8a42ad;background:#7e22ce;color:#fff;border-radius:6px;cursor:pointer">✨ Gerar Draft de IR com IA</button>
 
-<hr style="border-color:#26313d;margin:16px 0">
-<strong>Starter Templates (J-010)</strong>
-<div style="margin-top:8px">
-<select id="tmpl-select" style="width:100%;padding:6px;border-radius:6px;background:#0e141a;color:#fff;border:1px solid #334150">
-<option value="">Carregando templates...</option>
-</select>
+<div class="product-shell">
+  <section id="basic-shell" class="basic-page">
+    <div class="hero">
+      <div class="eyebrow">Utilidades prontas</div>
+      <h1>O que você quer parar de fazer manualmente?</h1>
+      <p>Escolha uma rotina pronta ou descreva o que se repete. O AutoCompiler cuida da parte técnica e mostra exatamente o que vai acontecer antes de ativar.</p>
+      <div class="intent-box">
+        <input id="basic-intent" placeholder="Ex.: toda sexta organize os PDFs desta pasta…">
+        <button id="btn-basic-intent">Criar a partir da descrição</button>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <div><h2>Prontas para usar</h2><p>Fluxos que já passaram pelo caminho Basic completo.</p></div>
+    </div>
+    <div id="utilities-ready" class="utility-grid"></div>
+
+    <div class="section-title">
+      <div><h2>Em validação</h2><p>O engine já conhece estas rotinas; o caminho completo de ativação ainda está sendo fechado.</p></div>
+    </div>
+    <div id="utilities-validation" class="utility-grid"></div>
+
+    <div class="section-title">
+      <div><h2>Próximas utilidades</h2><p>Itens do catálogo planejado. Ainda não podem ser ativados.</p></div>
+    </div>
+    <div id="utilities-planned" class="utility-grid"></div>
+
+    <section id="utility-detail" class="detail-panel hidden">
+      <div class="detail-head">
+        <div>
+          <div id="utility-category" class="eyebrow"></div>
+          <h2 id="utility-title"></h2>
+          <p id="utility-outcome"></p>
+        </div>
+        <button id="utility-close" class="close-btn" title="Fechar">×</button>
+      </div>
+      <div id="utility-message" class="muted" style="margin-top:10px"></div>
+      <div id="utility-fields" class="simple-fields"></div>
+      <div id="utility-actions" class="basic-actions"></div>
+    </section>
+
+    <section id="basic-plan" class="human-plan hidden">
+      <div class="eyebrow">Antes de ativar</div>
+      <h2>Veja o que vai acontecer</h2>
+      <div class="muted">Nada será aplicado até você permitir explicitamente.</div>
+      <div class="human-plan-grid">
+        <div class="human-box"><h3>Esta automação vai</h3><div id="human-do"></div></div>
+        <div class="human-box"><h3>Impacto e privacidade</h3><div id="human-impact"></div></div>
+      </div>
+      <details class="technical-details">
+        <summary>Ver detalhes técnicos</summary>
+        <div id="human-technical" style="margin-top:10px"></div>
+      </details>
+      <div class="basic-actions">
+        <button id="btn-basic-back">Voltar e editar</button>
+        <button id="btn-basic-activate" class="success-btn">Permitir e ativar</button>
+      </div>
+    </section>
+
+    <section id="basic-result" class="result-panel hidden"></section>
+  </section>
+
+  <section id="builder-shell" class="builder-shell">
+    <aside class="side">
+      <strong>Descrever uma automação</strong>
+      <div class="field-group" style="margin-top:8px"><textarea id="ai-prompt" rows="4" placeholder="Ex.: organize PDFs e mova para outra pasta"></textarea></div>
+      <div class="field-group"><label>Interpretação</label><select id="ai-provider"><option value="deterministic-rules">Regras locais</option><option value="google-gemini">Google Gemini</option></select></div>
+      <div id="gemini-key-box" class="field-group" style="display:none"><label>Chave Gemini</label><input type="password" id="ai-key"></div>
+      <button id="btn-ai-draft" class="btn primary" style="width:100%;margin-top:8px">Gerar rascunho</button>
+
+      <hr style="border-color:#26313d;margin:18px 0">
+      <strong>Automações de referência</strong>
+      <div class="field-group"><select id="tmpl-select"><option value="">Carregando…</option></select></div>
+      <div id="tmpl-fields"></div>
+      <button id="btn-instantiate" class="btn primary" style="width:100%;margin-top:8px">Abrir no Construtor</button>
+
+      <hr style="border-color:#26313d;margin:18px 0">
+      <strong>Ferramentas técnicas</strong>
+      <div class="actions" style="display:flex;flex-direction:column;gap:7px;margin-top:9px">
+        <button id="btn-validate">Validar IR</button>
+        <button id="btn-save">Salvar IR</button>
+        <button id="btn-plan" class="primary">1. Gerar plano</button>
+        <button id="btn-authorize" disabled class="warning-btn">2. Autorizar plano</button>
+        <button id="btn-apply" disabled class="success-btn">3. Aplicar + verificar</button>
+      </div>
+
+      <hr style="border-color:#26313d;margin:18px 0">
+      <strong>Blocos causais</strong>
+      <div class="palette">
+        <button onclick="addBlock('WHEN','Trigger','manual')">+ WHEN</button>
+        <button onclick="addBlock('GET','Scan','filesystem.scan')">+ GET</button>
+        <button onclick="addBlock('TRANSFORM','Filter','filter.extension')">+ TRANSFORM</button>
+        <button onclick="addBlock('IF','Condition','flow.condition')">+ IF / ELSE</button>
+        <button onclick="addBlock('ACT','Action','filesystem.copy')">+ ACT</button>
+        <button onclick="addBlock('SAVE','State','state.record')">+ SAVE</button>
+        <button onclick="addBlock('NOTIFY','Notify','notify')">+ NOTIFY</button>
+      </div>
+      <div id="validation-msg" class="muted" style="margin-top:14px"></div>
+    </aside>
+
+    <main class="canvas">
+      <section class="card">
+        <div class="eyebrow">Construtor causal</div>
+        <h2 id="wf-title" style="margin:5px 0">Crie ou edite uma automação</h2>
+        <div id="wf-desc" class="muted">O Construtor trabalha sobre o mesmo IR e o mesmo Trust Gate das utilidades.</div>
+      </section>
+      <section class="card" id="plan-panel">
+        <div class="muted" id="plan-status-label">PLANO DE IMPACTO · ainda não gerado</div>
+        <div id="plan-content" style="margin-top:8px">Gere o plano para revisar impacto técnico.</div>
+      </section>
+      <section class="card" style="min-height:330px"><div id="flow-container" class="flow"></div></section>
+    </main>
+
+    <aside class="side right">
+      <strong>Seu computador</strong>
+      <div id="machine-caps" style="margin-top:10px"><div class="muted">Aguardando verificação…</div></div>
+      <details style="margin-top:12px"><summary class="muted" style="cursor:pointer">Detalhes técnicos (<span id="resource-count">0</span>)</summary><div id="caps" style="margin-top:10px"></div></details>
+    </aside>
+  </section>
 </div>
-<div id="tmpl-fields" style="margin-top:10px"></div>
-<button id="btn-instantiate" style="width:100%;margin-top:10px;padding:8px;border:1px solid #2563eb;background:#1d4ed8;color:#fff;border-radius:6px;cursor:pointer">Instanciar Template</button>
 
-<hr style="border-color:#26313d;margin:16px 0">
-<strong>Plan → Authorize → Apply → Verify (J-012)</strong>
-<div class="actions" style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
-<button id="btn-validate">✓ Validar Schema IR</button>
-<button id="btn-save">💾 Salvar Fluxo (workflow.ir.json)</button>
-<button id="btn-plan" style="background:#1d4ed8;border-color:#2563eb">1. Gerar Plano</button>
-<button id="btn-authorize" disabled style="background:#92400e;border-color:#d97706">2. Autorizar este Plano</button>
-<button id="btn-apply" disabled style="background:#047857;border-color:#10b981">3. Aplicar + Verificar</button>
-</div>
-
-<hr style="border-color:#26313d;margin:16px 0">
-<strong>Gramática Causal (Atalhos)</strong>
-<div class="palette">
-<button onclick="addBlock('WHEN','Trigger','manual')">+ WHEN</button>
-<button onclick="addBlock('GET','Scan/Read','filesystem.scan')">+ GET / CHECK</button>
-<button onclick="addBlock('TRANSFORM','Filtrar/Mapear','filter.extension')">+ TRANSFORM</button>
-<button onclick="addBlock('IF','Condição','flow.condition')">+ IF / ELSE</button>
-<button onclick="addBlock('ACT','Ação Externa','filesystem.copy')">+ ACT</button>
-<button onclick="addBlock('SAVE','Estado Durable','state.record')">+ SAVE</button>
-<button onclick="addBlock('NOTIFY','Notificação','notify')">+ NOTIFY</button>
-</div>
-<div id="validation-msg" class="muted" style="margin-top:16px"></div>
-</aside>
-
-<main class="canvas">
-<section class="card"><div class="muted">FLUXO CAUSAL MANUAL DE AUTOMAÇÃO</div><h2 id="wf-title" style="margin:4px 0 0 0">Selecione um Template, Digite uma Intenção ou Crie um Fluxo</h2><div class="muted" id="wf-desc">IA, templates e edição manual produzem o mesmo IR. Nada é aplicado antes do plano e da autorização.</div></section>
-<section class="card" id="plan-panel">
-<div class="muted" id="plan-status-label">PLANO DE IMPACTO · ainda não gerado</div>
-<div id="plan-content" style="margin-top:8px">Gere o plano para ver arquivos, rede, providers, IA, custo, agendamento e rollback antes de autorizar.</div>
-</section>
-<section class="card" style="min-height:300px">
-<div id="flow-container" class="flow"></div>
-</section>
-</main>
-
-<aside class="side right">
-<strong>Automation Base</strong>
-<div id="machine-caps" style="margin-top:10px"><div class="muted">Aguardando preflight…</div></div>
-<details style="margin-top:12px">
-<summary class="muted" style="cursor:pointer">Todos os recursos resolvidos (<span id="resource-count">0</span>)</summary>
-<div id="caps" class="caps" style="margin-top:10px"><div class="muted">Carregando catálogo…</div></div>
-</details>
-</aside>
-</div>
-
-<footer class="stream"><div><strong>Execution Stream & Logs</strong></div><div id="events"></div></footer>
+<footer class="stream"><div><strong>Atividade</strong></div><div id="events"></div></footer>
 </div>
 
 <script>
-const events=document.querySelector('#events'), flowContainer=document.querySelector('#flow-container');
-let templatesData = [];
-let currentPlan = null;
-let currentSource = 'canvas';
-let buildTimeAI = false;
-let currentAIProvider = null;
-let machinePlanId = null;
-let canvasBooted = false;
-let latestPreflight = null;
-let currentIR = {
-  schema_version: "0.1",
-  name: "Automação Manual Canvas",
-  trigger: { type: "manual" },
-  steps: [],
-  state: { file: "history.db" }
+const events=document.querySelector('#events');
+const flowContainer=document.querySelector('#flow-container');
+let utilitiesData=[];
+let templatesData=[];
+let currentPlan=null;
+let currentSource='canvas';
+let buildTimeAI=false;
+let currentAIProvider=null;
+let machinePlanId=null;
+let productBooted=false;
+let latestPreflight=null;
+let selectedUtility=null;
+let currentIR={schema_version:"0.1",name:"Automação Manual Canvas",trigger:{type:"manual"},steps:[],state:{file:"history.db"}};
+
+const humanSkill={
+  "filesystem.scan":"Ler os arquivos da pasta escolhida",
+  "filter.extension":"Selecionar apenas os arquivos que atendem à regra",
+  "filesystem.copy":"Copiar os arquivos para o destino",
+  "state.record":"Registrar o que já foi processado",
+  "state.record_jsonl":"Guardar uma cópia dos dados recebidos",
+  "http.request":"Consultar um endereço na internet",
+  "state.check":"Consultar o último estado salvo",
+  "state.update":"Atualizar o estado salvo",
+  "csv.read":"Ler o arquivo CSV",
+  "xlsx.write":"Criar a planilha Excel",
+  "notify":"Mostrar uma notificação"
 };
 
+function log(type,msg,isErr=false){
+  const e=document.createElement('div'); e.className='event '+(isErr?'status-err':'status-ok');
+  e.textContent=new Date().toLocaleTimeString()+'  ['+type+']  '+msg; events.prepend(e);
+}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+
+function preflightCard(label,value){return '<div class="preflight-item"><div class="muted">'+esc(label)+'</div><strong>'+esc(value)+'</strong></div>';}
+function friendlyCapability(name){
+  const map={"filesystem.read":"Arquivos: leitura","filesystem.write":"Arquivos: gravação","process.execute_authorized":"Execução segura","state.write":"Histórico local","schedule":"Rotinas por horário","notification.send":"Notificações","http.request":"Internet / APIs"};
+  return map[name]||name;
+}
 function renderMachineBase(data){
-  const box = document.querySelector('#machine-caps');
-  if(!box) return;
-  const statuses = data.statuses || [];
-  box.innerHTML = statuses.map(s => {
-    const ok = s.status === 'usable';
-    return '<div class="cap-summary"><div class="'+(ok?'status-ok':'status-err')+'">'+(ok?'✓ ':'✗ ')+s.capability+'</div><div class="muted">'+(ok?s.provider:(s.resolution_plan||'não resolvida'))+'</div></div>';
-  }).join('') || '<div class="muted">Sem baseline disponível.</div>';
+  const box=document.querySelector('#machine-caps'); if(!box)return;
+  box.innerHTML=(data.statuses||[]).map(s=>'<div class="cap-summary"><div class="'+(s.status==='usable'?'status-ok':'status-err')+'">'+(s.status==='usable'?'✓ ':'✗ ')+esc(friendlyCapability(s.capability))+'</div><div class="muted">'+esc(s.status==='usable'?'pronto':(s.resolution_plan||'não resolvido'))+'</div></div>').join('')||'<div class="muted">Sem baseline disponível.</div>';
 }
-
-function preflightCard(label, value){
-  return '<div class="preflight-item"><div class="muted">'+label+'</div><strong>'+value+'</strong></div>';
-}
-
 function renderPreflight(data){
-  latestPreflight = data;
-  machinePlanId = data.plan_id || null;
-  const badge = document.querySelector('#readiness-badge');
-  const title = document.querySelector('#preflight-title');
-  const message = document.querySelector('#preflight-message');
-  const summary = document.querySelector('#preflight-summary');
-  const statuses = document.querySelector('#preflight-statuses');
-  const auth = document.querySelector('#btn-preflight-authorize');
-  const apply = document.querySelector('#btn-preflight-apply');
-  const rs = data.readiness_summary || {};
-  const machine = data.machine || {};
-
+  latestPreflight=data; machinePlanId=data.plan_id||null;
+  const badge=document.querySelector('#readiness-badge'), title=document.querySelector('#preflight-title'), message=document.querySelector('#preflight-message');
+  const summary=document.querySelector('#preflight-summary'), statuses=document.querySelector('#preflight-statuses');
+  const auth=document.querySelector('#btn-preflight-authorize'), apply=document.querySelector('#btn-preflight-apply');
+  const rs=data.readiness_summary||{}, machine=data.machine||{};
   renderMachineBase(data);
-  summary.innerHTML =
-    preflightCard('Máquina', (machine.os||'?')+' '+(machine.release||''))+
-    preflightCard('Arquitetura', machine.architecture||'?')+
-    preflightCard('Baseline', (rs.usable||0)+' / '+(rs.required||0)+' usable')+
-    preflightCard('Gaps', String(rs.missing||0));
-
-  statuses.innerHTML = (data.statuses||[]).map(s =>
-    '<div class="preflight-item"><div class="'+(s.status==='usable'?'status-ok':'status-err')+'"><strong>'+(s.status==='usable'?'✓ ':'✗ ')+s.capability+'</strong></div><div class="muted">'+(s.status==='usable'?s.provider:(s.resolution_plan||'não resolvida'))+'</div></div>'
-  ).join('');
-
-  auth.style.display = 'none';
-  apply.style.display = 'none';
-  apply.disabled = true;
-
+  summary.innerHTML=preflightCard('Máquina',(machine.os||'?')+' '+(machine.release||''))+preflightCard('Arquitetura',machine.architecture||'?')+preflightCard('Recursos prontos',(rs.usable||0)+' / '+(rs.required||0))+preflightCard('Pendências',String(rs.missing||0));
+  statuses.innerHTML=(data.statuses||[]).map(s=>'<div class="preflight-item"><div class="'+(s.status==='usable'?'status-ok':'status-err')+'"><strong>'+(s.status==='usable'?'✓ ':'✗ ')+esc(friendlyCapability(s.capability))+'</strong></div><div class="muted">'+esc(s.status==='usable'?'pronto':(s.resolution_plan||'não resolvido'))+'</div></div>').join('');
+  auth.style.display='none';apply.style.display='none';apply.disabled=true;
   if(data.automation_ready){
     document.body.classList.remove('preflight-pending','preflight-blocked');
-    badge.textContent = 'AUTOMATION_READY · '+(rs.usable||0)+'/'+(rs.required||0);
-    badge.className = 'readiness-badge readiness-ok';
-    title.textContent = 'Máquina pronta para automação';
-    message.textContent = data.message || 'Automation Base verificada.';
-    bootCanvas();
-    return;
+    badge.textContent='COMPUTADOR PRONTO';badge.className='readiness-badge readiness-ok';
+    title.textContent='Seu computador está pronto';message.textContent='Os recursos locais necessários foram verificados.';
+    bootProduct();return;
   }
-
-  document.body.classList.remove('preflight-pending');
-  document.body.classList.add('preflight-blocked');
-  badge.textContent = data.supported_platform === false ? 'PLATFORM BLOCKED' : 'PREPARE REQUIRED · '+(rs.missing||0)+' gap(s)';
-  badge.className = 'readiness-badge readiness-blocked';
-  title.textContent = data.supported_platform === false ? 'Plataforma ainda não validada' : 'Esta máquina ainda não está AUTOMATION_READY';
-  message.textContent = data.message || 'Há gaps obrigatórios antes de liberar o Canvas.';
-
-  if(data.preparation && data.preparation.can_apply && machinePlanId){
-    auth.style.display = '';
-    apply.style.display = '';
-  } else if((data.missing_required||[]).length){
-    statuses.innerHTML += '<div class="preflight-item status-err"><strong>Preparação bloqueada</strong><div class="muted">Não existe ainda uma receita validada que cubra todos os gaps. Nenhuma mutação será feita parcialmente.</div></div>';
-  }
+  document.body.classList.remove('preflight-pending');document.body.classList.add('preflight-blocked');
+  badge.textContent=data.supported_platform===false?'PLATAFORMA NÃO SUPORTADA':'PREPARAÇÃO NECESSÁRIA';
+  badge.className='readiness-badge readiness-blocked';
+  title.textContent=data.supported_platform===false?'Plataforma ainda não validada':'Precisamos preparar alguns recursos';
+  message.textContent=data.message||'Há pendências antes de liberar as automações.';
+  if(data.preparation&&data.preparation.can_apply&&machinePlanId){auth.style.display='';apply.style.display='';}
+  else if((data.missing_required||[]).length){statuses.innerHTML+='<div class="preflight-item status-err"><strong>Preparação bloqueada</strong><div class="muted">Ainda não existe uma resolução validada para todas as pendências.</div></div>';}
 }
-
 async function loadPreflight(){
   document.body.classList.add('preflight-pending');
-  try{
-    const r = await fetch('/api/preflight');
-    const data = await r.json();
-    if(!data.ok) throw new Error(data.error || data.status || 'preflight_failed');
-    renderPreflight(data);
-  }catch(e){
-    document.body.classList.remove('preflight-pending');
-    document.body.classList.add('preflight-blocked');
-    const badge = document.querySelector('#readiness-badge');
-    badge.textContent = 'PREFLIGHT ERROR';
-    badge.className = 'readiness-badge readiness-blocked';
-    document.querySelector('#preflight-title').textContent = 'Falha ao verificar a máquina';
-    document.querySelector('#preflight-message').textContent = e.message;
-  }
+  try{const r=await fetch('/api/preflight');const data=await r.json();if(!data.ok)throw new Error(data.error||data.status||'preflight_failed');renderPreflight(data);}
+  catch(e){document.body.classList.remove('preflight-pending');document.body.classList.add('preflight-blocked');document.querySelector('#readiness-badge').textContent='ERRO NA VERIFICAÇÃO';document.querySelector('#preflight-title').textContent='Não foi possível verificar esta máquina';document.querySelector('#preflight-message').textContent=e.message;}
 }
-
-async function bootCanvas(){
-  if(canvasBooted) return;
-  canvasBooted = true;
-  fetch('/api/workspace').then(r=>r.json()).then(w=>{
-    document.querySelector('#repo-head').textContent = 'LOCAL · ' + w.name + ' · ' + (w.branch || 'sem branch');
-  });
-  fetch('/api/state').then(r=>r.json()).then(s=>{
-    const box = document.querySelector('#caps');
-    const resources = s.resources || [];
-    document.querySelector('#resource-count').textContent = String(resources.length);
-    box.innerHTML = '';
-    if(!resources.length){
-      box.innerHTML = '<div class="muted">Nenhuma capability resolvida nesta máquina.</div>';
-      return;
-    }
-    resources.forEach(c=>{
-      const d = document.createElement('div');
-      d.className = 'cap';
-      d.style.padding = '6px';
-      d.style.marginBottom = '6px';
-      d.style.background = '#18222c';
-      d.style.borderRadius = '6px';
-      const source = c.source ? ' · '+c.source : '';
-      d.innerHTML = `<div>${c.capability}</div><div class="muted">${c.state} · ${c.provider}${source}</div>`;
-      box.appendChild(d);
-    });
-  }).catch(e=>log('state.error', e.message, true));
-  loadTemplates();
-  renderFlow();
-  log('canvas.ready', 'AUTOMATION_READY confirmado; Canvas liberado com J-012 Trust Gate');
-}
-
-document.querySelector('#btn-preflight-recheck').onclick = loadPreflight;
-document.querySelector('#btn-preflight-authorize').onclick = async () => {
-  if(!machinePlanId) return;
-  const r = await fetch('/api/preflight/authorize', {
-    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({plan_id:machinePlanId})
-  });
-  const res = await r.json();
-  if(res.ok){
-    document.querySelector('#btn-preflight-apply').disabled = false;
-    document.querySelector('#btn-preflight-authorize').disabled = true;
-  } else {
-    document.querySelector('#preflight-message').textContent = res.status || res.error || 'Falha na autorização.';
-  }
+document.querySelector('#btn-preflight-recheck').onclick=loadPreflight;
+document.querySelector('#btn-preflight-authorize').onclick=async()=>{
+  if(!machinePlanId)return;const r=await fetch('/api/preflight/authorize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan_id:machinePlanId})});const res=await r.json();
+  if(res.ok){document.querySelector('#btn-preflight-apply').disabled=false;document.querySelector('#btn-preflight-authorize').disabled=true;}else document.querySelector('#preflight-message').textContent=res.status||res.error||'Falha na autorização.';
 };
-document.querySelector('#btn-preflight-apply').onclick = async () => {
-  if(!machinePlanId) return;
-  const r = await fetch('/api/preflight/apply', {
-    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({plan_id:machinePlanId})
-  });
-  const res = await r.json();
-  if(res.preflight){
-    renderPreflight(res.preflight);
-  } else {
-    document.querySelector('#preflight-message').textContent = res.status || res.error || 'Falha na preparação.';
+document.querySelector('#btn-preflight-apply').onclick=async()=>{
+  if(!machinePlanId)return;const r=await fetch('/api/preflight/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan_id:machinePlanId})});const res=await r.json();
+  if(res.preflight)renderPreflight(res.preflight);else document.querySelector('#preflight-message').textContent=res.status||res.error||'Falha na preparação.';
+};
+
+async function bootProduct(){
+  if(productBooted)return;productBooted=true;
+  document.querySelector('#mode-switch').classList.remove('hidden');
+  const [workspace,state,utilities,templates]=await Promise.all([
+    fetch('/api/workspace').then(r=>r.json()),
+    fetch('/api/state').then(r=>r.json()),
+    fetch('/api/utilities').then(r=>r.json()),
+    fetch('/api/templates').then(r=>r.json())
+  ]);
+  document.querySelector('#repo-head').textContent='LOCAL · '+workspace.name+' · '+(workspace.branch||'sem branch');
+  utilitiesData=utilities.utilities||[];templatesData=templates.templates||[];
+  renderUtilities();renderTechnicalResources(state);loadBuilderTemplates();renderFlow();
+  log('product.ready','Computador verificado; utilidades liberadas');
+}
+function renderTechnicalResources(state){
+  const resources=state.resources||[];document.querySelector('#resource-count').textContent=String(resources.length);
+  document.querySelector('#caps').innerHTML=resources.map(c=>'<div class="cap-summary"><div>'+esc(c.capability)+'</div><div class="muted">'+esc(c.state)+' · '+esc(c.provider)+'</div></div>').join('')||'<div class="muted">Nenhum recurso resolvido.</div>';
+}
+function utilityCard(u){
+  const labels={ready:'Pronta',validation:'Em validação',planned:'Planejada'};
+  const action=u.status==='ready'?'Configurar':u.status==='validation'?'Ver detalhes':'Em breve';
+  return '<article class="utility-card '+esc(u.status)+'" data-id="'+esc(u.id)+'"><div class="category">'+esc(u.category)+'</div><h3>'+esc(u.user_title)+'</h3><p>'+esc(u.outcome)+'</p><div class="utility-footer"><span class="pill '+esc(u.status)+'">'+esc(labels[u.status]||u.status)+'</span><button class="text-link utility-open" data-id="'+esc(u.id)+'">'+action+'</button></div></article>';
+}
+function renderUtilities(){
+  document.querySelector('#utilities-ready').innerHTML=utilitiesData.filter(u=>u.status==='ready').map(utilityCard).join('')||'<div class="muted">Nenhuma utilidade liberada.</div>';
+  document.querySelector('#utilities-validation').innerHTML=utilitiesData.filter(u=>u.status==='validation').map(utilityCard).join('');
+  document.querySelector('#utilities-planned').innerHTML=utilitiesData.filter(u=>u.status==='planned').map(utilityCard).join('');
+  document.querySelectorAll('.utility-open').forEach(b=>b.onclick=()=>openUtility(b.dataset.id));
+}
+function openUtility(id){
+  selectedUtility=utilitiesData.find(u=>u.id===id);if(!selectedUtility)return;
+  document.querySelector('#utility-detail').classList.remove('hidden');document.querySelector('#basic-plan').classList.add('hidden');document.querySelector('#basic-result').classList.add('hidden');
+  document.querySelector('#utility-category').textContent=selectedUtility.category;
+  document.querySelector('#utility-title').textContent=selectedUtility.user_title;
+  document.querySelector('#utility-outcome').textContent=selectedUtility.outcome;
+  const fields=document.querySelector('#utility-fields'),actions=document.querySelector('#utility-actions'),message=document.querySelector('#utility-message');
+  fields.innerHTML='';actions.innerHTML='';
+  if(selectedUtility.status==='ready'){
+    message.textContent='Responda somente o necessário. Você verá o impacto completo antes de permitir qualquer alteração.';
+    selectedUtility.parameters.forEach(p=>{const fg=document.createElement('div');fg.className='field-group';fg.innerHTML='<label>'+esc(p.label)+'</label><input data-utility-param="'+esc(p.key)+'" value="'+esc(p.default)+'">';fields.appendChild(fg);});
+    actions.innerHTML='<button id="btn-utility-review" class="primary">Ver o que vai acontecer</button>';
+    document.querySelector('#btn-utility-review').onclick=prepareSelectedUtility;
+  }else if(selectedUtility.status==='validation'){
+    message.textContent='Esta rotina já existe no engine, mas ainda não está liberada como utilidade de um clique. Você pode inspecioná-la no Construtor.';
+    actions.innerHTML='<button id="btn-open-builder" class="primary">Abrir no Construtor</button>';
+    document.querySelector('#btn-open-builder').onclick=()=>openUtilityInBuilder(selectedUtility);
+  }else{
+    message.textContent='Esta utilidade está no catálogo planejado. Ela ainda não executa nada.';
   }
+  document.querySelector('#utility-detail').scrollIntoView({behavior:'smooth',block:'start'});
+}
+document.querySelector('#utility-close').onclick=()=>document.querySelector('#utility-detail').classList.add('hidden');
+
+async function instantiateTemplate(templateId,params,source='template'){
+  const r=await fetch('/api/templates/instantiate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template_id:templateId,params})});
+  const res=await r.json();if(!res.ok)throw new Error(res.error||'Falha ao preparar utilidade');
+  currentIR=res.ir;currentSource=source;buildTimeAI=false;currentAIProvider=null;resetPlan('novo fluxo preparado');
+  document.querySelector('#wf-title').textContent=currentIR.name;document.querySelector('#wf-desc').textContent='Fluxo carregado. Revise ou edite antes de gerar o plano.';renderFlow();
+  return res;
+}
+async function prepareSelectedUtility(){
+  if(!selectedUtility||selectedUtility.status!=='ready')return;
+  const params={};document.querySelectorAll('[data-utility-param]').forEach(i=>params[i.dataset.utilityParam]=i.value);
+  try{await instantiateTemplate(selectedUtility.template_id,params,'utility');await generatePlan(true);}
+  catch(e){showBasicError(e.message);}
+}
+function showBasicError(message){
+  const box=document.querySelector('#basic-result');box.classList.remove('hidden');box.innerHTML='<div class="status-err"><strong>Não foi possível continuar.</strong><div style="margin-top:5px">'+esc(message)+'</div></div>';
+}
+async function generatePlan(forBasic=false){
+  log('plan.start','Gerando plano somente-leitura…');
+  const r=await fetch('/api/workflow/plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ir:currentIR,target:'python-sqlite',source:currentSource,build_time_ai:buildTimeAI,ai_provider:currentAIProvider})});
+  const res=await r.json();if(!res.ok)throw new Error(res.error||'Falha ao gerar plano');
+  currentPlan=res.plan;renderTechnicalPlan(currentPlan);
+  document.querySelector('#btn-authorize').disabled=!currentPlan.can_apply;document.querySelector('#btn-apply').disabled=true;
+  log('plan.ready','Plano '+currentPlan.plan_id.slice(0,12)+' pronto para revisão');
+  if(forBasic){renderHumanPlan(currentPlan);document.querySelector('#basic-plan').classList.remove('hidden');document.querySelector('#basic-result').classList.add('hidden');document.querySelector('#basic-plan').scrollIntoView({behavior:'smooth',block:'start'});}
+  return currentPlan;
+}
+function planList(title,items,formatter){const values=items||[];const body=values.length?values.map(formatter).join('<br>'):'nenhum';return '<div style="margin-top:8px"><strong>'+title+'</strong><div class="muted" style="margin-top:3px">'+body+'</div></div>';}
+function renderTechnicalPlan(plan){
+  const ai=plan.ai||{},schedule=plan.schedule||{},providers=Object.entries(plan.providers||{});
+  document.querySelector('#plan-status-label').textContent='PLANO DE IMPACTO · gerado';
+  let html='<div><strong>'+esc(plan.workflow.name)+'</strong> · <span class="muted">'+esc(plan.plan_id.slice(0,12))+'</span></div>';
+  html+=planList('Ações',plan.actions,x=>esc(x.step+' → '+x.skill));
+  html+=planList('Arquivos / pastas',plan.filesystem,x=>esc(x.mode+' · '+x.path+' ('+x.reason+')'));
+  html+=planList('Rede',plan.network,x=>esc(x.method+' · '+x.destination));
+  html+=planList('Providers',providers,x=>esc(x[0]+' → '+x[1]));
+  html+=planList('Novo software',plan.new_software,x=>esc(x.capability+' → '+x.provider));
+  html+='<div style="margin-top:8px"><strong>IA</strong><div class="muted">build-time: '+(ai.build_time?'sim':'não')+' · runtime: '+(ai.runtime?'sim':'não')+'</div></div>';
+  html+='<div style="margin-top:8px"><strong>Custo</strong><div class="muted">'+esc(plan.recurring_cost.display)+'</div></div>';
+  html+='<div style="margin-top:8px"><strong>Background</strong><div class="muted">'+(schedule.background?('sim · '+esc(schedule.cron||'?')):'não')+'</div></div>';
+  html+=planList('Rollback',plan.rollback,x=>esc(x));
+  if((plan.missing_capabilities||[]).length)html+='<div class="status-err" style="margin-top:10px">Ainda faltam recursos: '+esc(plan.missing_capabilities.join(', '))+'</div>';
+  else html+='<div class="status-ok" style="margin-top:10px">Pronto para autorização.</div>';
+  document.querySelector('#plan-content').innerHTML=html;
+}
+function renderHumanPlan(plan){
+  const doBox=document.querySelector('#human-do'),impact=document.querySelector('#human-impact'),technical=document.querySelector('#human-technical');
+  doBox.innerHTML=(plan.actions||[]).map(a=>'<div class="human-line">✓ '+esc(humanSkill[a.skill]||a.skill)+'</div>').join('');
+  const lines=[];
+  const reads=(plan.filesystem||[]).filter(x=>x.mode==='read');const writes=(plan.filesystem||[]).filter(x=>x.mode!=='read');
+  reads.forEach(x=>lines.push('Ler: '+x.path));writes.forEach(x=>lines.push('Criar/alterar: '+x.path));
+  if(!(plan.network||[]).length)lines.push('Não acessa a internet');else lines.push('Acessa: '+plan.network.map(n=>n.destination).join(', '));
+  if(!(plan.ai||{}).runtime)lines.push('Não usa IA durante a execução');else lines.push('Usa IA durante a execução');
+  if(plan.recurring_cost&&plan.recurring_cost.known&&plan.recurring_cost.amount===0)lines.push('Sem custo recorrente conhecido');else lines.push(plan.recurring_cost?.display||'Custo não determinado');
+  if(plan.schedule&&plan.schedule.background)lines.push('Executa em segundo plano conforme agendamento');else lines.push('Executa somente quando acionada');
+  impact.innerHTML=lines.map(x=>'<div class="human-line okline">✓ '+esc(x)+'</div>').join('');
+  technical.innerHTML=document.querySelector('#plan-content').innerHTML;
+  document.querySelector('#btn-basic-activate').disabled=!plan.can_apply;
+}
+document.querySelector('#btn-basic-back').onclick=()=>{document.querySelector('#basic-plan').classList.add('hidden');document.querySelector('#utility-detail').classList.remove('hidden');};
+
+async function authorizeCurrentPlan(){
+  if(!currentPlan)throw new Error('Plano não gerado');
+  const r=await fetch('/api/workflow/authorize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan_id:currentPlan.plan_id})});
+  const res=await r.json();if(!res.ok)throw new Error(res.status||res.error||'Falha na autorização');log('authorization.approved','Plano autorizado explicitamente');return res;
+}
+async function applyCurrentPlan(){
+  const r=await fetch('/api/workflow/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan_id:currentPlan.plan_id})});
+  const res=await r.json();if(!res.ok||!res.verification||!res.verification.ok)throw new Error(res.status||res.error||'Verificação falhou');log('verify.success','Aplicação e verificação concluídas');return res;
+}
+document.querySelector('#btn-basic-activate').onclick=async()=>{
+  if(!currentPlan)return;const btn=document.querySelector('#btn-basic-activate');btn.disabled=true;btn.textContent='Ativando…';
+  try{
+    await authorizeCurrentPlan();const res=await applyCurrentPlan();
+    const box=document.querySelector('#basic-result');box.classList.remove('hidden');box.innerHTML='<div class="status-ok"><strong>Automação ativada e verificada.</strong><div style="margin-top:6px">O AutoCompiler confirmou os artefatos, o plano autorizado e a execução.</div></div>';
+    document.querySelector('#basic-plan').classList.add('hidden');box.scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(e){showBasicError(e.message);btn.disabled=false;btn.textContent='Permitir e ativar';}
+};
+function openUtilityInBuilder(u){
+  const tmpl=templatesData.find(t=>t.id===u.template_id);if(!tmpl)return;showMode('builder');
+  document.querySelector('#tmpl-select').value=tmpl.id;renderTemplateFields();
+}
+function showMode(mode){
+  const basic=mode==='basic';document.querySelector('#basic-shell').classList.toggle('hidden',!basic);document.querySelector('#builder-shell').classList.toggle('active',!basic);
+  document.querySelector('#mode-basic').classList.toggle('active',basic);document.querySelector('#mode-builder').classList.toggle('active',!basic);
+}
+document.querySelector('#mode-basic').onclick=()=>showMode('basic');document.querySelector('#mode-builder').onclick=()=>showMode('builder');
+
+function loadBuilderTemplates(){
+  const sel=document.querySelector('#tmpl-select');sel.innerHTML='';
+  templatesData.forEach(t=>{const opt=document.createElement('option');opt.value=t.id;opt.textContent=(t.user_title||t.name)+' · '+(t.status==='ready'?'Basic':'validação');sel.appendChild(opt);});
+  renderTemplateFields();
+}
+function renderTemplateFields(){
+  const tid=document.querySelector('#tmpl-select').value,tmpl=templatesData.find(t=>t.id===tid),container=document.querySelector('#tmpl-fields');container.innerHTML='';if(!tmpl)return;
+  const desc=document.createElement('div');desc.className='muted';desc.style.margin='8px 0';desc.textContent=tmpl.outcome||tmpl.description;container.appendChild(desc);
+  tmpl.parameters.forEach(p=>{const fg=document.createElement('div');fg.className='field-group';fg.innerHTML='<label>'+esc(p.label)+'</label><input data-param="'+esc(p.key)+'" value="'+esc(p.default)+'">';container.appendChild(fg);});
+}
+document.querySelector('#tmpl-select').onchange=renderTemplateFields;
+document.querySelector('#btn-instantiate').onclick=async()=>{
+  const tid=document.querySelector('#tmpl-select').value,params={};document.querySelectorAll('#tmpl-fields input[data-param]').forEach(i=>params[i.dataset.param]=i.value);
+  try{await instantiateTemplate(tid,params,'template');log('template.instantiated','Fluxo '+tid.toUpperCase()+' aberto no Construtor');}catch(e){log('template.error',e.message,true);}
 };
 
 function resetPlan(reason){
-  currentPlan = null;
-  document.querySelector('#btn-authorize').disabled = true;
-  document.querySelector('#btn-apply').disabled = true;
-  document.querySelector('#plan-status-label').textContent = 'PLANO DE IMPACTO · precisa ser gerado';
-  document.querySelector('#plan-content').innerHTML = 'Plano precisa ser gerado para o fluxo atual.';
-  if(reason) log('plan.invalidated', reason);
+  currentPlan=null;document.querySelector('#btn-authorize').disabled=true;document.querySelector('#btn-apply').disabled=true;
+  document.querySelector('#plan-status-label').textContent='PLANO DE IMPACTO · precisa ser gerado';document.querySelector('#plan-content').textContent='O fluxo mudou. Gere um novo plano.';
+  if(reason)log('plan.invalidated',reason);
 }
-
-function planList(title, items, formatter){
-  const values = items || [];
-  const body = values.length ? values.map(formatter).join('<br>') : 'nenhum';
-  return '<div style="margin-top:8px"><strong>'+title+'</strong><div class="muted" style="margin-top:3px">'+body+'</div></div>';
-}
-
-function renderPlan(plan){
-  document.querySelector('#plan-status-label').textContent = 'PLANO DE IMPACTO · gerado';
-  const ai = plan.ai || {};
-  const schedule = plan.schedule || {};
-  const providers = Object.entries(plan.providers || {});
-  let html = '<div><strong>'+plan.workflow.name+'</strong> · <span class="muted">'+plan.plan_id.slice(0,12)+'</span></div>';
-  html += planList('O que fará', plan.actions, x => x.step+' → '+x.skill);
-  html += planList('Arquivos / pastas', plan.filesystem, x => x.mode+' · '+x.path+' ('+x.reason+')');
-  html += planList('Rede', plan.network, x => x.method+' · '+x.destination);
-  html += planList('Providers', providers, x => x[0]+' → '+x[1]);
-  html += planList('Novo software', plan.new_software, x => x.capability+' → '+x.provider+' · custo '+x.cost);
-  html += '<div style="margin-top:8px"><strong>IA</strong><div class="muted">build-time: '+(ai.build_time?'sim ('+(ai.build_provider||'provider')+')':'não')+' · runtime: '+(ai.runtime?'sim':'não')+'</div></div>';
-  html += '<div style="margin-top:8px"><strong>Custo recorrente</strong><div class="muted">'+plan.recurring_cost.display+'</div></div>';
-  html += '<div style="margin-top:8px"><strong>Background</strong><div class="muted">'+(schedule.background?('sim · cron '+(schedule.cron||'?')):'não · trigger '+schedule.type)+'</div></div>';
-  html += planList('Rollback / remoção', plan.rollback, x => x);
-  if((plan.missing_capabilities||[]).length){
-    html += '<div class="status-err" style="margin-top:10px"><strong>Não aplicável ainda:</strong> capabilities ausentes: '+plan.missing_capabilities.join(', ')+'</div>';
-  } else {
-    html += '<div class="status-ok" style="margin-top:10px"><strong>Pronto para autorização.</strong> Aplicar executará somente este plano armazenado.</div>';
-  }
-  document.querySelector('#plan-content').innerHTML = html;
-}
-
-function log(type,msg,isErr=false){
-  const e=document.createElement('div');
-  e.className='event '+(isErr?'status-err':'status-ok');
-  e.textContent=new Date().toLocaleTimeString()+'  ['+type+']  '+msg;
-  events.prepend(e);
-}
-
 function renderFlow(){
-  flowContainer.innerHTML = '';
-  if(!currentIR.steps.length){
-    flowContainer.innerHTML = '<div class="muted" style="padding:40px">Nenhum bloco no fluxo. Digite uma intenção na caixa de IA, selecione um template ou adicione blocos causais.</div>';
-    return;
-  }
-
-  currentIR.steps.forEach((step, idx) => {
-    if(idx > 0){
-      const arrow = document.createElement('div');
-      arrow.className = 'flow-arrow';
-      arrow.textContent = '↓';
-      flowContainer.appendChild(arrow);
-    }
-
-    const card = document.createElement('div');
-    card.className = 'block-card';
-    const bType = step.skill.startsWith('filesystem.scan') ? 'GET' :
-                  step.skill.startsWith('filter') ? 'TRANSFORM' :
-                  step.skill.startsWith('flow') ? 'IF' :
-                  step.skill.startsWith('state') ? 'SAVE' :
-                  step.skill.startsWith('notify') ? 'NOTIFY' : 'ACT';
-
-    card.innerHTML = `
-      <div class="block-header">
-        <span>#${step.id} — ${step.skill}</span>
-        <span class="block-type type-${bType}">· ${bType}</span>
-      </div>
-      <div class="muted">Parâmetros (with):</div>
-      <pre style="margin:4px 0 0 0;font-size:12px;background:#0d1620;padding:6px;border-radius:4px;overflow:auto">${JSON.stringify(step.with || {}, null, 2)}</pre>
-      <button onclick="removeBlock('${step.id}')" style="margin-top:8px;padding:2px 6px;font-size:11px;background:#7f1d1d;color:#fff;border:0;border-radius:4px;cursor:pointer">Remover</button>
-    `;
+  flowContainer.innerHTML='';if(!currentIR.steps.length){flowContainer.innerHTML='<div class="muted" style="padding:40px">Nenhum bloco ainda.</div>';return;}
+  currentIR.steps.forEach((step,idx)=>{
+    if(idx>0){const arrow=document.createElement('div');arrow.className='flow-arrow';arrow.textContent='↓';flowContainer.appendChild(arrow);}
+    const card=document.createElement('div');card.className='block-card';
+    const skill=step.skill||step.type||'step';
+    card.innerHTML='<div class="block-header"><span>#'+esc(step.id)+' — '+esc(skill)+'</span><span class="block-type">'+esc((humanSkill[skill]||'AÇÃO').split(' ')[0].toUpperCase())+'</span></div><div class="muted">Parâmetros</div><pre style="font-size:12px;background:#0d1620;padding:7px;border-radius:5px;overflow:auto">'+esc(JSON.stringify(step.with||{},null,2))+'</pre><button onclick="removeBlock(\''+esc(step.id)+'\')" class="btn" style="padding:3px 7px;font-size:11px">Remover</button>';
     flowContainer.appendChild(card);
   });
 }
+function addBlock(bType,label,skill){const id='s'+(currentIR.steps.length+1);currentIR.steps.push({id,skill,with:{}});currentSource='canvas';buildTimeAI=false;currentAIProvider=null;resetPlan('fluxo editado');renderFlow();}
+function removeBlock(id){currentIR.steps=currentIR.steps.filter(s=>s.id!==id);currentSource='canvas';buildTimeAI=false;currentAIProvider=null;resetPlan('bloco removido');renderFlow();}
 
-function addBlock(bType, label, skill){
-  const id = 's' + (currentIR.steps.length + 1);
-  currentIR.steps.push({ id: id, skill: skill, with: {} });
-  currentSource = 'canvas'; buildTimeAI = false; currentAIProvider = null;
-  resetPlan('fluxo editado manualmente');
-  renderFlow();
-  log('block.added', `Adicionado bloco ${id} [${skill}]`);
+document.querySelector('#ai-provider').onchange=e=>document.querySelector('#gemini-key-box').style.display=e.target.value==='google-gemini'?'flex':'none';
+async function createDraft(prompt,provider='deterministic-rules',apiKey=null){
+  const r=await fetch('/api/ai/draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,provider,api_key:apiKey})});const res=await r.json();
+  if(res.ok&&res.ir){currentIR=res.ir;currentSource='ai';buildTimeAI=true;currentAIProvider=provider;resetPlan('novo rascunho');document.querySelector('#wf-title').textContent=currentIR.name;document.querySelector('#wf-desc').textContent='Rascunho criado. Revise o fluxo antes de ativar.';renderFlow();return res;}
+  if(res.ambiguous)throw new Error((res.questions||[]).join(' '));throw new Error(res.error||res.message||'Não foi possível interpretar a descrição');
 }
-
-function removeBlock(id){
-  currentIR.steps = currentIR.steps.filter(s => s.id !== id);
-  currentSource = 'canvas'; buildTimeAI = false; currentAIProvider = null;
-  resetPlan('bloco removido');
-  renderFlow();
-  log('block.removed', `Removido bloco ${id}`);
-}
-
-document.querySelector('#ai-provider').onchange = (e) => {
-  document.querySelector('#gemini-key-box').style.display = e.target.value === 'google-gemini' ? 'flex' : 'none';
+document.querySelector('#btn-ai-draft').onclick=async()=>{try{await createDraft(document.querySelector('#ai-prompt').value.trim(),document.querySelector('#ai-provider').value,document.querySelector('#ai-key').value);log('ai.draft_success','Rascunho criado');}catch(e){log('ai.error',e.message,true);}};
+document.querySelector('#btn-basic-intent').onclick=async()=>{
+  const prompt=document.querySelector('#basic-intent').value.trim();if(!prompt)return;
+  try{await createDraft(prompt);showMode('builder');log('intent.to_builder','Descrição transformada em rascunho; Construtor aberto para revisão');}
+  catch(e){showBasicError(e.message);}
 };
 
-document.querySelector('#btn-ai-draft').onclick = async () => {
-  const prompt = document.querySelector('#ai-prompt').value.trim();
-  const provider = document.querySelector('#ai-provider').value;
-  const apiKey = document.querySelector('#ai-key').value;
-  if(!prompt) return;
-
-  log('ai.draft_start', `Enviando intenção para IA [${provider}]...`);
-  try {
-    const r = await fetch('/api/ai/draft', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompt, provider: provider, api_key: apiKey })
-    });
-    const res = await r.json();
-    if(res.ok && res.ir){
-      currentIR = res.ir;
-      currentSource = 'ai';
-      buildTimeAI = true;
-      currentAIProvider = provider;
-      resetPlan('novo draft de IA');
-      document.querySelector('#wf-title').textContent = currentIR.name;
-      document.querySelector('#wf-desc').textContent = `Draft gerado por IA. Capabilities requeridas: ${(res.required_capabilities || []).join(', ')}. Edite e confirme abaixo.`;
-      renderFlow();
-      log('ai.draft_success', `Draft IR criado com sucesso (${currentIR.steps.length} blocos)`);
-    } else if (res.ambiguous) {
-      document.querySelector('#validation-msg').innerHTML = `<span class="status-err">⚠️ Intenção Ambigua! Perguntas: ${res.questions.join(' ')}</span>`;
-      log('ai.ambiguous', `IA identificou ambiguidade: ${res.questions.join(' ')}`, true);
-    } else {
-      log('ai.error', res.error || res.message || 'Falha ao gerar draft', true);
-    }
-  } catch(e){ log('error', e.message, true); }
-};
-
-async function loadTemplates(){
-  try {
-    const r = await fetch('/api/templates');
-    const res = await r.json();
-    if(res.ok){
-      templatesData = res.templates;
-      const sel = document.querySelector('#tmpl-select');
-      sel.innerHTML = '';
-      templatesData.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = `${t.id.toUpperCase()} — ${t.name}`;
-        sel.appendChild(opt);
-      });
-      renderTemplateFields();
-      log('templates.loaded', `${templatesData.length} starter templates disponíveis`);
-    }
-  } catch(e){ log('templates.error', e.message, true); }
-}
-
-function renderTemplateFields(){
-  const tid = document.querySelector('#tmpl-select').value;
-  const tmpl = templatesData.find(t => t.id === tid);
-  const container = document.querySelector('#tmpl-fields');
-  container.innerHTML = '';
-  if(!tmpl) return;
-
-  const desc = document.createElement('div');
-  desc.className = 'muted';
-  desc.style.marginBottom = '8px';
-  desc.textContent = tmpl.description;
-  container.appendChild(desc);
-
-  tmpl.parameters.forEach(p => {
-    const fg = document.createElement('div');
-    fg.className = 'field-group';
-    fg.innerHTML = `<label>${p.label}</label><input data-param="${p.key}" value="${p.default}">`;
-    container.appendChild(fg);
-  });
-}
-
-document.querySelector('#tmpl-select').onchange = renderTemplateFields;
-
-document.querySelector('#btn-instantiate').onclick = async () => {
-  const tid = document.querySelector('#tmpl-select').value;
-  if(!tid) return;
-  const paramInputs = document.querySelectorAll('#tmpl-fields input[data-param]');
-  const params = {};
-  paramInputs.forEach(i => { params[i.dataset.param] = i.value; });
-
-  try {
-    const r = await fetch('/api/templates/instantiate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ template_id: tid, params: params })
-    });
-    const res = await r.json();
-    if(res.ok){
-      currentIR = res.ir;
-      currentSource = 'template';
-      buildTimeAI = false;
-      currentAIProvider = null;
-      resetPlan('novo template instanciado');
-      document.querySelector('#wf-title').textContent = currentIR.name;
-      document.querySelector('#wf-desc').textContent = `Template ${tid.toUpperCase()} instanciado com sucesso. Capabilities: ${res.required_capabilities.join(', ')}`;
-      renderFlow();
-      log('template.instantiated', `Template ${tid.toUpperCase()} instanciado.`);
-    } else {
-      log('template.instantiate_error', res.error, true);
-    }
-  } catch(e){ log('error', e.message, true); }
-};
-
-document.querySelector('#btn-validate').onclick = async () => {
-  try {
-    const r = await fetch('/api/workflow/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ir: currentIR })
-    });
-    const res = await r.json();
-    if(res.ok){
-      document.querySelector('#validation-msg').innerHTML = `<span class="status-ok">✓ IR Válido! Capabilities: ${res.required_capabilities.join(', ') || 'nenhuma'}</span>`;
-      log('validation.success', 'Schema IR validado com sucesso');
-    } else {
-      document.querySelector('#validation-msg').innerHTML = `<span class="status-err">✗ Erro: ${res.error}</span>`;
-      log('validation.error', res.error, true);
-    }
-  } catch(e) { log('error', e.message, true); }
-};
-
-document.querySelector('#btn-save').onclick = async () => {
-  try {
-    const r = await fetch('/api/workflow/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: "workflow.ir.json", ir: currentIR })
-    });
-    const res = await r.json();
-    if(res.ok){ log('workflow.saved', `Salvo em ${res.path}`); }
-    else { log('workflow.save_error', res.error, true); }
-  } catch(e) { log('error', e.message, true); }
-};
-
-document.querySelector('#btn-plan').onclick = async () => {
-  log('plan.start', 'Gerando plano somente-leitura...');
-  try {
-    const r = await fetch('/api/workflow/plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ir: currentIR,
-        target: "python-sqlite",
-        source: currentSource,
-        build_time_ai: buildTimeAI,
-        ai_provider: currentAIProvider
-      })
-    });
-    const res = await r.json();
-    if(!res.ok){ log('plan.failed', res.error || 'Falha ao gerar plano', true); return; }
-    currentPlan = res.plan;
-    renderPlan(currentPlan);
-    document.querySelector('#btn-authorize').disabled = !currentPlan.can_apply;
-    document.querySelector('#btn-apply').disabled = true;
-    log('plan.ready', 'Plano '+currentPlan.plan_id.slice(0,12)+' pronto para revisão');
-  } catch(e) { log('error', e.message, true); }
-};
-
-document.querySelector('#btn-authorize').onclick = async () => {
-  if(!currentPlan) return;
-  log('authorization.request', 'Autorizando exatamente o plano exibido...');
-  try {
-    const r = await fetch('/api/workflow/authorize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan_id: currentPlan.plan_id })
-    });
-    const res = await r.json();
-    if(!res.ok){ log('authorization.failed', res.status || 'Falha', true); return; }
-    document.querySelector('#btn-apply').disabled = false;
-    document.querySelector('#btn-authorize').disabled = true;
-    log('authorization.approved', 'Plano '+currentPlan.plan_id.slice(0,12)+' autorizado');
-  } catch(e) { log('error', e.message, true); }
-};
-
-document.querySelector('#btn-apply').onclick = async () => {
-  if(!currentPlan) return;
-  document.querySelector('#btn-apply').disabled = true;
-  log('apply.start', 'Aplicando o plano autorizado...');
-  try {
-    const r = await fetch('/api/workflow/apply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan_id: currentPlan.plan_id })
-    });
-    const res = await r.json();
-    if(res.ok && res.verification && res.verification.ok){
-      log('apply.success', 'Apply concluído');
-      log('verify.success', 'Artefatos, IR autorizado, manifest e execução verificados');
-      document.querySelector('#plan-status-label').textContent = 'PLANO DE IMPACTO · aplicado e verificado';
-      document.querySelector('#plan-content').innerHTML += '<div class="status-ok" style="margin-top:12px"><strong>APPLIED + VERIFIED</strong><br>IR autorizado = artefato compilado · execução real = OK · runtime AI = '+(res.verification.recurring_ai_used?'sim':'não')+'</div>';
-    } else {
-      log('verify.failed', res.status || res.error || 'Verificação falhou', true);
-      document.querySelector('#plan-content').innerHTML += '<div class="status-err" style="margin-top:12px"><strong>VERIFY FAILED</strong> — o resultado não foi marcado como sucesso.</div>';
-    }
-  } catch(e) { log('error', e.message, true); }
-};
+document.querySelector('#btn-validate').onclick=async()=>{const r=await fetch('/api/workflow/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ir:currentIR})});const res=await r.json();document.querySelector('#validation-msg').innerHTML=res.ok?'<span class="status-ok">IR válido.</span>':'<span class="status-err">'+esc(res.error)+'</span>';};
+document.querySelector('#btn-save').onclick=async()=>{const r=await fetch('/api/workflow/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'workflow.ir.json',ir:currentIR})});const res=await r.json();log(res.ok?'workflow.saved':'workflow.save_error',res.ok?'Fluxo salvo em '+res.path:res.error,!res.ok);};
+document.querySelector('#btn-plan').onclick=async()=>{try{await generatePlan(false);}catch(e){log('plan.failed',e.message,true);}};
+document.querySelector('#btn-authorize').onclick=async()=>{try{await authorizeCurrentPlan();document.querySelector('#btn-authorize').disabled=true;document.querySelector('#btn-apply').disabled=false;}catch(e){log('authorization.failed',e.message,true);}};
+document.querySelector('#btn-apply').onclick=async()=>{try{document.querySelector('#btn-apply').disabled=true;await applyCurrentPlan();document.querySelector('#plan-status-label').textContent='PLANO DE IMPACTO · aplicado e verificado';document.querySelector('#plan-content').innerHTML+='<div class="status-ok" style="margin-top:10px">Aplicado e verificado.</div>';}catch(e){log('verify.failed',e.message,true);}};
 
 loadPreflight();
-</script></body></html>
+</script>
+</body>
+</html>

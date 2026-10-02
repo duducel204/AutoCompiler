@@ -13,9 +13,14 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "id": "w01",
         "name": "Organize Incoming PDFs",
         "description": "Scans a folder, filters PDF files, copies them to a target directory, and records processed files in durable state.",
+        "user_title": "Organizar PDFs",
+        "category": "Arquivos",
+        "outcome": "Separar PDFs de uma pasta e guardar em outro lugar automaticamente.",
+        "status": "ready",
+        "difficulty": "Fácil",
         "parameters": [
-            {"key": "source_folder", "label": "Source Directory", "default": "."},
-            {"key": "target_folder", "label": "Target Directory", "default": "./processed_pdfs"},
+            {"key": "source_folder", "label": "Qual pasta contém os PDFs?", "default": "."},
+            {"key": "target_folder", "label": "Onde guardar os PDFs?", "default": "./processed_pdfs"},
         ],
         "template_ir": {
             "schema_version": "0.1",
@@ -50,9 +55,14 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "id": "w02",
         "name": "Scheduled Backup",
         "description": "Periodically backs up files from a source directory to a backup location and records backup completion.",
+        "user_title": "Backup automático",
+        "category": "Proteção",
+        "outcome": "Copiar arquivos de uma pasta para um backup em horário programado.",
+        "status": "validation",
+        "difficulty": "Fácil",
         "parameters": [
-            {"key": "source_folder", "label": "Source Folder", "default": "./data"},
-            {"key": "backup_folder", "label": "Backup Folder", "default": "./backups"},
+            {"key": "source_folder", "label": "Qual pasta deve ter backup?", "default": "./data"},
+            {"key": "backup_folder", "label": "Onde guardar o backup?", "default": "./backups"},
         ],
         "template_ir": {
             "schema_version": "0.1",
@@ -82,9 +92,14 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "id": "w03",
         "name": "API Snapshot",
         "description": "Fetches data from an HTTP API endpoint and records the response payload in durable JSONL history.",
+        "user_title": "Salvar dados de uma API",
+        "category": "Internet",
+        "outcome": "Consultar um endereço de API e guardar uma cópia dos dados recebidos.",
+        "status": "validation",
+        "difficulty": "Intermediário",
         "parameters": [
-            {"key": "api_url", "label": "API Endpoint URL", "default": "http://api.example.com/snapshot"},
-            {"key": "output_file", "label": "Output File", "default": "snapshots.jsonl"},
+            {"key": "api_url", "label": "Qual endereço da API?", "default": "http://api.example.com/snapshot"},
+            {"key": "output_file", "label": "Onde guardar os dados?", "default": "snapshots.jsonl"},
         ],
         "template_ir": {
             "schema_version": "0.1",
@@ -109,9 +124,14 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "id": "w04",
         "name": "Change Monitor",
         "description": "Monitors a key or endpoint and records state updates only when state changes.",
+        "user_title": "Monitorar mudanças",
+        "category": "Monitoramento",
+        "outcome": "Verificar periodicamente uma fonte e registrar quando o estado mudar.",
+        "status": "validation",
+        "difficulty": "Intermediário",
         "parameters": [
-            {"key": "monitor_key", "label": "Monitor Key", "default": "page_1"},
-            {"key": "target_url", "label": "Target URL", "default": "http://example.com/page"},
+            {"key": "monitor_key", "label": "Como identificar este monitor?", "default": "page_1"},
+            {"key": "target_url", "label": "Qual endereço deve ser monitorado?", "default": "http://example.com/page"},
         ],
         "template_ir": {
             "schema_version": "0.1",
@@ -141,9 +161,14 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "id": "w05",
         "name": "Spreadsheet Transformation",
         "description": "Reads a CSV file and transforms/converts it into an XLSX spreadsheet.",
+        "user_title": "Converter CSV em Excel",
+        "category": "Planilhas",
+        "outcome": "Transformar um arquivo CSV em uma planilha XLSX sem trabalho manual.",
+        "status": "validation",
+        "difficulty": "Fácil",
         "parameters": [
-            {"key": "input_csv", "label": "Input CSV File", "default": "input.csv"},
-            {"key": "output_xlsx", "label": "Output XLSX File", "default": "output.xlsx"},
+            {"key": "input_csv", "label": "Qual arquivo CSV?", "default": "input.csv"},
+            {"key": "output_xlsx", "label": "Qual nome da planilha de saída?", "default": "output.xlsx"},
         ],
         "template_ir": {
             "schema_version": "0.1",
@@ -167,6 +192,82 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
 }
 
 
+PLANNED_UTILITIES: list[dict[str, str]] = [
+    {
+        "id": "organize-downloads",
+        "user_title": "Organizar Downloads",
+        "category": "Arquivos",
+        "outcome": "Separar automaticamente documentos, imagens, planilhas e outros arquivos.",
+        "status": "planned",
+    },
+    {
+        "id": "incremental-backup",
+        "user_title": "Backup incremental",
+        "category": "Proteção",
+        "outcome": "Copiar apenas arquivos novos ou alterados desde o último backup.",
+        "status": "planned",
+    },
+    {
+        "id": "batch-rename",
+        "user_title": "Renomear vários arquivos",
+        "category": "Arquivos",
+        "outcome": "Aplicar uma regra de nome a muitos arquivos de uma vez, com revisão antes de gravar.",
+        "status": "planned",
+    },
+    {
+        "id": "find-duplicates",
+        "user_title": "Encontrar arquivos duplicados",
+        "category": "Limpeza",
+        "outcome": "Localizar arquivos repetidos para liberar espaço sem apagar nada automaticamente.",
+        "status": "planned",
+    },
+    {
+        "id": "merge-spreadsheets",
+        "user_title": "Juntar planilhas",
+        "category": "Planilhas",
+        "outcome": "Combinar vários CSV/XLSX em uma única saída organizada.",
+        "status": "planned",
+    },
+    {
+        "id": "watch-folder",
+        "user_title": "Monitorar uma pasta",
+        "category": "Monitoramento",
+        "outcome": "Executar uma rotina quando um arquivo novo aparecer.",
+        "status": "planned",
+    },
+    {
+        "id": "pdf-inbox",
+        "user_title": "Caixa de entrada de PDFs",
+        "category": "Documentos",
+        "outcome": "Detectar PDFs novos, validar, ler informações básicas e encaminhar para a pasta certa.",
+        "status": "planned",
+    },
+]
+
+
+def list_utilities() -> list[dict[str, Any]]:
+    """User-facing catalog. Ready utilities map to validated starter templates.
+
+    Planned items are visible product ideas only; they cannot be instantiated
+    until a validated underlying template exists.
+    """
+    ready: list[dict[str, Any]] = []
+    for tid, template in STARTER_TEMPLATES.items():
+        val = validate_ir(template["template_ir"])
+        ready.append({
+            "id": tid,
+            "template_id": tid,
+            "user_title": template.get("user_title", template["name"]),
+            "category": template.get("category", "Outros"),
+            "outcome": template.get("outcome", template["description"]),
+            "status": template.get("status", "ready"),
+            "difficulty": template.get("difficulty", "Fácil"),
+            "parameters": template["parameters"],
+            "required_capabilities": val.required_capabilities,
+        })
+    return ready + [dict(item, template_id=None, parameters=[], required_capabilities=[]) for item in PLANNED_UTILITIES]
+
+
 def list_templates() -> list[dict[str, Any]]:
     out = []
     for tid, t in STARTER_TEMPLATES.items():
@@ -175,6 +276,11 @@ def list_templates() -> list[dict[str, Any]]:
             "id": tid,
             "name": t["name"],
             "description": t["description"],
+            "user_title": t.get("user_title", t["name"]),
+            "category": t.get("category", "Outros"),
+            "outcome": t.get("outcome", t["description"]),
+            "status": t.get("status", "ready"),
+            "difficulty": t.get("difficulty", "Fácil"),
             "parameters": t["parameters"],
             "required_capabilities": val.required_capabilities,
         })

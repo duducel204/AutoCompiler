@@ -146,3 +146,10 @@ This is not permission for unrestricted self-modifying code. Changes remain boun
 ### D-023 — Task completion is not automatically a human authorization boundary
 A roadmap task is the unit of scope, evidence, testing, completion reporting, and commit-level rollback. A pull request is normally an integration/review boundary. Consecutive tasks covered by an explicit execution envelope may advance automatically after their Definition of Done and canonical Trust Gate are green. Human interruption is reserved for defined stop conditions that require a genuine decision, credential, cost commitment, security exception, or product change.
 
+### D-024 — Basic starts from user outcomes; Builder exposes construction details
+AutoCompiler Basic should present common automations as user-facing utilities such as organizing files, backup, monitoring or spreadsheet conversion. The default Basic path asks only task-specific questions, shows a human-readable impact summary, and then preserves the canonical authorization boundary through an explicit user action.
+
+The causal Canvas, provider details, capabilities, IR and separate technical Plan → Authorize → Apply → Verify controls remain available in Builder/advanced views. Basic and Builder must still converge on the same canonical IR, capability resolution and trust lifecycle; this decision changes presentation, not engine semantics.
+
+A utility may be shown as ready only when its complete Basic path has been validated. Engine-level coverage or an existing template alone is insufficient to label a utility as ready. Partially connected workflows must be marked as validation/planned rather than silently presented as working product behavior.
+

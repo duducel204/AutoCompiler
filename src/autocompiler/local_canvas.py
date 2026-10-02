@@ -15,7 +15,7 @@ from .first_run import MachinePreparationStore, build_machine_preflight
 from .git_acquisition import plan_git_capability
 from .ai_draft import draft_intent_to_ir
 from .ir import validate_ir
-from .templates import instantiate_template, list_templates
+from .templates import instantiate_template, list_templates, list_utilities
 from .workflow_lifecycle import WorkflowPlanStore, apply_workflow_plan, build_workflow_plan
 from .windows_provisioner import apply_windows_preparation
 from .workspace import repository_snapshot
@@ -116,6 +116,9 @@ class CanvasHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/templates":
             self._json({"ok": True, "templates": list_templates()})
+            return
+        if path == "/api/utilities":
+            self._json({"ok": True, "utilities": list_utilities()})
             return
         if path == "/api/workflow/load":
             qs = parse_qs(parsed_url.query)

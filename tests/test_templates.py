@@ -10,6 +10,7 @@ from autocompiler.templates import (
     get_template,
     instantiate_template,
     list_templates,
+    list_utilities,
 )
 
 
@@ -23,6 +24,20 @@ class StarterTemplatesTests(unittest.TestCase):
         self.assertIn("w03", ids)
         self.assertIn("w04", ids)
         self.assertIn("w05", ids)
+
+    def test_utility_catalog_separates_ready_from_planned(self):
+        utilities = list_utilities()
+        ready = [u for u in utilities if u["status"] == "ready"]
+        validation = [u for u in utilities if u["status"] == "validation"]
+        planned = [u for u in utilities if u["status"] == "planned"]
+        self.assertEqual(len(ready), 1)
+        self.assertEqual(len(validation), 4)
+        self.assertGreaterEqual(len(planned), 5)
+        self.assertTrue(all(u["template_id"] for u in ready + validation))
+        self.assertTrue(all(u["template_id"] is None for u in planned))
+        self.assertIn("Organizar PDFs", [u["user_title"] for u in ready])
+        self.assertIn("Backup automático", [u["user_title"] for u in validation])
+        self.assertIn("Organizar Downloads", [u["user_title"] for u in planned])
 
     def test_get_template_returns_correct_definition(self):
         w01 = get_template("w01")
