@@ -153,3 +153,10 @@ The causal Canvas, provider details, capabilities, IR and separate technical Pla
 
 A utility may be shown as ready only when its complete Basic path has been validated. Engine-level coverage or an existing template alone is insufficient to label a utility as ready. Partially connected workflows must be marked as validation/planned rather than silently presented as working product behavior.
 
+### D-025 — AI conversation is a development surface for drafts, not an execution authority
+AutoCompiler Basic may use an AI conversation as the primary surface for developing an automation: clarify intent, refine requirements, and create or revise candidate Automation IR. The same draft can then be inspected in Builder.
+
+The AI development surface may mutate only the draft representation. It must not authorize protected mutation, apply environment changes, or execute workflows on the user's behalf. The canonical boundary remains Plan → Authorize → Apply → Verify.
+
+Temporary development credentials may be loaded into the local process for the current session, but must not be committed to the repository, embedded in frontend assets, returned by status endpoints, or persisted by default.
+
