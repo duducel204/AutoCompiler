@@ -9,12 +9,15 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
-from work_map import action, build
-
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.work_map import action, build
 DEFAULT_CONTEXT = ROOT / ".autocompiler" / "post_cycle_context.json"
 DEFAULT_OUTPUT = ROOT / ".autocompiler" / "next_cycle.json"
 
