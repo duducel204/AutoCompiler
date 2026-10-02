@@ -14,3 +14,8 @@ AY-C5,ay-closed-loop,Close resolution into evidence state and cheaper reuse,P0,S
 AY-C6,ay-closed-loop,Post-cycle Spider assimilation via GitHub Actions,P0,SYSTEM_PROOF_WIRED,yes,yes,yes,yes,yes,yes,observe system proof execution
 AY-C7,ay-closed-loop,Post-cycle next-work synthesis,P0,SYSTEM_PROOF_WIRED,yes,yes,yes,yes,yes,yes,observe system proof execution
 AY-C8,ay-closed-loop,GitHub Actions development-cycle dispatcher,P0,READY,yes,no,no,no,no,no,implement
+SEC-OS1,security,Native OS secret storage provider,P1,READY,yes,no,no,no,no,no,implement
+UI-CANVAS1,canvas-maintainability,Modularize local Canvas without behavior change,P1,READY,yes,no,no,no,no,no,implement
+REPO-H1,repository-hygiene,Consolidate root demo and build entrypoints,P2,READY,yes,no,no,no,no,no,implement
+TARGET-PS1,compiler-targets,Prove one native PowerShell compilation target,P2,READY,yes,no,no,no,no,no,implement
+IMPORT-N8N1,interoperability,Experiment with n8n JSON to Automation IR import,P3,READY,yes,no,no,no,no,no,implement
