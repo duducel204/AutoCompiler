@@ -23,6 +23,7 @@ from .assistant_chat import (
     clear_assistant_configuration,
     configure_assistant,
     draft_from_conversation,
+    draft_from_prompt,
 )
 from .ir import validate_ir
 from .templates import instantiate_template, list_templates, list_utilities
@@ -319,13 +320,15 @@ class CanvasHandler(BaseHTTPRequestHandler):
         if path == "/api/ai/draft":
             body = self._body()
             prompt = body.get("prompt", "")
-            api_key = body.get("api_key")
             provider = body.get("provider", "deterministic-rules")
             try:
-                res = draft_intent_to_ir(prompt, api_key=api_key, provider=provider)
-                self._json(res)
+                if provider == "google-gemini":
+                    res = draft_from_prompt(prompt)
+                else:
+                    res = draft_intent_to_ir(prompt, provider=provider)
+                self._json(res, 200 if res.get("ok") else 503 if res.get("error") == "assistant_not_configured" else 400)
             except Exception as exc:
-                self._json({"ok": False, "error": str(exc)}, 400)
+                self._json({"ok": False, "error": "ai_draft_failed", "details": str(exc)}, 500)
             return
         if path == "/api/assistant/configure":
             body = self._body()
