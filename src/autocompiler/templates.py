@@ -58,7 +58,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "user_title": "Backup automático",
         "category": "Proteção",
         "outcome": "Copiar arquivos de uma pasta para um backup em horário programado.",
-        "status": "ready",
+        "status": "validation",
         "difficulty": "Fácil",
         "parameters": [
             {"key": "source_folder", "label": "Source Folder", "default": "./data"},
@@ -95,7 +95,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "user_title": "Salvar dados de uma API",
         "category": "Internet",
         "outcome": "Consultar um endereço de API e guardar uma cópia dos dados recebidos.",
-        "status": "ready",
+        "status": "validation",
         "difficulty": "Intermediário",
         "parameters": [
             {"key": "api_url", "label": "API Endpoint URL", "default": "http://api.example.com/snapshot"},
@@ -127,7 +127,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "user_title": "Monitorar mudanças",
         "category": "Monitoramento",
         "outcome": "Verificar periodicamente uma fonte e registrar quando o estado mudar.",
-        "status": "ready",
+        "status": "validation",
         "difficulty": "Intermediário",
         "parameters": [
             {"key": "monitor_key", "label": "Monitor Key", "default": "page_1"},
@@ -164,7 +164,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "user_title": "Converter CSV em Excel",
         "category": "Planilhas",
         "outcome": "Transformar um arquivo CSV em uma planilha XLSX sem trabalho manual.",
-        "status": "ready",
+        "status": "validation",
         "difficulty": "Fácil",
         "parameters": [
             {"key": "input_csv", "label": "Input CSV File", "default": "input.csv"},
