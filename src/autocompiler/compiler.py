@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -53,6 +54,7 @@ def run():
             raise RuntimeError("Unsupported compiled skill: " + skill)
     print(json.dumps({"ok": True, "processed": processed, "target": MANIFEST["target"],
                       "recurring_ai_used": False, "autocompiler_runtime_used": False,
+                      "resolved_execution_digest": MANIFEST.get("resolved_execution_digest"),
                       "history_db": str(db)}, ensure_ascii=False))
 if __name__ == "__main__":
     run()
@@ -99,6 +101,7 @@ def run():
             raise RuntimeError("Unsupported compiled skill: " + skill)
     print(json.dumps({"ok": True, "processed": processed, "target": MANIFEST["target"],
                       "recurring_ai_used": False, "autocompiler_runtime_used": False,
+                      "resolved_execution_digest": MANIFEST.get("resolved_execution_digest"),
                       "history_file": str(history_file)}, ensure_ascii=False))
 if __name__ == "__main__":
     run()
@@ -109,23 +112,126 @@ TARGETS = {
     "python-json": {"runtime": JSON_RUNTIME, "state_provider": "jsonl"},
 }
 
-def compile_ir(ir: dict[str, Any], target: str, output_dir: str | Path) -> dict[str, Any]:
+TARGET_SKILLS = {
+    "python-sqlite": {"filesystem.scan", "filter.extension", "filesystem.copy", "state.record"},
+    "python-json": {"filesystem.scan", "filter.extension", "filesystem.copy", "state.record"},
+}
+
+# Capabilities satisfied outside the generated artifact itself are verified by
+# deployment/lifecycle logic, not by the compiler.
+DEPLOYMENT_CAPABILITIES = {"schedule", "webhook.receive", "filesystem.watch", "event.receive"}
+
+TARGET_CAPABILITY_PROVIDERS = {
+    "python-sqlite": {
+        "filesystem.read": {"python-stdlib-filesystem", "stdlib"},
+        "filesystem.write": {"python-stdlib-filesystem", "stdlib"},
+        "durable_state": {"sqlite"},
+    },
+    "python-json": {
+        "filesystem.read": {"python-stdlib-filesystem", "stdlib"},
+        "filesystem.write": {"python-stdlib-filesystem", "stdlib"},
+        "durable_state": {"jsonl", "python-json"},
+    },
+}
+
+
+def _digest(payload: Any) -> str:
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _iter_steps(steps: list[dict[str, Any]]):
+    for step in steps:
+        yield step
+        for key in ("then", "else", "do"):
+            nested = step.get(key)
+            if isinstance(nested, list):
+                yield from _iter_steps(nested)
+
+
+def analyze_compile_support(
+    ir: dict[str, Any],
+    target: str,
+    resolved_execution: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return whether a target can honestly materialize the workflow artifact.
+
+    Trigger/deployment capabilities are intentionally excluded here and must be
+    verified by the deployment layer.
+    """
+    if target not in TARGETS:
+        return {"supported": False, "unsupported_target": target, "unsupported_skills": [], "provider_mismatches": []}
+
+    unsupported_skills: list[str] = []
+    supported_skills = TARGET_SKILLS[target]
+    for step in _iter_steps(ir.get("steps", [])):
+        skill = step.get("skill") or step.get("type") or step.get("action")
+        if skill not in supported_skills and skill not in unsupported_skills:
+            unsupported_skills.append(str(skill))
+
+    provider_mismatches: list[dict[str, Any]] = []
+    if resolved_execution:
+        provider_rules = TARGET_CAPABILITY_PROVIDERS.get(target, {})
+        for item in resolved_execution.get("requirements", []):
+            capability = item.get("capability")
+            provider = item.get("provider")
+            if not capability or capability in DEPLOYMENT_CAPABILITIES:
+                continue
+            accepted = provider_rules.get(capability)
+            if accepted is None:
+                provider_mismatches.append({
+                    "capability": capability,
+                    "provider": provider,
+                    "reason": "target_has_no_materializer",
+                })
+            elif provider not in accepted:
+                provider_mismatches.append({
+                    "capability": capability,
+                    "provider": provider,
+                    "accepted_providers": sorted(accepted),
+                    "reason": "resolved_provider_not_materializable",
+                })
+
+    return {
+        "supported": not unsupported_skills and not provider_mismatches,
+        "target": target,
+        "unsupported_skills": unsupported_skills,
+        "provider_mismatches": provider_mismatches,
+    }
+
+
+def compile_ir(
+    ir: dict[str, Any],
+    target: str,
+    output_dir: str | Path,
+    *,
+    resolved_execution: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     validation = validate_ir(ir)
     if target not in TARGETS:
         raise ValueError(f"Unsupported target: {target}")
+
+    support = analyze_compile_support(ir, target, resolved_execution)
+    if not support["supported"]:
+        raise ValueError(f"Target cannot materialize workflow: {support}")
+
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     target_def = TARGETS[target]
+    resolved_digest = _digest(resolved_execution) if resolved_execution else None
     manifest = {
-        "schema_version": "0.1",
+        "schema_version": "0.2",
         "automation": ir["name"],
         "target": target,
         "state_provider": target_def["state_provider"],
         "required_capabilities": validation.required_capabilities,
+        "capability_sources": validation.capability_sources,
         "permissions": validation.permissions,
         "runtime_dependency": "python-standard-library",
         "autocompiler_required_after_compile": False,
         "recurring_ai_required": False,
+        "resolved_execution": resolved_execution,
+        "resolved_execution_digest": resolved_digest,
     }
     (out / "automation.py").write_text(target_def["runtime"], encoding="utf-8")
     (out / "automation.ir.json").write_text(json.dumps(ir, indent=2, ensure_ascii=False), encoding="utf-8")
