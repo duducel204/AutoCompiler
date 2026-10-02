@@ -23,6 +23,17 @@ def _executor_name(work_id: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", work_id.lower()).strip("_") + ".py"
 
 
+def _safe_declared_paths(selected: dict[str, Any]) -> list[str]:
+    values: set[str] = set()
+    for field in ("owner_paths", "implementation_paths", "task_tests", "system_tests"):
+        for raw in selected.get(field, []) or []:
+            value = str(raw).replace("\\", "/").strip()
+            if not value or value.startswith("/") or ".." in Path(value).parts:
+                raise ValueError(f"unsafe declared path: {value!r}")
+            values.add(value)
+    return sorted(values)
+
+
 def _load(path: Path) -> dict[str, Any]:
     if not path.is_file():
         raise ValueError(f"next-cycle plan not found: {path}")
@@ -76,6 +87,10 @@ def plan_dispatch(
     relative_executor = executor.relative_to(repo_root).as_posix()
     branch = f"autocycle/{work_id.lower().replace('_', '-')}-{source_sha[:8]}"
 
+    allowed_paths = _safe_declared_paths(selected)
+    if not allowed_paths:
+        raise ValueError("selected work item has no declared change scope")
+
     base = {
         "schema_version": 1,
         "source_sha": source_sha,
@@ -84,6 +99,7 @@ def plan_dispatch(
         "next_action": str(selected.get("next_action") or ""),
         "branch": branch,
         "executor_path": relative_executor,
+        "allowed_paths": allowed_paths,
         "direct_main_mutation": False,
     }
     if not executor.is_file() or executor.is_symlink():
