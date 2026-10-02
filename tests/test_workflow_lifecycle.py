@@ -25,6 +25,8 @@ def usable_graph(filesystem_provider: str = "stdlib"):
             {"capability": "filesystem.write", "provider": filesystem_provider, "state": "usable", "cost": "free"},
             {"capability": "durable_state", "provider": "sqlite", "state": "usable", "cost": "free"},
             {"capability": "http.request", "provider": "autocompiler.http_provider", "state": "usable", "cost": "free"},
+            {"capability": "csv.read", "provider": "python-stdlib-csv", "state": "usable", "cost": "free"},
+            {"capability": "xlsx.write", "provider": "python-stdlib-xlsx", "state": "usable", "cost": "free"},
         ]
     }
 
@@ -272,6 +274,43 @@ class WorkflowLifecycleTests(unittest.TestCase):
             self.assertIsNone(result["verification"]["execution_ok"])
             direct_run.assert_not_called()
             deploy_mock.assert_called_once()
+
+    def test_w05_template_converts_csv_to_real_xlsx_in_independent_artifact(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            source = root / "input.csv"
+            output = root / "output.xlsx"
+            source.write_text("name,value\nalpha,1\nbeta,2\n", encoding="utf-8")
+
+            instantiated = instantiate_template(
+                "w05",
+                {"input_csv": str(source), "output_xlsx": str(output)},
+            )
+            ir = instantiated["ir"]
+            compiled = root / "compiled"
+            plan = build_workflow_plan(
+                ir,
+                out_dir=compiled,
+                source="template",
+                resource_graph=usable_graph(),
+            )
+            self.assertTrue(plan["can_apply"])
+            resolved = {
+                x["capability"]: x["provider"]
+                for x in plan["resolved_execution"]["requirements"]
+            }
+            self.assertEqual(resolved["csv.read"], "python-stdlib-csv")
+            self.assertEqual(resolved["xlsx.write"], "python-stdlib-xlsx")
+
+            store = WorkflowPlanStore()
+            store.create(ir, plan)
+            record = store.authorize(plan["plan_id"])
+            result = apply_workflow_plan(record)
+
+            self.assertTrue(result["ok"])
+            self.assertTrue(output.is_file())
+            self.assertGreater(output.stat().st_size, 0)
+            self.assertFalse(result["result"]["autocompiler_runtime_used"])
 
     def test_failed_execution_is_not_reported_as_verified(self):
         with tempfile.TemporaryDirectory() as td:
