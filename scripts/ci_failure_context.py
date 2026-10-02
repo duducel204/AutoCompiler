@@ -5,12 +5,15 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
-from src.autocompiler.trust import classify_failure, may_auto_repair, report
-
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.autocompiler.trust import classify_failure, may_auto_repair, report
 DEFAULT_OUTPUT = ROOT / ".autocompiler" / "ci_failure_context.json"
 _PATH_PATTERN = re.compile(
     r'(?:File\s+"([^"]+)"|\b([A-Za-z0-9_./\\-]+\.(?:py|yml|yaml|json|md|ps1|csv)))'
