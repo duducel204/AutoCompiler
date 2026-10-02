@@ -10,6 +10,8 @@ $SetupExe = (Resolve-Path $SetupExe).Path
 $InstallRoot = Join-Path $env:LOCALAPPDATA "AutoCompiler"
 $ChromeHostKey = "HKCU:\Software\Google\Chrome\NativeMessagingHosts\com.autocompiler.ready_bridge"
 $EdgeHostKey = "HKCU:\Software\Microsoft\Edge\NativeMessagingHosts\com.autocompiler.ready_bridge"
+$Process = $null
+$UpgradedProcess = $null
 
 function Invoke-Setup([string[]]$Arguments) {
     $process = Start-Process -FilePath $SetupExe -ArgumentList $Arguments -Wait -PassThru
