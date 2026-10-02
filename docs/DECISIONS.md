@@ -160,3 +160,13 @@ The AI development surface may mutate only the draft representation. It must not
 
 Temporary development credentials may be loaded into the local process for the current session, but must not be committed to the repository, embedded in frontend assets, returned by status endpoints, or persisted by default.
 
+### D-026 — Reuse proven capabilities and evidence before repeating work
+
+Accepted on 2026-10-02: use a fast work loop of need → consult existing capabilities/skills → reuse → execute → register new knowledge. A successful contract test or execution becomes reusable evidence for the capability actually exercised, with provider/version, scope, permissions, limitations and resource prerequisites retained.
+
+Reuse that evidence without routine retesting while the implementation, contract and relevant conditions remain unchanged. Mere detection does not establish trust or availability. Resource-bound capabilities still require an authorized usable local binding; historical success does not authorize a new protected action.
+
+For documentation, read only relevant sources, edit in batches and review the final diff once. Do not run application tests or repeat remote audits merely to restate existing evidence. For new behavior, changed contracts, changed relevant environment, invalid evidence or failures, validate the affected behavior and register the successful result through the existing canonical catalog lifecycle.
+
+Canonical integration/release gates and task-specific acceptance requirements remain applicable. This decision reduces redundant work; it does not declare partial utilities ready or promote unverified candidates.
+

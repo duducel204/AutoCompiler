@@ -11,6 +11,16 @@ Before proposing architecture, implementation, product roadmap, packaging, UI, c
 7. `docs/PRODUCT_ROADMAP.md`
 8. relevant structured state under `data/`
 
+## Fast work and validated reuse
+
+Follow decision D-026 and `docs/CANONICAL-MEMORY.md`: inspect the relevant canonical capabilities, provider bindings and existing skills before building or testing another implementation. Reuse evidence for unchanged contracts within its proven scope.
+
+For documentation-only work, batch edits and review the final diff once; do not run application tests, repeat remote queries, or expand into unrelated audits. Record uncertainty as pending instead of inventing validation.
+
+For new or changed behavior, run checks directed at the affected contract. Revalidate when implementation, contract, relevant environment/binding changes, evidence no longer applies, or a failure occurs. Keep the canonical Trust Gate for integration/release and roadmap acceptance where required; it is not a routine step for every read, reuse or documentation edit.
+
+Successful contract evidence should become a reusable canonical capability or validated local binding through the existing registration path. Do not invent another catalog, infer trust from detection, or grant permissions from historical test results. A reusable work procedure may be captured as a skill; a skill alone is not a validated runtime provider.
+
 ## Authority
 
 Use this order when documents differ:

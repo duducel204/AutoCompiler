@@ -827,6 +827,8 @@ Do not optimize for raw node count.
 
 Resume from the first roadmap task whose Definition of Done is not already supported by merged evidence.
 
-J-001 has merged implementation evidence. J-002 is therefore the current task to finish unless newer merged evidence proves its Definition of Done completely.
+As of 2026-10-02, merged code includes the Engine foundation, Windows preparation, state/reliability primitives, W-01 through W-05 benchmark tests, templates, optional AI drafting, and Plan / Authorize / Apply / Verify UX. J-002 is no longer a reliable default starting point merely because an older preparation document names it.
 
-Once J-002 is green, continue inside the authorized Engine / capability-closure envelope through J-008 without stopping for routine per-task approval. Preserve one identifiable commit and completion report per task.
+Use [NEXT_TASK_PREP.md](NEXT_TASK_PREP.md) for the dated implementation/evidence snapshot. Reconcile task-level Definitions of Done and outstanding integration work before selecting the first unfinished task. Engine benchmark coverage does not by itself prove that every Basic utility is ready or that the MVP release gate is complete.
+
+Within an explicitly authorized execution envelope, continue through dependent tasks after their Definition of Done and canonical Trust Gate are satisfied. Preserve one identifiable commit and completion report per task. This status update does not create a new execution authorization.

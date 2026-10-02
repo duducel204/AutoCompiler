@@ -54,6 +54,14 @@ The intended split is:
 
 Repository decisions and roadmaps must remain subordinate to the canonical product intent.
 
+## Current implementation snapshot — 2026-10-02
+
+Merged code includes capability discovery/resolution, Windows assessment and preparation, independent Python/SQLite compilation, state/reliability primitives, starter templates, optional AI drafting/chat, and Basic/Builder visual development with a horizontal Canvas.
+
+W-01 through W-05 are recorded as verified engine benchmarks. The Basic utility catalog is more conservative: only Organize PDFs is marked ready; the other four local utilities remain in validation. Authenticated external integrations and the one-package Windows release still require completion evidence. This is a developed prototype, not a completed Basic 1.0 release.
+
+Current evidence and next steps: [docs/NEXT_TASK_PREP.md](docs/NEXT_TASK_PREP.md). Local launch and temporary AI credential handling: [docs/LOCAL-CANVAS.md](docs/LOCAL-CANVAS.md).
+
 ## 1. The original problem
 
 We want useful automation without automatically accepting:
