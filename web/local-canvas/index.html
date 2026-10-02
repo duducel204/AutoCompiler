@@ -680,6 +680,7 @@ function resetPlan(reason){
   currentPlan=null;document.querySelector('#btn-authorize').disabled=true;document.querySelector('#btn-apply').disabled=true;
   document.querySelector('#plan-status-label').textContent='precisa ser gerado';document.querySelector('#plan-content').textContent='O fluxo mudou. Gere um novo plano.';
   const status=document.querySelector('#builder-plan-status');if(status){status.textContent='—';status.style.color='#889484';}
+  const irStatus=document.querySelector('#builder-ir-status');if(irStatus){irStatus.textContent='IR EDITED';irStatus.style.color='#ffd18a';}
   const consolePlan=document.querySelector('#builder-console-plan');if(consolePlan)consolePlan.textContent='NO PLAN';
   if(reason)log('plan.invalidated',reason);
 }
