@@ -117,6 +117,21 @@ body.builder-mode .lifecycle-strip{background:#0c1016;border-color:#292e36}
   .lifecycle-strip{padding:0 10px}.lifecycle-step{padding:4px}.lifecycle-step span:not(.n){display:none}.builder-left{display:none}.builder-workspace{grid-template-columns:1fr}.canvas-search-box{min-width:140px}.hero h1{font-size:34px}
 }
 
+
+.architecture-view,.telemetry-view{padding:16px;overflow:auto;background:#0a0e14}
+.studio-view-card{max-width:1120px;width:100%;margin:0 auto;background:#10141a;border:1px solid #31353c;border-radius:6px;padding:14px;box-shadow:0 12px 28px rgba(0,0,0,.28)}
+.architecture-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:12px}
+.architecture-card{padding:10px;border:1px solid #292f36;border-radius:5px;background:#0b0f14;min-height:88px}
+.architecture-card .cap{font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace;color:#dfe2eb;word-break:break-word}
+.architecture-card .provider{margin-top:7px;color:#a2c9ff;font:600 10px ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word}
+.architecture-card .source{margin-top:5px;color:#697568;font-size:10px;line-height:1.35}
+.architecture-card.missing{border-color:#654a28}.architecture-card.missing .provider{color:#f3c86a}
+.telemetry-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.telemetry-feed{margin-top:12px;display:flex;flex-direction:column;gap:5px}
+.telemetry-row{display:grid;grid-template-columns:86px 150px minmax(0,1fr);gap:10px;padding:7px 8px;border-bottom:1px solid #20252b;font:500 10px ui-monospace,SFMono-Regular,Menlo,monospace}
+.telemetry-row .time{color:#5f6a61}.telemetry-row .type{color:#a2c9ff}.telemetry-row.err .type,.telemetry-row.err .msg{color:#ffb4ab}.telemetry-row .msg{color:#becab9}
+.quick-prompts{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.quick-prompts button{padding:4px 7px;border:1px solid #31353c;border-radius:4px;background:#0a0e14;color:#889484;font-size:9px}.quick-prompts button:hover{color:#fff;border-color:#526058}
+
 </style>
 </head>
 <body class="preflight-pending">
@@ -296,6 +311,12 @@ body.builder-mode .lifecycle-strip{background:#0c1016;border-color:#292e36}
           <div class="field-group"><label>Interpretação</label><select id="ai-provider"><option value="deterministic-rules">Regras locais</option><option value="google-gemini">Google Gemini</option></select></div>
           <div id="gemini-key-box" class="field-group" style="display:none"><label>Chave Gemini</label><input type="password" id="ai-key"></div>
           <button id="btn-ai-draft" class="btn" style="width:100%;margin-top:8px">Gerar rascunho</button>
+          <div class="quick-prompts">
+            <button type="button" data-quick-prompt="Organize os PDFs de uma pasta e copie para outra">PDFs</button>
+            <button type="button" data-quick-prompt="Faça backup diário de uma pasta para outra">Backup</button>
+            <button type="button" data-quick-prompt="Consulte uma API e salve a resposta">API</button>
+            <button type="button" data-quick-prompt="Converta um arquivo CSV para XLSX">CSV → XLSX</button>
+          </div>
         </section>
 
         <section class="builder-panel">
@@ -316,7 +337,9 @@ body.builder-mode .lifecycle-strip{background:#0c1016;border-color:#292e36}
           <div class="canvas-toolbar-left">
             <div class="view-tabs">
               <button id="canvas-tab-graph" class="active" onclick="setCanvasView('graph')">Workflow Graph</button>
+              <button id="canvas-tab-architecture" onclick="setCanvasView('architecture')">Architecture</button>
               <button id="canvas-tab-plan" onclick="setCanvasView('plan')">Impact Plan</button>
+              <button id="canvas-tab-telemetry" onclick="setCanvasView('telemetry')">Telemetry</button>
               <button id="canvas-tab-ir" onclick="setCanvasView('ir')">IR JSON</button>
             </div>
             <div class="canvas-search-box">
@@ -352,10 +375,27 @@ body.builder-mode .lifecycle-strip{background:#0c1016;border-color:#292e36}
           </div>
         </section>
 
+        <section id="canvas-view-architecture" class="canvas-view architecture-view">
+          <div class="studio-view-card">
+            <div class="builder-panel-title">Architecture Mesh <span>capability → provider → binding</span></div>
+            <div id="architecture-content"><div class="muted">Gere um plano para ver a resolução exata de capabilities e providers.</div></div>
+          </div>
+        </section>
+
         <section id="canvas-view-plan" class="canvas-view plan-view">
           <div class="plan-card" id="plan-panel">
             <div class="builder-panel-title">Plano de impacto <span id="plan-status-label">ainda não gerado</span></div>
             <div id="plan-content">Gere o plano para revisar arquivos, rede, providers, IA, custo e rollback.</div>
+          </div>
+        </section>
+
+        <section id="canvas-view-telemetry" class="canvas-view telemetry-view">
+          <div class="studio-view-card">
+            <div class="telemetry-head">
+              <div class="builder-panel-title" style="margin:0">Execution Telemetry <span>local</span></div>
+              <div class="muted">eventos da sessão · sem telemetria externa</div>
+            </div>
+            <div id="telemetry-content" class="telemetry-feed"></div>
           </div>
         </section>
 
@@ -437,6 +477,8 @@ let nodeSearchQuery='';
 let nodeSearchCursor=0;
 let simulationIndex=-1;
 let simulationTimer=null;
+let latestResourceState=null;
+let eventLog=[];
 
 const lifecycleOrder=['discover','ready','create','plan','auth','apply','verify'];
 function setLifecycle(stage,blocked=false,completeAll=false){
@@ -531,10 +573,12 @@ const humanSkill={
 
 function log(type,msg,isErr=false){
   const stamp=new Date().toLocaleTimeString();
+  eventLog.unshift({stamp,type,msg,isErr});eventLog=eventLog.slice(0,120);
   const e=document.createElement('div'); e.className='event '+(isErr?'status-err':'status-ok');
   e.textContent=stamp+'  ['+type+']  '+msg; events.prepend(e);
   const feed=document.querySelector('#builder-console-feed');
   if(feed) feed.innerHTML='<strong>['+esc(type.toUpperCase())+']</strong> '+esc(msg);
+  if(currentCanvasView==='telemetry')renderTelemetryView();
 }
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
 
@@ -599,8 +643,8 @@ async function bootProduct(){
   ]);
   document.querySelector('#repo-head').textContent='LOCAL · '+workspace.name+' · '+(workspace.branch||'sem branch');
   const consoleSource=document.querySelector('#builder-console-source');if(consoleSource)consoleSource.textContent=(workspace.branch||'LOCAL').toUpperCase();
-  utilitiesData=utilities.utilities||[];templatesData=templates.templates||[];
-  renderUtilities();renderTechnicalResources(state);loadBuilderTemplates();renderFlow();renderAssistantStatus(assistantStatus);
+  utilitiesData=utilities.utilities||[];templatesData=templates.templates||[];latestResourceState=state;
+  renderUtilities();renderTechnicalResources(state);loadBuilderTemplates();renderFlow();renderArchitectureView();renderTelemetryView();renderAssistantStatus(assistantStatus);
   log('product.ready','Computador verificado; utilidades liberadas');
 }
 function renderAssistantStatus(status){
@@ -762,6 +806,7 @@ function renderTechnicalPlan(plan){
   if((plan.missing_capabilities||[]).length)html+='<div class="status-err" style="margin-top:10px">Ainda faltam recursos: '+esc(plan.missing_capabilities.join(', '))+'</div>';
   else html+='<div class="status-ok" style="margin-top:10px">Pronto para autorização.</div>';
   document.querySelector('#plan-content').innerHTML=html;
+  renderArchitectureView();
 }
 function renderHumanPlan(plan){
   const doBox=document.querySelector('#human-do'),impact=document.querySelector('#human-impact'),technical=document.querySelector('#human-technical');
@@ -1024,9 +1069,35 @@ function updateBuilderMeta(){
   if(t)t.textContent=trigger;if(count)count.textContent=String(steps);if(source)source.textContent=currentSource||'canvas';if(layout)layout.textContent='LR · '+(steps+1)+' nodes';
 }
 function renderIRView(){const pre=document.querySelector('#ir-preview');if(pre)pre.textContent=JSON.stringify(currentIR,null,2);}
+function renderArchitectureView(){
+  const box=document.querySelector('#architecture-content');if(!box)return;
+  const resolved=currentPlan?.resolved_execution?.requirements||[];
+  if(resolved.length){
+    box.innerHTML='<div class="architecture-grid">'+resolved.map(item=>{
+      const missing=item.status!=='resolved';
+      const source=(item.sources||[]).join(' · ')||'semantic requirement';
+      return '<div class="architecture-card '+(missing?'missing':'')+'"><div class="cap">'+esc(item.capability)+'</div><div class="provider">'+esc(item.provider||'UNRESOLVED')+'</div><div class="source">'+esc(item.binding||source)+'</div></div>';
+    }).join('')+'</div>';
+    return;
+  }
+  const resources=latestResourceState?.resources||[];
+  if(resources.length){
+    box.innerHTML='<div class="muted">Recursos já detectados nesta máquina. Gere o plano para congelar a resolução desta automação.</div><div class="architecture-grid">'+resources.slice(0,24).map(item=>'<div class="architecture-card"><div class="cap">'+esc(item.capability||'?')+'</div><div class="provider">'+esc(item.provider||'?')+'</div><div class="source">'+esc(item.state||item.source||'detectado')+'</div></div>').join('')+'</div>';
+    return;
+  }
+  box.innerHTML='<div class="muted">Ainda não há resolução de arquitetura disponível.</div>';
+}
+function renderTelemetryView(){
+  const box=document.querySelector('#telemetry-content');if(!box)return;
+  if(!eventLog.length){box.innerHTML='<div class="muted">Nenhum evento nesta sessão.</div>';return;}
+  box.innerHTML=eventLog.map(item=>'<div class="telemetry-row '+(item.isErr?'err':'')+'"><span class="time">'+esc(item.stamp)+'</span><span class="type">'+esc(item.type)+'</span><span class="msg">'+esc(item.msg)+'</span></div>').join('');
+}
 function setCanvasView(view){
-  currentCanvasView=view;['graph','plan','ir'].forEach(v=>{document.querySelector('#canvas-view-'+v)?.classList.toggle('active',v===view);document.querySelector('#canvas-tab-'+v)?.classList.toggle('active',v===view);});
-  if(view==='ir')renderIRView();if(view==='graph')requestAnimationFrame(()=>drawConnections(allCanvasNodes(),graphBounds(allCanvasNodes())));
+  currentCanvasView=view;['graph','architecture','plan','telemetry','ir'].forEach(v=>{document.querySelector('#canvas-view-'+v)?.classList.toggle('active',v===view);document.querySelector('#canvas-tab-'+v)?.classList.toggle('active',v===view);});
+  if(view==='ir')renderIRView();
+  if(view==='architecture')renderArchitectureView();
+  if(view==='telemetry')renderTelemetryView();
+  if(view==='graph')requestAnimationFrame(()=>drawConnections(allCanvasNodes(),graphBounds(allCanvasNodes())));
 }
 function setCanvasZoom(value){
   canvasZoom=Math.max(.45,Math.min(1.45,value));const bounds=graphBounds(allCanvasNodes());updateGraphScale(bounds);document.querySelector('#canvas-zoom-label').textContent=Math.round(canvasZoom*100)+'%';
@@ -1045,6 +1116,7 @@ document.querySelector('#canvas-node-search').addEventListener('keydown',e=>{if(
 document.querySelector('#btn-sim-play').onclick=toggleSimulation;
 document.querySelector('#btn-sim-step').onclick=()=>{if(simulationTimer){clearInterval(simulationTimer);simulationTimer=null;}simulationStep();};
 document.querySelector('#btn-sim-reset').onclick=()=>resetSimulation(true);
+document.querySelectorAll('[data-quick-prompt]').forEach(btn=>btn.onclick=()=>{document.querySelector('#ai-prompt').value=btn.dataset.quickPrompt||'';document.querySelector('#ai-prompt').focus();});
 document.querySelector('#canvas-viewport').addEventListener('wheel',e=>{if(e.ctrlKey){e.preventDefault();setCanvasZoom(canvasZoom+(e.deltaY<0?.08:-.08));}},{passive:false});
 flowContainer.addEventListener('click',e=>{if(e.target===flowContainer)flowContainer.querySelectorAll('.insert-menu').forEach(m=>m.remove());});
 
