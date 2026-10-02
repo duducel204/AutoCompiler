@@ -26,7 +26,7 @@ class NodeContextSpiderTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             graph = Path(tmp) / "node_context_graph.json"
             code, payload, stderr = self._run(
-                "state.py",
+                "file:src/autocompiler/ay/state.py",
                 "--graph", str(graph),
                 "--refresh",
                 "--depth", "2",
