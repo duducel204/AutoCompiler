@@ -69,8 +69,8 @@ try {
         }
 
         $ReadyUtilities = @($Response.templates | Where-Object { $_.status -eq "ready" })
-        if ($ReadyUtilities.Count -lt 4) {
-            throw "Installed product exposes fewer than four ready utilities."
+        if ($ReadyUtilities.Count -lt 5) {
+            throw "Installed product does not expose all five W-01 through W-05 ready utilities."
         }
     } finally {
         if ($Process -and -not $Process.HasExited) {
