@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from .compiler import compile_ir
+from .compiler import analyze_compile_support, compile_ir
 from .environment import build_unified_resource_graph
 from .ir import SUPPORTED_SKILLS, validate_ir
 from .planner import Requirement, plan as semantic_plan
@@ -103,6 +103,48 @@ def _permissions(ir: dict[str, Any]) -> list[str]:
     return sorted(values)
 
 
+def _resolved_execution(validation, semantic, execution, target: str) -> dict[str, Any]:
+    resolution_by_capability = {item.capability: item for item in execution.resolutions}
+    requirements = []
+    for capability in validation.required_capabilities:
+        item = resolution_by_capability.get(capability)
+        provider = semantic.providers.get(capability)
+        binding = semantic.bindings.get(capability)
+        requirements.append({
+            "capability": capability,
+            "sources": validation.capability_sources.get(capability, []),
+            "status": "resolved" if provider else "missing",
+            "provider": provider,
+            "binding": binding,
+            "resolution_action": item.action if item is not None else "unresolved",
+        })
+    return {
+        "schema_version": "0.1",
+        "target": target,
+        "requirements": requirements,
+    }
+
+
+def _deployment_support(ir: dict[str, Any], resolved_execution: dict[str, Any]) -> dict[str, Any]:
+    trigger = ir.get("trigger", {})
+    trigger_type = trigger.get("type")
+    if trigger_type == "manual":
+        return {"supported": True, "type": "manual", "reason": "no background deployment required"}
+
+    # Be explicit until native deployment is closed end-to-end. Capability
+    # resolution may already know a schedule/watch/webhook provider, but that
+    # does not prove install/reread/disable/remove semantics.
+    return {
+        "supported": False,
+        "type": trigger_type,
+        "reason": "trigger capability may resolve, but canonical deployment is not yet end-to-end verified",
+        "resolved_requirements": [
+            item for item in resolved_execution.get("requirements", [])
+            if any(source.startswith("trigger:") for source in item.get("sources", []))
+        ],
+    }
+
+
 def build_workflow_plan(
     ir: dict[str, Any],
     *,
@@ -113,12 +155,20 @@ def build_workflow_plan(
     ai_provider: str | None = None,
     resource_graph: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Build a read-only, user-facing plan from the canonical IR and capability model."""
+    """Build a read-only plan whose authorization binds semantic resolution.
+
+    The plan is intentionally stricter than IR validation: it is applicable
+    only when requirements resolve, the target can materialize the resolved
+    providers, and any trigger deployment is supported.
+    """
     validation = validate_ir(ir)
     graph = resource_graph or build_unified_resource_graph()
     requirements = [Requirement(cap) for cap in validation.required_capabilities]
     semantic = semantic_plan(ir["name"], requirements, resource_graph=graph)
     execution = CapabilityRegistry().resolve(validation.required_capabilities, graph)
+    resolved_execution = _resolved_execution(validation, semantic, execution, target)
+    compiler_support = analyze_compile_support(ir, target, resolved_execution)
+    deployment_support = _deployment_support(ir, resolved_execution)
 
     out_path = str(Path(out_dir).expanduser())
     filesystem = _filesystem_impact(ir, out_path)
@@ -171,6 +221,9 @@ def build_workflow_plan(
         "source": source,
         "build_time_ai": build_time_ai,
         "ai_provider": ai_provider,
+        "resolved_execution": resolved_execution,
+        "compiler_support": compiler_support,
+        "deployment_support": deployment_support,
     }
     plan_id = _digest(plan_material)
 
@@ -190,8 +243,12 @@ def build_workflow_plan(
         "network": network,
         "external_services": external_services,
         "providers": semantic.providers,
+        "bindings": semantic.bindings,
         "missing_capabilities": semantic.missing,
         "capability_plan": execution.to_dict(),
+        "resolved_execution": resolved_execution,
+        "compiler_support": compiler_support,
+        "deployment_support": deployment_support,
         "new_software": acquisitions,
         "ai": {
             "build_time": bool(build_time_ai),
@@ -202,7 +259,11 @@ def build_workflow_plan(
         "schedule": schedule,
         "rollback": rollback,
         "protected_mutation": True,
-        "can_apply": not semantic.missing,
+        "can_apply": (
+            not semantic.missing
+            and compiler_support["supported"]
+            and deployment_support["supported"]
+        ),
     }
 
 
@@ -211,6 +272,7 @@ def verify_workflow_application(
     ir: dict[str, Any],
     target: str,
     out_dir: str | Path,
+    resolved_execution: dict[str, Any],
     returncode: int,
     run_result: dict[str, Any],
 ) -> dict[str, Any]:
@@ -222,6 +284,7 @@ def verify_workflow_application(
     artifacts_exist = all(p.exists() for p in (automation_path, ir_path, manifest_path))
     ir_matches = False
     manifest_matches = False
+    resolution_matches = False
     try:
         compiled_ir = json.loads(ir_path.read_text(encoding="utf-8"))
         ir_matches = _digest(compiled_ir) == _digest(ir)
@@ -230,16 +293,18 @@ def verify_workflow_application(
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         manifest_matches = manifest.get("target") == target and manifest.get("automation") == ir.get("name")
+        resolution_matches = manifest.get("resolved_execution_digest") == _digest(resolved_execution)
     except (OSError, json.JSONDecodeError):
         pass
 
     execution_ok = returncode == 0 and bool(run_result.get("ok"))
-    ok = artifacts_exist and ir_matches and manifest_matches and execution_ok
+    ok = artifacts_exist and ir_matches and manifest_matches and resolution_matches and execution_ok
     return {
         "ok": ok,
         "artifacts_exist": artifacts_exist,
         "ir_matches_authorized_plan": ir_matches,
         "manifest_matches_authorized_plan": manifest_matches,
+        "resolution_matches_authorized_plan": resolution_matches,
         "execution_ok": execution_ok,
         "recurring_ai_used": bool(run_result.get("recurring_ai_used", False)),
     }
@@ -251,16 +316,30 @@ def apply_workflow_plan(record: dict[str, Any]) -> dict[str, Any]:
         return {"ok": False, "status": "authorization_required"}
     plan = record["plan"]
     if not plan.get("can_apply"):
+        if plan.get("missing_capabilities"):
+            status = "unresolved_capabilities"
+        elif not plan.get("compiler_support", {}).get("supported", False):
+            status = "target_not_materializable"
+        else:
+            status = "deployment_not_supported"
         return {
             "ok": False,
-            "status": "unresolved_capabilities",
+            "status": status,
             "missing_capabilities": plan.get("missing_capabilities", []),
+            "compiler_support": plan.get("compiler_support"),
+            "deployment_support": plan.get("deployment_support"),
         }
 
     ir = deepcopy(record["ir"])
     target = plan["target"]
     out_dir = plan["out_dir"]
-    manifest = compile_ir(ir, target, out_dir)
+    resolved_execution = deepcopy(plan["resolved_execution"])
+    manifest = compile_ir(
+        ir,
+        target,
+        out_dir,
+        resolved_execution=resolved_execution,
+    )
 
     try:
         process = subprocess.run(
@@ -286,6 +365,7 @@ def apply_workflow_plan(record: dict[str, Any]) -> dict[str, Any]:
         ir=ir,
         target=target,
         out_dir=out_dir,
+        resolved_execution=resolved_execution,
         returncode=process.returncode,
         run_result=run_result,
     )
