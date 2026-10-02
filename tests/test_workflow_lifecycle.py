@@ -455,6 +455,95 @@ class WorkflowLifecycleTests(unittest.TestCase):
             server.server_close()
             thread.join(timeout=2)
 
+    def test_all_ready_templates_close_through_the_same_planner_and_compiler(self):
+        graph = usable_graph()
+        graph["resources"].append({
+            "capability": "schedule",
+            "provider": "windows-task-scheduler",
+            "state": "usable",
+            "cost": "free",
+        })
+        params_by_template = {
+            "w01": {"source_folder": "./in", "target_folder": "./out"},
+            "w02": {"source_folder": "./in", "backup_folder": "./backup"},
+            "w03": {"api_url": "http://127.0.0.1:9999/data", "output_file": "snapshots.jsonl"},
+            "w04": {"monitor_key": "proof", "target_url": "http://127.0.0.1:9999/state"},
+            "w05": {"input_csv": "input.csv", "output_xlsx": "output.xlsx"},
+            "w11": {
+                "source_folder": "./Downloads",
+                "documents_folder": "./Downloads/Documentos",
+                "spreadsheets_folder": "./Downloads/Planilhas",
+                "images_folder": "./Downloads/Imagens",
+            },
+            "w12": {"source_folder": "./in", "extension": ".pdf", "backup_folder": "./backup/pdf"},
+            "w13": {"api_url": "http://127.0.0.1:9999/daily", "output_file": "daily.jsonl"},
+            "w14": {"input_csv": "daily.csv", "output_xlsx": "daily.xlsx"},
+            "w15": {"source_folder": "./inbox", "target_folder": "./archive"},
+        }
+        for template_id, params in params_by_template.items():
+            with self.subTest(template_id=template_id):
+                ir = instantiate_template(template_id, params)["ir"]
+                plan = build_workflow_plan(
+                    ir,
+                    out_dir=f"./generated/{template_id}",
+                    source="template",
+                    resource_graph=graph,
+                )
+                self.assertTrue(plan["compiler_support"]["supported"], plan["compiler_support"])
+                self.assertTrue(plan["deployment_support"]["supported"], plan["deployment_support"])
+                self.assertEqual(plan["missing_capabilities"], [])
+                self.assertTrue(plan["can_apply"])
+
+    def test_w11_organize_downloads_moves_files_in_independent_artifact(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            source = root / "Downloads"
+            docs = root / "Documentos"
+            sheets = root / "Planilhas"
+            images = root / "Imagens"
+            source.mkdir()
+            (source / "report.pdf").write_text("pdf", encoding="utf-8")
+            (source / "table.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+            (source / "book.xlsx").write_text("xlsx", encoding="utf-8")
+            (source / "photo.jpg").write_text("jpg", encoding="utf-8")
+            (source / "image.png").write_text("png", encoding="utf-8")
+            (source / "keep.txt").write_text("keep", encoding="utf-8")
+
+            ir = instantiate_template(
+                "w11",
+                {
+                    "source_folder": str(source),
+                    "documents_folder": str(docs),
+                    "spreadsheets_folder": str(sheets),
+                    "images_folder": str(images),
+                },
+            )["ir"]
+            compiled = root / "compiled"
+            plan = build_workflow_plan(
+                ir,
+                out_dir=compiled,
+                source="template",
+                resource_graph=usable_graph(),
+            )
+            self.assertTrue(plan["can_apply"])
+            self.assertTrue(any(x["reason"] == "move destination" for x in plan["filesystem"]))
+
+            store = WorkflowPlanStore()
+            store.create(ir, plan)
+            record = store.authorize(plan["plan_id"])
+            result = apply_workflow_plan(record)
+
+            self.assertTrue(result["ok"])
+            self.assertTrue((docs / "report.pdf").exists())
+            self.assertTrue((sheets / "table.csv").exists())
+            self.assertTrue((sheets / "book.xlsx").exists())
+            self.assertTrue((images / "photo.jpg").exists())
+            self.assertTrue((images / "image.png").exists())
+            self.assertTrue((source / "keep.txt").exists())
+            self.assertFalse((source / "report.pdf").exists())
+            self.assertEqual(result["result"]["processed"], 5)
+            self.assertTrue((compiled / "run-history.jsonl").exists())
+
     def test_failed_execution_is_not_reported_as_verified(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
