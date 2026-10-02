@@ -175,7 +175,6 @@ def _gemini_chat(
         "systemInstruction": {"parts": [{"text": prompt}]},
         "contents": contents,
         "generationConfig": {
-            "temperature": 0.3,
             "maxOutputTokens": 1200,
         },
     }
@@ -310,6 +309,7 @@ def draft_from_conversation(
         "\n".join(prompt_parts),
         api_key=config.api_key,
         provider=config.provider,
+        model=config.model,
     )
     if result.get("ok"):
         result.update({
