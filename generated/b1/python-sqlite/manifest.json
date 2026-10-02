@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "0.3",
   "automation": "b1-folder-filter-copy-history",
   "target": "python-sqlite",
   "state_provider": "sqlite",
@@ -8,6 +8,18 @@
     "filesystem.read",
     "filesystem.write"
   ],
+  "capability_sources": {
+    "durable_state": [
+      "step:history:state.record"
+    ],
+    "filesystem.read": [
+      "step:scan:filesystem.scan",
+      "step:copy:filesystem.copy"
+    ],
+    "filesystem.write": [
+      "step:copy:filesystem.copy"
+    ]
+  },
   "permissions": [
     {
       "mode": "read",
@@ -28,5 +40,7 @@
   ],
   "runtime_dependency": "python-standard-library",
   "autocompiler_required_after_compile": false,
-  "recurring_ai_required": false
+  "recurring_ai_required": false,
+  "resolved_execution": null,
+  "resolved_execution_digest": null
 }
