@@ -134,9 +134,9 @@ body.builder-mode .lifecycle-strip{background:#0c1016;border-color:#292e36}
 </header>
 
 <nav id="lifecycle-strip" class="lifecycle-strip" aria-label="Ciclo canônico do AutoCompiler">
-  <div class="lifecycle-step completed" id="step-discover"><span class="n">1</span><span>DISCOVER</span></div><span class="lifecycle-sep">→</span>
-  <div class="lifecycle-step completed" id="step-ready"><span class="n">2</span><span>AUTOMATION_READY</span></div><span class="lifecycle-sep">→</span>
-  <div class="lifecycle-step active" id="step-create"><span class="n">3</span><span>CREATE</span></div><span class="lifecycle-sep">→</span>
+  <div class="lifecycle-step active" id="step-discover"><span class="n">1</span><span>DISCOVER</span></div><span class="lifecycle-sep">→</span>
+  <div class="lifecycle-step" id="step-ready"><span class="n">2</span><span>AUTOMATION_READY</span></div><span class="lifecycle-sep">→</span>
+  <div class="lifecycle-step" id="step-create"><span class="n">3</span><span>CREATE</span></div><span class="lifecycle-sep">→</span>
   <div class="lifecycle-step" id="step-plan"><span class="n">4</span><span>PLAN</span></div><span class="lifecycle-sep">→</span>
   <div class="lifecycle-step" id="step-auth"><span class="n">5</span><span>AUTHORIZE</span></div><span class="lifecycle-sep">→</span>
   <div class="lifecycle-step" id="step-apply"><span class="n">6</span><span>APPLY</span></div><span class="lifecycle-sep">→</span>
@@ -433,6 +433,87 @@ let nodePositions={};
 let canvasZoom=1;
 let currentCanvasView='graph';
 let currentIR={schema_version:"0.1",name:"Automação Manual Canvas",trigger:{type:"manual"},steps:[],state:{file:"history.db"}};
+let nodeSearchQuery='';
+let nodeSearchCursor=0;
+let simulationIndex=-1;
+let simulationTimer=null;
+
+const lifecycleOrder=['discover','ready','create','plan','auth','apply','verify'];
+function setLifecycle(stage,blocked=false,completeAll=false){
+  const activeIndex=lifecycleOrder.indexOf(stage);
+  lifecycleOrder.forEach((name,index)=>{
+    const el=document.querySelector('#step-'+name);if(!el)return;
+    el.classList.remove('completed','active','blocked');
+    if(completeAll||index<activeIndex)el.classList.add('completed');
+    else if(index===activeIndex)el.classList.add(blocked?'blocked':'active');
+  });
+}
+function searchableNodeText(node){
+  return [node.id,node.skill||'',node.isTrigger?'trigger':'',JSON.stringify(node.with||{})].join(' ').toLowerCase();
+}
+function currentSearchMatches(){
+  const q=nodeSearchQuery.trim().toLowerCase().replace(/^#/,'');
+  if(!q)return [];
+  return allCanvasNodes().filter(n=>searchableNodeText(n).includes(q));
+}
+function applyCanvasHighlights(){
+  const matches=currentSearchMatches(), ids=new Set(matches.map(n=>n.id));
+  flowContainer.querySelectorAll('.graph-node').forEach(card=>{
+    const id=card.dataset.nodeId;
+    card.classList.toggle('search-match',Boolean(nodeSearchQuery.trim())&&ids.has(id));
+    card.classList.toggle('sim-active',allCanvasNodes()[simulationIndex]?.id===id);
+    const index=allCanvasNodes().findIndex(n=>n.id===id);
+    card.classList.toggle('sim-done',simulationIndex>=0&&index>=0&&index<simulationIndex);
+  });
+  const count=document.querySelector('#search-match-count');
+  if(count)count.textContent=nodeSearchQuery.trim()?(matches.length+' match'+(matches.length===1?'':'es')):'';
+}
+function focusSearchMatch(direction=1){
+  const matches=currentSearchMatches();if(!matches.length)return;
+  nodeSearchCursor=(nodeSearchCursor+direction+matches.length)%matches.length;
+  const node=matches[nodeSearchCursor];selectCanvasNode(node.id);
+  const card=flowContainer.querySelector('[data-node-id="'+CSS.escape(node.id)+'"]');
+  card?.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});
+}
+function resetSimulation(logIt=false){
+  if(simulationTimer){clearInterval(simulationTimer);simulationTimer=null;}
+  simulationIndex=-1;
+  const play=document.querySelector('#btn-sim-play');if(play){play.classList.remove('playing');play.textContent='▶ Prévia';}
+  const status=document.querySelector('#sim-status');status?.classList.remove('active');
+  const label=document.querySelector('#sim-status-text');if(label)label.textContent='Prévia causal pronta';
+  const progress=document.querySelector('#sim-progress');if(progress)progress.textContent='0/'+allCanvasNodes().length;
+  applyCanvasHighlights();
+  if(logIt)log('preview.reset','Prévia visual reiniciada');
+}
+function simulationStep(){
+  const nodes=allCanvasNodes();if(!nodes.length)return;
+  if(simulationIndex>=nodes.length-1){
+    if(simulationTimer){clearInterval(simulationTimer);simulationTimer=null;}
+    const play=document.querySelector('#btn-sim-play');if(play){play.classList.remove('playing');play.textContent='▶ Prévia';}
+    const status=document.querySelector('#sim-status');status?.classList.remove('active');
+    const label=document.querySelector('#sim-status-text');if(label)label.textContent='Prévia concluída';
+    return;
+  }
+  simulationIndex+=1;
+  const node=nodes[simulationIndex];
+  const status=document.querySelector('#sim-status');status?.classList.add('active');
+  const label=document.querySelector('#sim-status-text');if(label)label.textContent='Prévia · '+(node.skill||node.id);
+  const progress=document.querySelector('#sim-progress');if(progress)progress.textContent=(simulationIndex+1)+'/'+nodes.length;
+  applyCanvasHighlights();
+  const card=flowContainer.querySelector('[data-node-id="'+CSS.escape(node.id)+'"]');
+  card?.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});
+}
+function toggleSimulation(){
+  if(simulationTimer){
+    clearInterval(simulationTimer);simulationTimer=null;
+    const play=document.querySelector('#btn-sim-play');if(play){play.classList.remove('playing');play.textContent='▶ Continuar';}
+    return;
+  }
+  if(simulationIndex>=allCanvasNodes().length-1)simulationIndex=-1;
+  const play=document.querySelector('#btn-sim-play');if(play){play.classList.add('playing');play.textContent='Ⅱ Pausar';}
+  simulationStep();
+  simulationTimer=setInterval(simulationStep,650);
+}
 
 const humanSkill={
   "filesystem.scan":"Ler os arquivos da pasta escolhida",
@@ -480,9 +561,10 @@ function renderPreflight(data){
     document.body.classList.remove('preflight-pending','preflight-blocked');
     badge.textContent='COMPUTADOR PRONTO';badge.className='readiness-badge readiness-ok';
     title.textContent='Seu computador está pronto';message.textContent='Os recursos locais necessários foram verificados.';
-    bootProduct();return;
+    setLifecycle('create');bootProduct();return;
   }
   document.body.classList.remove('preflight-pending');document.body.classList.add('preflight-blocked');
+  setLifecycle('ready',true);
   badge.textContent=data.supported_platform===false?'PLATAFORMA NÃO SUPORTADA':'PREPARAÇÃO NECESSÁRIA';
   badge.className='readiness-badge readiness-blocked';
   title.textContent=data.supported_platform===false?'Plataforma ainda não validada':'Precisamos preparar alguns recursos';
@@ -655,6 +737,7 @@ async function generatePlan(forBasic=false){
   const r=await fetch('/api/workflow/plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ir:currentIR,target:'python-sqlite',source:currentSource,build_time_ai:buildTimeAI,ai_provider:currentAIProvider})});
   const res=await r.json();if(!res.ok)throw new Error(res.error||'Falha ao gerar plano');
   currentPlan=res.plan;renderTechnicalPlan(currentPlan);
+  setLifecycle(currentPlan.can_apply?'auth':'plan',!currentPlan.can_apply);
   document.querySelector('#btn-authorize').disabled=!currentPlan.can_apply;document.querySelector('#btn-apply').disabled=true;
   log('plan.ready','Plano '+currentPlan.plan_id.slice(0,12)+' pronto para revisão');
   if(forBasic){renderHumanPlan(currentPlan);document.querySelector('#basic-plan').classList.remove('hidden');document.querySelector('#basic-result').classList.add('hidden');document.querySelector('#basic-plan').scrollIntoView({behavior:'smooth',block:'start'});}
@@ -702,6 +785,7 @@ async function authorizeCurrentPlan(){
   const res=await r.json();if(!res.ok)throw new Error(res.status||res.error||'Falha na autorização');
   const status=document.querySelector('#builder-plan-status');if(status){status.textContent='AUTHORIZED';status.style.color='#ffd18a';}
   const consolePlan=document.querySelector('#builder-console-plan');if(consolePlan)consolePlan.textContent='AUTHORIZED';
+  setLifecycle('apply');
   log('authorization.approved','Plano autorizado explicitamente');return res;
 }
 async function applyCurrentPlan(){
@@ -709,6 +793,7 @@ async function applyCurrentPlan(){
   const res=await r.json();if(!res.ok||!res.verification||!res.verification.ok)throw new Error(res.status||res.error||'Verificação falhou');
   const status=document.querySelector('#builder-plan-status');if(status){status.textContent='VERIFIED';status.style.color='#6fdd78';}
   const consolePlan=document.querySelector('#builder-console-plan');if(consolePlan)consolePlan.textContent='VERIFIED';
+  setLifecycle('verify',false,true);
   log('verify.success','Aplicação e verificação concluídas');return res;
 }
 document.querySelector('#btn-basic-activate').onclick=async()=>{
@@ -751,7 +836,7 @@ document.querySelector('#btn-instantiate').onclick=async()=>{
 };
 
 function resetPlan(reason){
-  currentPlan=null;document.querySelector('#btn-authorize').disabled=true;document.querySelector('#btn-apply').disabled=true;
+  currentPlan=null;setLifecycle('create');resetSimulation(false);document.querySelector('#btn-authorize').disabled=true;document.querySelector('#btn-apply').disabled=true;
   document.querySelector('#plan-status-label').textContent='precisa ser gerado';document.querySelector('#plan-content').textContent='O fluxo mudou. Gere um novo plano.';
   const status=document.querySelector('#builder-plan-status');if(status){status.textContent='—';status.style.color='#889484';}
   const irStatus=document.querySelector('#builder-ir-status');if(irStatus){irStatus.textContent='IR EDITED';irStatus.style.color='#ffd18a';}
@@ -841,6 +926,8 @@ function renderFlow(){
   const bounds=graphBounds(nodes);flowContainer.style.width=bounds.width+'px';flowContainer.style.height=bounds.height+'px';
   updateGraphScale(bounds);drawConnections(nodes,bounds);renderInsertButtons(nodes);renderIRView();updateBuilderMeta();
   if(selectedCanvasNode&&!nodes.some(n=>n.id===selectedCanvasNode)){selectedCanvasNode=null;renderInspector();}
+  applyCanvasHighlights();
+  const progress=document.querySelector('#sim-progress');if(progress)progress.textContent=(simulationIndex>=0?simulationIndex+1:0)+'/'+nodes.length;
 }
 function drawConnections(nodes,bounds){
   const svg=document.querySelector('#graph-wires');if(!svg)return;
@@ -953,6 +1040,11 @@ function fitCanvas(logIt=true){
 document.querySelector('#canvas-fit').onclick=()=>fitCanvas(true);
 document.querySelector('#canvas-zoom-in').onclick=()=>setCanvasZoom(canvasZoom+.1);
 document.querySelector('#canvas-zoom-out').onclick=()=>setCanvasZoom(canvasZoom-.1);
+document.querySelector('#canvas-node-search').addEventListener('input',e=>{nodeSearchQuery=e.target.value;nodeSearchCursor=0;applyCanvasHighlights();});
+document.querySelector('#canvas-node-search').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();focusSearchMatch(e.shiftKey?-1:1);}else if(e.key==='Escape'){e.target.value='';nodeSearchQuery='';applyCanvasHighlights();}});
+document.querySelector('#btn-sim-play').onclick=toggleSimulation;
+document.querySelector('#btn-sim-step').onclick=()=>{if(simulationTimer){clearInterval(simulationTimer);simulationTimer=null;}simulationStep();};
+document.querySelector('#btn-sim-reset').onclick=()=>resetSimulation(true);
 document.querySelector('#canvas-viewport').addEventListener('wheel',e=>{if(e.ctrlKey){e.preventDefault();setCanvasZoom(canvasZoom+(e.deltaY<0?.08:-.08));}},{passive:false});
 flowContainer.addEventListener('click',e=>{if(e.target===flowContainer)flowContainer.querySelectorAll('.insert-menu').forEach(m=>m.remove());});
 
