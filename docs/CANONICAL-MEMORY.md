@@ -16,6 +16,32 @@ This document records the correction.
 
 ## Rule
 
+### Fast operational reuse — decision D-026
+
+Evidence is working memory, not a reason to rerun the same experiment on every request:
+
+```text
+need → consult canonical registry / local bindings / existing skills
+     → reuse within proven scope
+     → execute under current permissions
+     → register only new verified capability or procedure
+```
+
+The runtime source of truth remains `data/canonical_capabilities.json` plus validated local `CapabilityCatalog` bindings. The current registry contains 40 validated records: 36 builtin and four resource-bound (`schedule`, `vault.read`, `vault.write`, `vault.search`). This is an inventory of existing records, not a new blanket validation of all providers or user journeys.
+
+Reuse a record when its provider/version and contract still match the task and its required resources are usable. For new successful evidence, attach the actual contract/test or execution reference, scope and limitations to the existing canonical record, or promote a candidate through `CapabilityCatalog` after verification. Record resource-specific configuration as a local binding rather than declaring it globally available.
+
+| Situation | Work rule |
+|---|---|
+| Unchanged validated contract and relevant conditions | Reuse existing evidence; no routine contract rerun |
+| Detected resource only | Treat as observed; do not promote trust |
+| Validated resource-bound contract without local binding | Resolve the binding/permission gap |
+| Partial evidence | Reuse only the proven behavior |
+| New/changed contract, relevant environment drift, invalid evidence or failure | Validate the affected behavior, then register the result |
+| Integration or release candidate | Run the required canonical gate on that candidate |
+
+An installed skill or remembered procedure helps choose how to work; it does not replace provider evidence or grant credentials. Engine capability validation and end-user utility readiness remain separate.
+
 Normal planning must use canonical memory automatically.
 
 The planner now builds one unified resource graph from three sources:

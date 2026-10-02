@@ -213,6 +213,12 @@ For each workflow, record each dimension as:
 | **W-04** Change monitor | 1 | 1 | 1 | 1 | 1 | 1 | N/A | 1 | **VERIFIED** |
 | **W-05** Spreadsheet transformation | 1 | 1 | 1 | 1 | 1 | 1 | N/A | 1 | **VERIFIED** |
 
+### Engine coverage versus Basic utility readiness
+
+The table above records engine benchmark evidence, not release readiness for every user-facing utility. As of 2026-10-02, `src/autocompiler/templates.py` marks Organize PDFs (`w01`) as `ready`, while `w02` through `w05` remain `validation`. The ready PDF template uses a manual trigger and copies files; the benchmark name alone does not prove an automatic folder-event/move flow.
+
+W-06 through W-09 authenticated integrations are not recorded as verified here. W-10 has an example and workflow-engine implementation/test evidence, but its full persistent follow-up release proof must still be checked against J-015. See [NEXT_TASK_PREP.md](NEXT_TASK_PREP.md).
+
 Do not reduce the project to a single vanity percentage. The score exists to expose the limiting capability.
 
 ## 6. Prioritization rule
