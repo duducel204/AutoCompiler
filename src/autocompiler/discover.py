@@ -6,6 +6,7 @@ import platform
 import shutil
 import sqlite3
 import subprocess
+import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -166,6 +167,18 @@ def discover() -> dict:
     python = detect_command("python", "python", ["--version"])
     if not python.detected:
         python = detect_command("python", "python3", ["--version"])
+    if not python.detected and Path(sys.executable).is_file():
+        python = Capability(
+            "python",
+            True,
+            installed="yes",
+            accessible="yes",
+            authorized="yes",
+            usable="yes",
+            path=str(Path(sys.executable).resolve()),
+            version=platform.python_version(),
+            notes="Current AutoCompiler Python runtime; may be a private bundled runtime and need not be on PATH.",
+        )
     capabilities.append(python)
 
     capabilities.append(detect_command("git", "git", ["--version"]))
