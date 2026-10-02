@@ -168,6 +168,73 @@ def _write_xlsx(path, rows):
     return {"ok": True, "path": str(path), "count": len(rows)}
 
 
+def _safe_state_table(name):
+    table = str(name or "seen_items")
+    if not table or not (table[0].isalpha() or table[0] == "_") or not all(ch.isalnum() or ch == "_" for ch in table):
+        raise ValueError("Invalid SQLite state table name")
+    return table
+
+
+def _state_value(value):
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
+def _state_check(args, context):
+    if _provider("state.check") != "sqlite":
+        raise RuntimeError("Unsupported resolved state.check provider: " + str(_provider("state.check")))
+    db = Path(str(_resolve(args.get("file") or args.get("db") or "state.db", context))).expanduser()
+    if not db.is_absolute():
+        db = ROOT / db
+    table = _safe_state_table(args.get("table", "seen_items"))
+    key = str(_resolve(args.get("key") or args.get("value") or "", context))
+    expected_supplied = "val" in args
+    expected = _state_value(_resolve(args.get("val"), context)) if expected_supplied else None
+    if not db.exists():
+        return {"ok": True, "seen": False, "key": key, "val": None,
+                "matches": False if expected_supplied else None,
+                "changed": True if expected_supplied else None}
+    with sqlite3.connect(db) as con:
+        con.execute(f"CREATE TABLE IF NOT EXISTS {table} (item_key TEXT PRIMARY KEY, val TEXT, ts TEXT)")
+        columns = {row[1] for row in con.execute(f"PRAGMA table_info({table})")}
+        if "val" not in columns:
+            con.execute(f"ALTER TABLE {table} ADD COLUMN val TEXT")
+            con.commit()
+        row = con.execute(f"SELECT val FROM {table} WHERE item_key = ?", (key,)).fetchone()
+    current = row[0] if row is not None else None
+    seen = row is not None
+    matches = (current == expected) if expected_supplied and seen else False if expected_supplied else None
+    return {"ok": True, "seen": seen, "key": key, "val": current,
+            "matches": matches, "changed": (not matches) if expected_supplied else None}
+
+
+def _state_update(args, context):
+    if _provider("state.update") != "sqlite":
+        raise RuntimeError("Unsupported resolved state.update provider: " + str(_provider("state.update")))
+    db = Path(str(_resolve(args.get("file") or args.get("db") or "state.db", context))).expanduser()
+    if not db.is_absolute():
+        db = ROOT / db
+    table = _safe_state_table(args.get("table", "seen_items"))
+    key = str(_resolve(args.get("key") or args.get("value") or "", context))
+    val = _state_value(_resolve(args.get("val", "ok"), context))
+    ts = datetime.now(timezone.utc).isoformat()
+    db.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(db) as con:
+        con.execute(f"CREATE TABLE IF NOT EXISTS {table} (item_key TEXT PRIMARY KEY, val TEXT, ts TEXT)")
+        columns = {row[1] for row in con.execute(f"PRAGMA table_info({table})")}
+        if "val" not in columns:
+            con.execute(f"ALTER TABLE {table} ADD COLUMN val TEXT")
+        previous_row = con.execute(f"SELECT val FROM {table} WHERE item_key = ?", (key,)).fetchone()
+        previous = previous_row[0] if previous_row is not None else None
+        changed = previous != val
+        if changed or not args.get("only_if_changed", False):
+            con.execute(f"INSERT OR REPLACE INTO {table} (item_key, val, ts) VALUES (?, ?, ?)", (key, val, ts))
+            con.commit()
+    return {"ok": True, "updated": changed or not args.get("only_if_changed", False),
+            "changed": changed, "key": key, "previous": previous, "val": val, "ts": ts}
+
+
 def _record_copy_history(root, ir, pairs):
     if STATE_MODE == "sqlite":
         db = root / ir.get("state", {}).get("file", "history.db")
@@ -255,6 +322,12 @@ def run():
             rows = _resolve(args.get("rows"), context)
             context[sid] = _write_xlsx(path, rows)
 
+        elif skill == "state.check":
+            context[sid] = _state_check(args, context)
+
+        elif skill == "state.update":
+            context[sid] = _state_update(args, context)
+
         elif skill == "state.record_jsonl":
             value = _resolve(args.get("value"), context)
             file_path = Path(str(_resolve(args.get("file"), context))).expanduser()
@@ -301,6 +374,8 @@ TARGET_SKILLS = {
         "state.record_jsonl",
         "csv.read",
         "xlsx.write",
+        "state.check",
+        "state.update",
     },
     "python-json": {
         "filesystem.scan",
@@ -312,6 +387,8 @@ TARGET_SKILLS = {
         "state.record_jsonl",
         "csv.read",
         "xlsx.write",
+        "state.check",
+        "state.update",
     },
 }
 
@@ -327,6 +404,8 @@ TARGET_CAPABILITY_PROVIDERS = {
         "http.request": {"autocompiler.http_provider"},
         "csv.read": {"python-stdlib-csv"},
         "xlsx.write": {"python-stdlib-xlsx"},
+        "state.check": {"sqlite"},
+        "state.update": {"sqlite"},
     },
     "python-json": {
         "filesystem.read": {"python-stdlib-filesystem", "stdlib"},
@@ -335,6 +414,8 @@ TARGET_CAPABILITY_PROVIDERS = {
         "http.request": {"autocompiler.http_provider"},
         "csv.read": {"python-stdlib-csv"},
         "xlsx.write": {"python-stdlib-xlsx"},
+        "state.check": {"sqlite"},
+        "state.update": {"sqlite"},
     },
 }
 
