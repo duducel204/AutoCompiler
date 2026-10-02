@@ -254,6 +254,12 @@ def _record_copy_history(root, ir, pairs):
     return str(history_file)
 
 
+def _append_run_history(record):
+    target = ROOT / "run-history.jsonl"
+    with target.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
+
+
 def run():
     context = {}
     processed = 0
@@ -286,6 +292,20 @@ def run():
                 copied.append((source, target))
             context[sid] = copied
             processed += len(copied)
+
+        elif skill == "filesystem.move":
+            from_ref = args["from"]
+            items = _resolve(from_ref, context) if isinstance(from_ref, str) and from_ref.startswith("$") else context[from_ref]
+            destination = Path(_resolve(args["destination"], context)).expanduser()
+            destination.mkdir(parents=True, exist_ok=True)
+            moved = []
+            for item in items:
+                source = Path(item)
+                target = destination / source.name
+                shutil.move(str(source), str(target))
+                moved.append((source, target))
+            context[sid] = moved
+            processed += len(moved)
 
         elif skill == "state.record":
             from_ref = args["from"]
@@ -342,7 +362,7 @@ def run():
         else:
             raise RuntimeError("Unsupported compiled skill: " + str(skill))
 
-    print(json.dumps({
+    result = {
         "ok": True,
         "processed": processed,
         "target": MANIFEST["target"],
@@ -351,11 +371,29 @@ def run():
         "resolved_execution_digest": MANIFEST.get("resolved_execution_digest"),
         "history": history,
         "context": context,
-    }, ensure_ascii=False, default=str))
+    }
+    _append_run_history({
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "status": "ok",
+        "processed": processed,
+        "target": MANIFEST["target"],
+        "history": history,
+    })
+    print(json.dumps(result, ensure_ascii=False, default=str))
+    return result
 
 
 if __name__ == "__main__":
-    run()
+    try:
+        run()
+    except Exception as exc:
+        _append_run_history({
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "status": "error",
+            "error_type": type(exc).__name__,
+            "error": str(exc),
+        })
+        raise
 '''
 
 TARGETS = {
@@ -368,6 +406,7 @@ TARGET_SKILLS = {
         "filesystem.scan",
         "filter.extension",
         "filesystem.copy",
+        "filesystem.move",
         "state.record",
         "http.request",
         "data.map",
@@ -381,6 +420,7 @@ TARGET_SKILLS = {
         "filesystem.scan",
         "filter.extension",
         "filesystem.copy",
+        "filesystem.move",
         "state.record",
         "http.request",
         "data.map",

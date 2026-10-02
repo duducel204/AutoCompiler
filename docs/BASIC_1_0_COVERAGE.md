@@ -219,6 +219,20 @@ This is the recorded benchmark table. Its dimensions must not be read as live sc
 
 The table above records engine benchmark evidence, not release readiness for every user-facing utility. As of 2026-10-02, `src/autocompiler/templates.py` marks `w01` through `w05` as `ready`. Readiness remains scoped to the actual user-facing template and proof. W-02 now has a Windows acceptance proof that compiles the backup artifact, installs a real Task Scheduler task, triggers it through `schtasks.exe`, observes the copied file, and removes the task. W-03 readiness is scoped to the current manual template: the authorized plan resolves `http.request` to `autocompiler.http_provider`, the independent compiled artifact performs a real local HTTP request and persists the response to JSONL without importing the AutoCompiler runtime. W-04 composes scheduled deployment, real HTTP retrieval and durable state comparison/update; its lifecycle proof confirms the first observation is recorded, identical observations do not update state, and a changed payload does. W-05 compiles the resolved `csv.read` and `xlsx.write` providers into an independent artifact and produces a real XLSX output. The ready PDF template (`w01`) still uses a manual trigger and copies files; the benchmark name alone does not prove an automatic folder-event/move flow.
 
+### Local Ready Pack extension
+
+Beyond benchmark W-01 through W-05, the installed Basic catalog now includes five additional local workflows built from the same validated primitives:
+
+| Workflow | Composition | Product intent |
+|---|---|---|
+| **W-11 Organizar Downloads** | scan → filter by extension → move → state record | Move PDFs, spreadsheets and images into configured folders |
+| **W-12 Backup seletivo por tipo** | schedule → scan → extension filter → copy → state record | Daily backup of one selected file type |
+| **W-13 Snapshot diário de API** | schedule → HTTP GET → JSONL record | Keep a daily local history of an API response |
+| **W-14 CSV para Excel automático** | schedule → CSV read → XLSX write | Refresh an XLSX file from CSV every day |
+| **W-15 Caixa de entrada de PDFs** | schedule → scan → PDF filter → move → state record | Periodically clear a PDF inbox into an archive folder |
+
+These workflows do not create parallel execution paths. They must pass the same requirement derivation, provider resolution, Plan → Authorize → Apply → Verify, independent artifact and installed lifecycle path as W-01 through W-05.
+
 W-06 through W-09 authenticated integrations are not recorded as verified here. W-10 has an example and workflow-engine implementation/test evidence, but its full persistent follow-up release proof must still be checked against J-015. See [NEXT_TASK_PREP.md](NEXT_TASK_PREP.md).
 
 Do not reduce the project to a single vanity percentage. The score exists to expose the limiting capability.

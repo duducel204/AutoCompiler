@@ -32,7 +32,9 @@ class AssistantChatTests(unittest.TestCase):
         self.assertEqual(status["model"], "test-model")
         self.assertNotIn("temporary-secret-key", str(status))
 
-    def test_runtime_configuration_is_memory_only_and_secret_is_not_returned(self):
+    @patch("autocompiler.assistant_chat.probe")
+    def test_runtime_configuration_is_memory_only_and_secret_is_not_returned(self, probe):
+        probe.return_value = {"ok": True, "provider": "google-gemini", "model": "gemini-3.8-flash"}
         result = configure_assistant(
             api_key="AQ.temporary-secret-key",
             provider="google-gemini",
@@ -51,6 +53,26 @@ class AssistantChatTests(unittest.TestCase):
         cleared = clear_assistant_configuration()
         self.assertFalse(cleared["configured"])
 
+    @patch("autocompiler.assistant_chat.probe")
+    def test_failed_probe_does_not_mark_assistant_configured(self, probe):
+        probe.return_value = {
+            "ok": False,
+            "diagnostic": {
+                "kind": "authentication",
+                "message": "A Gemini API rejeitou a credencial.",
+                "http_status": 401,
+                "provider_reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+            },
+        }
+        result = configure_assistant(
+            api_key="not-a-real-key",
+            model="gemini-3.8-flash",
+        )
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["configured"])
+        self.assertEqual(result["diagnostic"]["kind"], "authentication")
+        self.assertFalse(assistant_status()["configured"])
+
     def test_unconfigured_chat_fails_closed(self):
         clear_assistant_configuration()
         with patch.dict(os.environ, {
@@ -61,8 +83,10 @@ class AssistantChatTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["error"], "assistant_not_configured")
 
+    @patch("autocompiler.assistant_chat.probe")
     @patch("autocompiler.assistant_chat._gemini_chat")
-    def test_chat_can_edit_draft_but_cannot_mutate_machine_or_authorize(self, gemini):
+    def test_chat_can_edit_draft_but_cannot_mutate_machine_or_authorize(self, gemini, probe):
+        probe.return_value = {"ok": True, "provider": "google-gemini", "model": "gemini-3.8-flash"}
         gemini.return_value = "Vamos definir a origem e o destino do backup."
         configure_assistant(
             api_key="AQ.temporary-secret-key",
@@ -85,8 +109,10 @@ class AssistantChatTests(unittest.TestCase):
         self.assertFalse(result["can_apply"])
         gemini.assert_called_once()
 
+    @patch("autocompiler.assistant_chat.probe")
     @patch("autocompiler.assistant_chat.draft_intent_to_ir")
-    def test_conversation_can_create_candidate_ir_with_configured_model(self, draft):
+    def test_conversation_can_create_candidate_ir_with_configured_model(self, draft, probe):
+        probe.return_value = {"ok": True, "provider": "google-gemini", "model": "gemini-3.8-flash"}
         draft.return_value = {
             "ok": True,
             "ir": {

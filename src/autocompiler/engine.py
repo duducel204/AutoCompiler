@@ -107,6 +107,25 @@ def execute(ir: dict[str, Any], event: dict[str, Any], root: Path, http_request=
                 shutil.copy2(src, target)
                 copied.append(str(target))
             return copied
+        elif skill == "filesystem.move":
+            raw_from = args["from"]
+            from_val = resolve(raw_from if not (isinstance(raw_from, str) and raw_from.startswith("$")) else raw_from, context)
+            if isinstance(from_val, str) and from_val in context:
+                items = context[from_val]
+            elif isinstance(from_val, list):
+                items = from_val
+            else:
+                items = [from_val]
+
+            dest = Path(resolve(args["destination"], context)).expanduser()
+            dest.mkdir(parents=True, exist_ok=True)
+            moved = []
+            for item in items:
+                src = Path(item)
+                target = dest / src.name
+                shutil.move(str(src), str(target))
+                moved.append(str(target))
+            return moved
         elif skill in ("filesystem.read", "filesystem.write"):
             from .providers import FilesystemReadProvider, FilesystemWriteProvider
             prov = FilesystemReadProvider() if skill == "filesystem.read" else FilesystemWriteProvider()

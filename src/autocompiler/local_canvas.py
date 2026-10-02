@@ -26,6 +26,7 @@ from .assistant_chat import (
 from .ir import validate_ir
 from .templates import instantiate_template, list_templates, list_utilities
 from .workflow_lifecycle import WorkflowPlanStore, apply_workflow_plan, build_workflow_plan
+from .workflow_installations import WorkflowInstallationRegistry
 from .windows_provisioner import apply_windows_preparation
 from .workspace import repository_snapshot
 
@@ -41,6 +42,10 @@ MAX_REQUEST_BYTES = 2 * 1024 * 1024
 SAFE_LEAF = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 WORKFLOW_PLANS = WorkflowPlanStore()
 MACHINE_PLANS = MachinePreparationStore()
+
+
+def _installations_registry() -> WorkflowInstallationRegistry:
+    return WorkflowInstallationRegistry(STATE_ROOT / "installations.json", GENERATED_ROOT)
 
 
 def _safe_leaf(value: object, *, default: str, suffix: str | None = None) -> str:
@@ -195,6 +200,15 @@ class CanvasHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/utilities":
             self._json({"ok": True, "utilities": list_utilities()})
+            return
+        if path == "/api/installations":
+            self._json({"ok": True, "installations": _installations_registry().list()})
+            return
+        if path == "/api/installations/history":
+            qs = parse_qs(parsed_url.query)
+            installation_id = str(qs.get("id", [""])[0])
+            result = _installations_registry().history(installation_id, limit=int(qs.get("limit", ["50"])[0]))
+            self._json(result, 200 if result.get("ok") else 404)
             return
         if path == "/api/assistant/status":
             self._json(assistant_status())
@@ -420,11 +434,45 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 return
             try:
                 result = apply_workflow_plan(record)
+                if result.get("ok"):
+                    installation = _installations_registry().record(
+                        plan_id=plan_id,
+                        ir=record["ir"],
+                        plan=record["plan"],
+                        result=result,
+                    )
+                    result["installation"] = installation
                 WORKFLOW_PLANS.mark_applied(plan_id)
                 self._json(result, 200 if result.get("ok") else 409)
             except Exception as exc:
                 WORKFLOW_PLANS.mark_applied(plan_id)
                 self._json({"ok": False, "status": "apply_failed", "error": str(exc)}, 500)
+            return
+        if path in {
+            "/api/installations/run",
+            "/api/installations/disable",
+            "/api/installations/enable",
+            "/api/installations/remove",
+        }:
+            body = self._body()
+            installation_id = str(body.get("installation_id", ""))
+            action = path.rsplit("/", 1)[-1]
+            expected_authorization = f"{action}:{installation_id}"
+            if body.get("authorization") != expected_authorization:
+                self._json({"ok": False, "status": "authorization_required"}, 403)
+                return
+            try:
+                if action == "run":
+                    result = _installations_registry().run(installation_id)
+                elif action == "disable":
+                    result = _installations_registry().disable(installation_id)
+                elif action == "enable":
+                    result = _installations_registry().enable(installation_id)
+                else:
+                    result = _installations_registry().remove(installation_id)
+                self._json(result, 200 if result.get("ok") else 409)
+            except Exception as exc:
+                self._json({"ok": False, "status": "lifecycle_failed", "error": str(exc)}, 500)
             return
         if path == "/api/workflow/compile_and_run":
             self._json({

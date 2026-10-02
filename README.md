@@ -60,7 +60,7 @@ Start with [docs/INDEX.md](docs/INDEX.md) for purpose, repository structure, a c
 
 Merged code includes capability discovery/resolution, Windows assessment and preparation, independent Python/SQLite compilation, state/reliability primitives, starter templates, optional AI drafting/chat, and Basic/Builder visual development with a horizontal Canvas.
 
-W-01 through W-05 are recorded as verified engine benchmarks. The Basic utility catalog is more conservative: only Organize PDFs is marked ready; the other four local utilities remain in validation. Authenticated external integrations and the one-package Windows release still require completion evidence. This is a developed prototype, not a completed Basic 1.0 release.
+W-01 through W-05 are recorded as verified engine benchmarks and are exposed as ready Basic utilities. The local Ready Pack also includes W-11 through W-15, composed from the same proven filesystem, scheduler, HTTP, state, CSV and XLSX primitives. The Windows package installs the product with a private runtime and Ready Actions; authenticated external integrations remain a separate completion area. This is a developed Windows-first product under active convergence, not yet the final Basic 1.0 release.
 
 Current evidence and next steps: [docs/NEXT_TASK_PREP.md](docs/NEXT_TASK_PREP.md). Local launch and temporary AI credential handling: [docs/LOCAL-CANVAS.md](docs/LOCAL-CANVAS.md).
 

@@ -44,7 +44,7 @@ Antes de ampliar integrações, reconciliar requisitos HTTP e seu caminho real, 
 
 ## Prontidão registrada das utilidades
 
-The catalog in `src/autocompiler/templates.py` marks Organize PDFs (`w01`) ready, with manual scan/filter/copy/history. Backup (`w02`), API snapshot (`w03`), change monitor (`w04`) and spreadsheet transformation (`w05`) remain in validation. Additional utilities remain planned.
+The catalog in `src/autocompiler/templates.py` now exposes ten ready local workflows: W-01 through W-05 plus W-11 through W-15. These are compositions of the canonical filesystem, schedule, HTTP, state, CSV and XLSX primitives; W-11/W-15 additionally use the canonical `filesystem.move` primitive. The next local-utility expansion should target genuinely missing capabilities (watch, rename, duplicate detection, richer spreadsheet composition) rather than more wrappers around already-proven flows.
 
 Decision D-024 requires a complete validated Basic path before a utility is presented as ready. Engine coverage alone is insufficient.
 

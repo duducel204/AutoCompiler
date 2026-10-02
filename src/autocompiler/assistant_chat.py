@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 import os
 import threading
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
 from .ai_draft import draft_intent_to_ir
+from .gemini_client import DEFAULT_MODEL, GeminiAPIError, extract_text, generate_content, probe
 
 
 SYSTEM_PROMPT = """Você é o copiloto de desenvolvimento do AutoCompiler Basic.
@@ -54,7 +53,7 @@ class AssistantConfig:
         ).strip()
         model = (
             runtime.get("model")
-            or os.environ.get("AUTOCOMPILER_CHAT_MODEL", "gemini-3.8-flash")
+            or os.environ.get("AUTOCOMPILER_CHAT_MODEL", DEFAULT_MODEL)
         ).strip()
 
         if not api_key or not provider or not model:
@@ -66,7 +65,7 @@ def configure_assistant(
     *,
     api_key: str,
     provider: str = "google-gemini",
-    model: str = "gemini-3.8-flash",
+    model: str = DEFAULT_MODEL,
 ) -> dict[str, Any]:
     """Store a development credential in process memory only.
 
@@ -84,6 +83,21 @@ def configure_assistant(
     if not model:
         return {"ok": False, "error": "model_required"}
 
+    diagnostic = probe(api_key, model)
+    if not diagnostic.get("ok"):
+        return {
+            "ok": False,
+            "configured": False,
+            "error": "assistant_probe_failed",
+            "provider": provider,
+            "model": model,
+            "diagnostic": diagnostic.get("diagnostic", {}),
+            "message": diagnostic.get("diagnostic", {}).get(
+                "message",
+                "Não foi possível validar a conexão com a Gemini API.",
+            ),
+        }
+
     with _RUNTIME_LOCK:
         _RUNTIME_CONFIG.clear()
         _RUNTIME_CONFIG.update({
@@ -98,6 +112,8 @@ def configure_assistant(
         "provider": provider,
         "model": model,
         "storage": "process_memory_only",
+        "verified": True,
+        "message": "Conexão com a Gemini API validada nesta sessão local.",
     }
 
 
@@ -114,7 +130,7 @@ def assistant_status() -> dict[str, Any]:
             "ok": True,
             "configured": False,
             "provider": "google-gemini",
-            "default_model": "gemini-3.8-flash",
+            "default_model": DEFAULT_MODEL,
             "storage": "process_memory_only",
             "message": "Conecte uma chave temporária para desenvolver automações com IA.",
         }
@@ -171,44 +187,15 @@ def _gemini_chat(
     contents.append({"role": "user", "parts": [{"text": message}]})
 
     prompt = SYSTEM_PROMPT + "\n\nCATÁLOGO ATUAL DE UTILIDADES:\n" + _catalog_context(utilities)
-    payload = {
-        "systemInstruction": {"parts": [{"text": prompt}]},
-        "contents": contents,
-        "generationConfig": {
-            "maxOutputTokens": 1200,
-        },
-    }
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        + config.model
-        + ":generateContent"
+    payload = generate_content(
+        api_key=config.api_key,
+        model=config.model,
+        contents=contents,
+        system_instruction=prompt,
+        generation_config={"maxOutputTokens": 1200},
+        timeout=40,
     )
-    request = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "x-goog-api-key": config.api_key,
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=40) as response:
-            data = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"assistant_provider_http_{exc.code}: {body[:700]}") from exc
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-        raise RuntimeError(f"assistant_provider_failed: {exc}") from exc
-
-    candidates = data.get("candidates", [])
-    if not candidates:
-        raise RuntimeError("assistant_empty_response")
-    parts = candidates[0].get("content", {}).get("parts", [])
-    text = "".join(str(part.get("text", "")) for part in parts if isinstance(part, dict)).strip()
-    if not text:
-        raise RuntimeError("assistant_empty_text")
-    return text
+    return extract_text(payload)
 
 
 def chat_with_assistant(
@@ -246,11 +233,12 @@ def chat_with_assistant(
             history=clean_history,
             utilities=utility_catalog,
         )
-    except RuntimeError as exc:
+    except GeminiAPIError as exc:
         return {
             "ok": False,
             "error": "assistant_request_failed",
             "details": str(exc),
+            "diagnostic": exc.to_public_dict(),
         }
 
     return {

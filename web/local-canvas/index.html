@@ -218,6 +218,11 @@ body.builder-mode .lifecycle-strip{background:#0c1016;border-color:#292e36}
     <div id="utilities-ready" class="utility-grid"></div>
 
     <div class="section-title">
+      <div><h2>Neste computador</h2><p>Automações que você já ativou. Elas continuam existindo fora desta tela.</p></div>
+    </div>
+    <div id="installations-active" class="utility-grid"><div class="muted">Nenhuma automação ativada ainda.</div></div>
+
+    <div class="section-title">
       <div><h2>Em validação</h2><p>O engine já conhece estas rotinas; o caminho completo de ativação ainda está sendo fechado.</p></div>
     </div>
     <div id="utilities-validation" class="utility-grid"></div>
@@ -299,6 +304,7 @@ body.builder-mode .lifecycle-strip{background:#0c1016;border-color:#292e36}
             <button data-kind="TRANSFORM" onclick="addBlock('TRANSFORM','Filter','filter.extension')">TRANSFORM</button>
             <button data-kind="IF" onclick="addBlock('IF','Condition','state.check')">IF · condição</button>
             <button data-kind="ACT" onclick="addBlock('ACT','Action','filesystem.copy')">ACT · copiar</button>
+            <button data-kind="ACT" onclick="addBlock('ACT','Move','filesystem.move')">ACT · mover</button>
             <button data-kind="SAVE" onclick="addBlock('SAVE','State','state.record')">SAVE · estado</button>
             <button data-kind="NOTIFY" onclick="addBlock('NOTIFY','Notify','notify')">NOTIFY</button>
             <button data-kind="GET" onclick="addBlock('GET','CSV','csv.read')">GET · CSV</button>
@@ -458,6 +464,7 @@ const events=document.querySelector('#events');
 const flowContainer=document.querySelector('#flow-container');
 let utilitiesData=[];
 let templatesData=[];
+let installationsData=[];
 let currentPlan=null;
 let currentSource='canvas';
 let buildTimeAI=false;
@@ -561,6 +568,7 @@ const humanSkill={
   "filesystem.scan":"Ler os arquivos da pasta escolhida",
   "filter.extension":"Selecionar apenas os arquivos que atendem à regra",
   "filesystem.copy":"Copiar os arquivos para o destino",
+  "filesystem.move":"Mover os arquivos para o destino",
   "state.record":"Registrar o que já foi processado",
   "state.record_jsonl":"Guardar uma cópia dos dados recebidos",
   "http.request":"Consultar um endereço na internet",
@@ -634,17 +642,18 @@ document.querySelector('#btn-preflight-apply').onclick=async()=>{
 async function bootProduct(){
   if(productBooted)return;productBooted=true;
   document.querySelector('#mode-switch').classList.remove('hidden');
-  const [workspace,state,utilities,templates,assistantStatus]=await Promise.all([
+  const [workspace,state,utilities,templates,assistantStatus,installations]=await Promise.all([
     fetch('/api/workspace').then(r=>r.json()),
     fetch('/api/state').then(r=>r.json()),
     fetch('/api/utilities').then(r=>r.json()),
     fetch('/api/templates').then(r=>r.json()),
-    fetch('/api/assistant/status').then(r=>r.json())
+    fetch('/api/assistant/status').then(r=>r.json()),
+    fetch('/api/installations').then(r=>r.json())
   ]);
   document.querySelector('#repo-head').textContent='LOCAL · '+workspace.name+' · '+(workspace.branch||'sem branch');
   const consoleSource=document.querySelector('#builder-console-source');if(consoleSource)consoleSource.textContent=(workspace.branch||'LOCAL').toUpperCase();
-  utilitiesData=utilities.utilities||[];templatesData=templates.templates||[];latestResourceState=state;
-  renderUtilities();renderTechnicalResources(state);loadBuilderTemplates();renderFlow();renderArchitectureView();renderTelemetryView();renderAssistantStatus(assistantStatus);
+  utilitiesData=utilities.utilities||[];templatesData=templates.templates||[];installationsData=installations.installations||[];latestResourceState=state;
+  renderUtilities();renderInstallations();renderTechnicalResources(state);loadBuilderTemplates();renderFlow();renderArchitectureView();renderTelemetryView();renderAssistantStatus(assistantStatus);
   log('product.ready','Computador verificado; utilidades liberadas');
 }
 function renderAssistantStatus(status){
@@ -670,15 +679,25 @@ function appendAssistantMessage(role,text){
 async function configureAssistant(){
   const key=document.querySelector('#assistant-api-key').value.trim(),model=document.querySelector('#assistant-model').value.trim()||'gemini-3.8-flash';
   if(!key){appendAssistantMessage('assistant','Cole a chave temporária para conectar a IA nesta sessão local.');return;}
-  const button=document.querySelector('#assistant-connect');button.disabled=true;button.textContent='Conectando…';
+  const button=document.querySelector('#assistant-connect'),badge=document.querySelector('#assistant-status');
+  button.disabled=true;button.textContent='Testando Gemini…';badge.textContent='TESTANDO API';badge.className='assistant-status offline';
   try{
     const r=await fetch('/api/assistant/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:key,provider:'google-gemini',model})});
-    const res=await r.json();if(!res.ok)throw new Error(res.error||'Falha ao conectar');
+    const res=await r.json();
+    if(!res.ok){
+      const diag=res.diagnostic||{};
+      const error=new Error(res.message||diag.message||res.details||res.error||'Falha ao conectar');
+      error.kind=diag.kind;error.httpStatus=diag.http_status;throw error;
+    }
     document.querySelector('#assistant-api-key').value='';renderAssistantStatus(res);
-    appendAssistantMessage('assistant','IA conectada. Agora podemos desenvolver a automação por aqui.');
-    log('assistant.connected','Credencial temporária carregada apenas na memória do processo local');
-  }catch(e){appendAssistantMessage('assistant','Não consegui conectar: '+e.message);log('assistant.connect_error',e.message,true);}
-  finally{button.disabled=false;button.textContent='Conectar nesta sessão';}
+    appendAssistantMessage('assistant','Conexão com a Gemini API testada e validada. O chat está pronto.');
+    log('assistant.connected','Gemini respondeu ao probe; credencial mantida somente na memória do processo local');
+  }catch(e){
+    assistantConfigured=false;badge.textContent='API NÃO VALIDADA';badge.className='assistant-status offline';document.querySelector('#assistant-send').disabled=true;
+    const suffix=e.kind?(' ['+e.kind+(e.httpStatus?' · HTTP '+e.httpStatus:'')+']'):'';
+    appendAssistantMessage('assistant','Não consegui validar a Gemini API: '+e.message+suffix);
+    log('assistant.connect_error',e.message+suffix,true);
+  }finally{button.disabled=false;button.textContent='Conectar nesta sessão';}
 }
 document.querySelector('#assistant-connect').onclick=configureAssistant;
 document.querySelector('#assistant-reconfigure').onclick=()=>document.querySelector('#assistant-config').classList.toggle('hidden');
@@ -691,7 +710,11 @@ async function sendAssistantMessage(){
   try{
     const r=await fetch('/api/assistant/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,history:historyForRequest})});
     const res=await r.json();
-    if(!res.ok)throw new Error(res.message||res.details||res.error||'Falha no chat');
+    if(!res.ok){
+      const diag=res.diagnostic||{};
+      const suffix=diag.kind?(' ['+diag.kind+(diag.http_status?' · HTTP '+diag.http_status:'')+']'):'';
+      throw new Error((res.message||diag.message||res.details||res.error||'Falha no chat')+suffix);
+    }
     appendAssistantMessage('assistant',res.reply);assistantHistory.push({role:'assistant',text:res.reply});
   }catch(e){
     appendAssistantMessage('assistant','Não consegui responder agora. '+e.message);log('assistant.error',e.message,true);
@@ -735,6 +758,46 @@ function renderUtilities(){
   document.querySelector('#utilities-validation').innerHTML=utilitiesData.filter(u=>u.status==='validation').map(utilityCard).join('');
   document.querySelector('#utilities-planned').innerHTML=utilitiesData.filter(u=>u.status==='planned').map(utilityCard).join('');
   document.querySelectorAll('.utility-open').forEach(b=>b.onclick=()=>openUtility(b.dataset.id));
+}
+function installationCard(item){
+  const statusLabels={active:'Ativa',ready:'Pronta',disabled:'Desabilitada'};
+  const trigger=item.trigger_type==='schedule'?'Agendada':'Manual';
+  const runs=item.history?.count||0;
+  const last=item.history?.last;
+  const lastText=last?((last.status||'run')+' · '+(last.ts||'')):'sem execuções registradas';
+  const toggle=item.status==='disabled'
+    ?'<button class="text-link installation-action" data-action="enable" data-id="'+esc(item.installation_id)+'">Reativar</button>'
+    :'<button class="text-link installation-action" data-action="disable" data-id="'+esc(item.installation_id)+'">Desabilitar</button>';
+  return '<article class="utility-card ready"><div class="category">'+esc(trigger)+'</div><h3>'+esc(item.workflow_name)+'</h3><p>'+esc(statusLabels[item.status]||item.status)+' · '+runs+' execução'+(runs===1?'':'ões')+'<br><span class="muted">'+esc(lastText)+'</span></p><div class="utility-footer"><span class="pill '+(item.status==='disabled'?'validation':'ready')+'">'+esc(statusLabels[item.status]||item.status)+'</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="text-link installation-action" data-action="run" data-id="'+esc(item.installation_id)+'">Executar agora</button><button class="text-link installation-history" data-id="'+esc(item.installation_id)+'">Histórico</button>'+toggle+'<button class="text-link installation-action" data-action="remove" data-id="'+esc(item.installation_id)+'">Remover</button></div></div></article>';
+}
+function renderInstallations(){
+  const box=document.querySelector('#installations-active');if(!box)return;
+  box.innerHTML=installationsData.length?installationsData.map(installationCard).join(''):'<div class="muted">Nenhuma automação ativada ainda.</div>';
+  box.querySelectorAll('.installation-action').forEach(b=>b.onclick=()=>installationAction(b.dataset.action,b.dataset.id));
+  box.querySelectorAll('.installation-history').forEach(b=>b.onclick=()=>showInstallationHistory(b.dataset.id));
+}
+async function loadInstallations(){
+  const r=await fetch('/api/installations');const res=await r.json();
+  if(!res.ok)throw new Error(res.status||res.error||'Falha ao ler instalações');
+  installationsData=res.installations||[];renderInstallations();return installationsData;
+}
+async function installationAction(action,id){
+  const item=installationsData.find(x=>x.installation_id===id);if(!item)return;
+  if(action==='remove'&&!confirm('Remover esta automação e seus artefatos gerados pelo AutoCompiler?'))return;
+  try{
+    const r=await fetch('/api/installations/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({installation_id:id,authorization:action+':'+id})});
+    const res=await r.json();if(!res.ok)throw new Error(res.status||res.error||'Falha no lifecycle');
+    log('installation.'+action,(item.workflow_name||id)+' → '+(res.status||'ok'));
+    await loadInstallations();
+  }catch(e){log('installation.error',e.message,true);showBasicError(e.message);}
+}
+async function showInstallationHistory(id){
+  try{
+    const r=await fetch('/api/installations/history?id='+encodeURIComponent(id)+'&limit=50');const res=await r.json();if(!res.ok)throw new Error(res.status||res.error||'Falha ao ler histórico');
+    const item=installationsData.find(x=>x.installation_id===id);
+    const rows=(res.events||[]).slice().reverse().map(e=>'<div class="human-line">'+esc((e.ts||'')+' · '+(e.status||'run')+(e.processed!=null?' · '+e.processed+' item(ns)':'')+(e.error?' · '+e.error:''))+'</div>').join('')||'<div class="muted">Ainda não há execuções registradas.</div>';
+    const box=document.querySelector('#basic-result');box.classList.remove('hidden');box.innerHTML='<div class="eyebrow">Histórico</div><h3 style="margin:5px 0 10px">'+esc(item?.workflow_name||'Automação')+'</h3>'+rows;box.scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(e){showBasicError(e.message);}
 }
 function openUtility(id){
   selectedUtility=utilitiesData.find(u=>u.id===id);if(!selectedUtility)return;
@@ -839,7 +902,9 @@ async function applyCurrentPlan(){
   const status=document.querySelector('#builder-plan-status');if(status){status.textContent='VERIFIED';status.style.color='#6fdd78';}
   const consolePlan=document.querySelector('#builder-console-plan');if(consolePlan)consolePlan.textContent='VERIFIED';
   setLifecycle('verify',false,true);
-  log('verify.success','Aplicação e verificação concluídas');return res;
+  log('verify.success','Aplicação e verificação concluídas');
+  if(res.installation){await loadInstallations();}
+  return res;
 }
 document.querySelector('#btn-basic-activate').onclick=async()=>{
   if(!currentPlan)return;const btn=document.querySelector('#btn-basic-activate');btn.disabled=true;btn.textContent='Ativando…';

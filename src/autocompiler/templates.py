@@ -198,17 +198,151 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
             "state": {"file": "history.db"},
         },
     },
+    "w11": {
+        "id": "w11",
+        "name": "Organize Downloads",
+        "description": "Moves common document, spreadsheet and image files from one folder into separate destinations and records each move.",
+        "user_title": "Organizar Downloads",
+        "category": "Arquivos",
+        "outcome": "Separar PDFs, planilhas e imagens em pastas diferentes de uma vez.",
+        "status": "ready",
+        "difficulty": "Fácil",
+        "parameters": [
+            {"key": "source_folder", "label": "Qual pasta deve ser organizada?", "default": "~/Downloads"},
+            {"key": "documents_folder", "label": "Onde guardar PDFs?", "default": "~/Documents/AutoCompiler/PDFs"},
+            {"key": "spreadsheets_folder", "label": "Onde guardar planilhas?", "default": "~/Documents/AutoCompiler/Planilhas"},
+            {"key": "images_folder", "label": "Onde guardar imagens?", "default": "~/Pictures/AutoCompiler"},
+        ],
+        "template_ir": {
+            "schema_version": "0.1",
+            "name": "W-11 Organize Downloads",
+            "trigger": {"type": "manual"},
+            "steps": [
+                {"id": "scan", "skill": "filesystem.scan", "with": {"path": "$param.source_folder", "glob": "*"}},
+                {"id": "pdfs", "skill": "filter.extension", "with": {"from": "scan", "extension": ".pdf"}},
+                {"id": "move_pdfs", "skill": "filesystem.move", "with": {"from": "pdfs", "destination": "$param.documents_folder"}},
+                {"id": "record_pdfs", "skill": "state.record", "with": {"from": "move_pdfs"}},
+                {"id": "xlsx", "skill": "filter.extension", "with": {"from": "scan", "extension": ".xlsx"}},
+                {"id": "move_xlsx", "skill": "filesystem.move", "with": {"from": "xlsx", "destination": "$param.spreadsheets_folder"}},
+                {"id": "record_xlsx", "skill": "state.record", "with": {"from": "move_xlsx"}},
+                {"id": "csv", "skill": "filter.extension", "with": {"from": "scan", "extension": ".csv"}},
+                {"id": "move_csv", "skill": "filesystem.move", "with": {"from": "csv", "destination": "$param.spreadsheets_folder"}},
+                {"id": "record_csv", "skill": "state.record", "with": {"from": "move_csv"}},
+                {"id": "jpg", "skill": "filter.extension", "with": {"from": "scan", "extension": ".jpg"}},
+                {"id": "move_jpg", "skill": "filesystem.move", "with": {"from": "jpg", "destination": "$param.images_folder"}},
+                {"id": "record_jpg", "skill": "state.record", "with": {"from": "move_jpg"}},
+                {"id": "png", "skill": "filter.extension", "with": {"from": "scan", "extension": ".png"}},
+                {"id": "move_png", "skill": "filesystem.move", "with": {"from": "png", "destination": "$param.images_folder"}},
+                {"id": "record_png", "skill": "state.record", "with": {"from": "move_png"}}
+            ],
+            "state": {"file": "downloads_history.db"},
+        },
+    },
+    "w12": {
+        "id": "w12",
+        "name": "Selective Scheduled Backup",
+        "description": "Backs up only files with a chosen extension on a daily schedule.",
+        "user_title": "Backup seletivo por tipo",
+        "category": "Proteção",
+        "outcome": "Fazer backup diário somente do tipo de arquivo que você escolher.",
+        "status": "ready",
+        "difficulty": "Fácil",
+        "parameters": [
+            {"key": "source_folder", "label": "Qual pasta deve ser verificada?", "default": "~/Documents"},
+            {"key": "extension", "label": "Qual extensão deve entrar no backup?", "default": ".pdf"},
+            {"key": "backup_folder", "label": "Onde guardar os arquivos?", "default": "~/AutoCompiler Backups/Selective"},
+        ],
+        "template_ir": {
+            "schema_version": "0.1",
+            "name": "W-12 Selective Scheduled Backup",
+            "trigger": {"type": "schedule", "cron": "0 20 * * *"},
+            "steps": [
+                {"id": "scan", "skill": "filesystem.scan", "with": {"path": "$param.source_folder", "glob": "*"}},
+                {"id": "filter", "skill": "filter.extension", "with": {"from": "scan", "extension": "$param.extension"}},
+                {"id": "copy", "skill": "filesystem.copy", "with": {"from": "filter", "destination": "$param.backup_folder"}},
+                {"id": "record", "skill": "state.record", "with": {"from": "copy"}}
+            ],
+            "state": {"file": "selective_backup_history.db"},
+        },
+    },
+    "w13": {
+        "id": "w13",
+        "name": "Daily API Snapshot",
+        "description": "Fetches an HTTP endpoint every day and appends the returned JSON payload to a local JSONL file.",
+        "user_title": "Snapshot diário de API",
+        "category": "Internet",
+        "outcome": "Guardar automaticamente uma fotografia diária dos dados de uma API.",
+        "status": "ready",
+        "difficulty": "Intermediário",
+        "parameters": [
+            {"key": "api_url", "label": "Qual endereço da API?", "default": "http://api.example.com/snapshot"},
+            {"key": "output_file", "label": "Onde guardar o histórico?", "default": "daily_snapshots.jsonl"},
+        ],
+        "template_ir": {
+            "schema_version": "0.1",
+            "name": "W-13 Daily API Snapshot",
+            "trigger": {"type": "schedule", "cron": "0 9 * * *"},
+            "steps": [
+                {"id": "fetch", "skill": "http.request", "with": {"url": "$param.api_url", "method": "GET"}},
+                {"id": "save", "skill": "state.record_jsonl", "with": {"value": "$fetch", "file": "$param.output_file"}}
+            ],
+            "state": {"file": "history.db"},
+        },
+    },
+    "w14": {
+        "id": "w14",
+        "name": "Scheduled CSV to Excel",
+        "description": "Converts a CSV file into XLSX every day using the same independent compiled artifact.",
+        "user_title": "CSV para Excel automático",
+        "category": "Planilhas",
+        "outcome": "Atualizar automaticamente uma planilha Excel a partir de um CSV todos os dias.",
+        "status": "ready",
+        "difficulty": "Fácil",
+        "parameters": [
+            {"key": "input_csv", "label": "Qual arquivo CSV deve ser lido?", "default": "~/Documents/input.csv"},
+            {"key": "output_xlsx", "label": "Qual planilha deve ser atualizada?", "default": "~/Documents/output.xlsx"},
+        ],
+        "template_ir": {
+            "schema_version": "0.1",
+            "name": "W-14 Scheduled CSV to Excel",
+            "trigger": {"type": "schedule", "cron": "0 7 * * *"},
+            "steps": [
+                {"id": "read", "skill": "csv.read", "with": {"path": "$param.input_csv"}},
+                {"id": "write", "skill": "xlsx.write", "with": {"path": "$param.output_xlsx", "rows": "$read.rows"}}
+            ],
+            "state": {"file": "history.db"},
+        },
+    },
+    "w15": {
+        "id": "w15",
+        "name": "Scheduled PDF Inbox",
+        "description": "Checks an inbox folder every hour, moves PDFs into a destination folder and records each moved file.",
+        "user_title": "Caixa de entrada de PDFs",
+        "category": "Documentos",
+        "outcome": "Retirar PDFs de uma pasta de entrada a cada hora e arquivá-los automaticamente.",
+        "status": "ready",
+        "difficulty": "Fácil",
+        "parameters": [
+            {"key": "source_folder", "label": "Qual é a pasta de entrada?", "default": "~/Downloads"},
+            {"key": "target_folder", "label": "Onde arquivar os PDFs?", "default": "~/Documents/PDF Archive"},
+        ],
+        "template_ir": {
+            "schema_version": "0.1",
+            "name": "W-15 Scheduled PDF Inbox",
+            "trigger": {"type": "schedule", "cron": "0 * * * *"},
+            "steps": [
+                {"id": "scan", "skill": "filesystem.scan", "with": {"path": "$param.source_folder", "glob": "*"}},
+                {"id": "pdfs", "skill": "filter.extension", "with": {"from": "scan", "extension": ".pdf"}},
+                {"id": "move", "skill": "filesystem.move", "with": {"from": "pdfs", "destination": "$param.target_folder"}},
+                {"id": "record", "skill": "state.record", "with": {"from": "move"}}
+            ],
+            "state": {"file": "pdf_inbox_history.db"},
+        },
+    }
 }
 
 
 PLANNED_UTILITIES: list[dict[str, str]] = [
-    {
-        "id": "organize-downloads",
-        "user_title": "Organizar Downloads",
-        "category": "Arquivos",
-        "outcome": "Separar automaticamente documentos, imagens, planilhas e outros arquivos.",
-        "status": "planned",
-    },
     {
         "id": "incremental-backup",
         "user_title": "Backup incremental",
@@ -242,13 +376,6 @@ PLANNED_UTILITIES: list[dict[str, str]] = [
         "user_title": "Monitorar uma pasta",
         "category": "Monitoramento",
         "outcome": "Executar uma rotina quando um arquivo novo aparecer.",
-        "status": "planned",
-    },
-    {
-        "id": "pdf-inbox",
-        "user_title": "Caixa de entrada de PDFs",
-        "category": "Documentos",
-        "outcome": "Detectar PDFs novos, validar, ler informações básicas e encaminhar para a pasta certa.",
         "status": "planned",
     },
 ]

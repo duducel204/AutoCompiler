@@ -42,3 +42,21 @@ AI may revise candidate IR, but cannot authorize or apply machine changes. See D
 The Basic catalog marks PDF organization ready and W-02 through W-05 in validation. Engine coverage is separate: [BASIC_1_0_COVERAGE.md](BASIC_1_0_COVERAGE.md). Visual editing and green tests do not replace real onboarding, authenticated integration or release demonstrations.
 
 Implementation: `src/autocompiler/local_canvas.py`, `first_run.py`, `workflow_lifecycle.py`, `assistant_chat.py`, `templates.py` and `web/local-canvas/index.html`.
+
+
+## Installed workflow lifecycle
+
+Applied workflows are registered outside the replaceable app payload and remain visible after the Canvas is reopened.
+
+- `GET /api/installations`: list active/ready/disabled installed workflows.
+- `GET /api/installations/history?id=...`: inspect independent artifact run history.
+- `POST /api/installations/run`: execute/trigger an installed workflow on demand with explicit action authorization.
+- `POST /api/installations/disable`: disable an installed workflow; scheduled workflows disable the native Windows task.
+- `POST /api/installations/enable`: re-enable an installed workflow.
+- `POST /api/installations/remove`: remove the AutoCompiler-owned deployment and generated artifact.
+
+The Canvas home renders these under **Neste computador**. Deterministic artifacts continue to run independently of the Canvas.
+
+## Gemini assistant connection
+
+The Basic assistant no longer treats “API key received” as “AI connected”. `/api/assistant/configure` performs a minimal Gemini `generateContent` probe first. Only a successful provider response marks the assistant connected. Public diagnostics distinguish authentication, permission, quota, model, network and timeout errors without returning the secret key.

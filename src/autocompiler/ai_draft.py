@@ -5,6 +5,7 @@ import re
 from abc import ABC, abstractmethod
 from typing import Any
 
+from .gemini_client import DEFAULT_MODEL, GeminiAPIError, extract_text, generate_content
 from .ir import validate_ir
 
 
@@ -18,7 +19,7 @@ The Automation IR schema:
   "steps": [
     {
       "id": "s1",
-      "skill": "filesystem.scan" | "filter.extension" | "filesystem.copy" | "http.request" | "state.record" | "state.check" | "state.update" | "csv.read" | "csv.write" | "xlsx.read" | "xlsx.write" | "pdf.detect" | "pdf.basic_text" | "notify",
+      "skill": "filesystem.scan" | "filter.extension" | "filesystem.copy" | "filesystem.move" | "http.request" | "state.record" | "state.check" | "state.update" | "csv.read" | "csv.write" | "xlsx.read" | "xlsx.write" | "pdf.detect" | "pdf.basic_text" | "notify",
       "with": { ... }
     }
   ],
@@ -141,37 +142,27 @@ class GeminiDraftProvider(AIProvider):
                 "message": "Gemini drafting requires a user-supplied API key.",
             }
 
-        # Urllib REST call to Gemini API endpoint
-        import urllib.request
-        model_id = (model or "gemini-3.8-flash").strip()
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent"
-        payload = {
-            "contents": [
-                {
-                    "parts": [
-                        {"text": SYSTEM_PROMPT + "\n\nUser Intent: " + prompt}
-                    ]
-                }
-            ]
-        }
-
+        model_id = (model or DEFAULT_MODEL).strip()
         try:
-            req = urllib.request.Request(
-                url,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
-                method="POST",
+            payload = generate_content(
+                api_key=api_key,
+                model=model_id,
+                contents=[
+                    {
+                        "role": "user",
+                        "parts": [{"text": "User Intent: " + prompt}],
+                    }
+                ],
+                system_instruction=SYSTEM_PROMPT,
+                generation_config={
+                    "maxOutputTokens": 4000,
+                    "responseMimeType": "application/json",
+                },
+                timeout=40,
             )
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                resp_data = json.loads(resp.read().decode("utf-8"))
-
-            candidates = resp_data.get("candidates", [])
-            if not candidates:
-                return {"ok": False, "error": "empty_gemini_response"}
-
-            text_content = candidates[0]["content"]["parts"][0]["text"]
-            clean_json = re.sub(r"^```json\s*", "", text_content.strip(), flags=re.MULTILINE)
-            clean_json = re.sub(r"\s*```$", "", clean_json, flags=re.MULTILINE).strip()
+            text_content = extract_text(payload)
+            clean_json = re.sub(r"^```json\\s*", "", text_content.strip(), flags=re.MULTILINE)
+            clean_json = re.sub(r"\\s*```$", "", clean_json, flags=re.MULTILINE).strip()
 
             parsed = json.loads(clean_json)
             if parsed.get("ambiguous"):
@@ -180,8 +171,19 @@ class GeminiDraftProvider(AIProvider):
             validate_ir(parsed)
             return {"ok": True, "ir": parsed}
 
-        except Exception as exc:
-            return {"ok": False, "error": "gemini_draft_failed", "details": str(exc)}
+        except GeminiAPIError as exc:
+            return {
+                "ok": False,
+                "error": "gemini_draft_failed",
+                "details": str(exc),
+                "diagnostic": exc.to_public_dict(),
+            }
+        except (json.JSONDecodeError, TypeError, ValueError) as exc:
+            return {
+                "ok": False,
+                "error": "gemini_invalid_json",
+                "details": str(exc),
+            }
 
 
 ALL_AI_PROVIDERS: dict[str, AIProvider] = {

@@ -241,6 +241,42 @@ def disable_windows_schedule(
     }
 
 
+def run_windows_schedule(
+    task_name: str,
+    *,
+    executor: Callable[..., Any] = subprocess.run,
+    host_system: str | None = None,
+) -> dict[str, Any]:
+    host = host_system or platform.system()
+    if host.lower() != "windows":
+        return {"ok": False, "status": "unsupported_host", "actual": host}
+    result = _run(["schtasks.exe", "/Run", "/TN", task_name], executor)
+    return {
+        "ok": result.returncode == 0,
+        "status": "triggered" if result.returncode == 0 else "trigger_failed",
+        "task_name": task_name,
+        "stderr": getattr(result, "stderr", ""),
+    }
+
+
+def enable_windows_schedule(
+    task_name: str,
+    *,
+    executor: Callable[..., Any] = subprocess.run,
+    host_system: str | None = None,
+) -> dict[str, Any]:
+    host = host_system or platform.system()
+    if host.lower() != "windows":
+        return {"ok": False, "status": "unsupported_host", "actual": host}
+    result = _run(["schtasks.exe", "/Change", "/TN", task_name, "/ENABLE"], executor)
+    return {
+        "ok": result.returncode == 0,
+        "status": "enabled" if result.returncode == 0 else "enable_failed",
+        "task_name": task_name,
+        "stderr": getattr(result, "stderr", ""),
+    }
+
+
 def remove_windows_schedule(
     task_name: str,
     *,
