@@ -31,6 +31,8 @@ def usable_graph(filesystem_provider: str = "stdlib"):
             {"capability": "http.request", "provider": "autocompiler.http_provider", "state": "usable", "cost": "free"},
             {"capability": "csv.read", "provider": "python-stdlib-csv", "state": "usable", "cost": "free"},
             {"capability": "xlsx.write", "provider": "python-stdlib-xlsx", "state": "usable", "cost": "free"},
+            {"capability": "state.check", "provider": "sqlite", "state": "usable", "cost": "free"},
+            {"capability": "state.update", "provider": "sqlite", "state": "usable", "cost": "free"},
         ]
     }
 
@@ -372,6 +374,86 @@ class WorkflowLifecycleTests(unittest.TestCase):
                 if task_name:
                     removed = remove_windows_schedule(task_name)
                     self.assertTrue(removed["ok"], removed)
+
+    def test_w04_composes_http_and_state_to_record_only_real_changes(self):
+        payload = {"value": 1}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                body = json.dumps(payload).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, format, *args):
+                return
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                url = f"http://127.0.0.1:{server.server_address[1]}/state"
+                instantiated = instantiate_template(
+                    "w04",
+                    {"monitor_key": "proof", "target_url": url},
+                )
+                ir = instantiated["ir"]
+                graph = usable_graph()
+                graph["resources"].append({
+                    "capability": "schedule",
+                    "provider": "windows-task-scheduler",
+                    "state": "usable",
+                    "cost": "free",
+                })
+                compiled = root / "compiled"
+                plan = build_workflow_plan(
+                    ir,
+                    out_dir=compiled,
+                    source="template",
+                    resource_graph=graph,
+                )
+                self.assertTrue(plan["can_apply"])
+
+                store = WorkflowPlanStore()
+                store.create(ir, plan)
+                record = store.authorize(plan["plan_id"])
+                deployment = {
+                    "ok": True,
+                    "status": "installed_verified",
+                    "task_name": plan["deployment_support"]["task_name"],
+                    "provider": "windows-task-scheduler",
+                }
+                with patch("autocompiler.workflow_lifecycle.deploy_windows_schedule", return_value=deployment):
+                    applied = apply_workflow_plan(record)
+                self.assertTrue(applied["ok"])
+
+                artifact = compiled / "automation.py"
+
+                first = subprocess.run([sys.executable, str(artifact)], capture_output=True, text=True, check=True)
+                first_result = json.loads(first.stdout)
+                self.assertTrue(first_result["context"]["s3"]["changed"])
+                self.assertTrue(first_result["context"]["s3"]["updated"])
+
+                second = subprocess.run([sys.executable, str(artifact)], capture_output=True, text=True, check=True)
+                second_result = json.loads(second.stdout)
+                self.assertFalse(second_result["context"]["s2"]["changed"])
+                self.assertFalse(second_result["context"]["s3"]["changed"])
+                self.assertFalse(second_result["context"]["s3"]["updated"])
+
+                payload["value"] = 2
+                third = subprocess.run([sys.executable, str(artifact)], capture_output=True, text=True, check=True)
+                third_result = json.loads(third.stdout)
+                self.assertTrue(third_result["context"]["s2"]["changed"])
+                self.assertTrue(third_result["context"]["s3"]["changed"])
+                self.assertTrue(third_result["context"]["s3"]["updated"])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
 
     def test_failed_execution_is_not_reported_as_verified(self):
         with tempfile.TemporaryDirectory() as td:
