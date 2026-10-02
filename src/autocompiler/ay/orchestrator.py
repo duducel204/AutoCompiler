@@ -9,7 +9,7 @@ from .state import AYState
 
 @dataclass(frozen=True)
 class OrchestrationRequest:
-    requested_muscle: str | None = None
+    reusable_script: str | None = None
     needs_context: bool = False
     needs_human_input: bool = False
     protected_mutation: bool = False
@@ -35,7 +35,7 @@ def orchestrate(state: AYState, request: OrchestrationRequest) -> OrchestrationR
     """Select the next mechanism; never bypass the canonical mutation lifecycle."""
     decision = resolve_next(
         state,
-        requested_muscle=request.requested_muscle,
+        reusable_script=request.reusable_script,
         needs_context=request.needs_context,
         needs_human_input=request.needs_human_input,
         protected_mutation=request.protected_mutation,
@@ -44,7 +44,7 @@ def orchestrate(state: AYState, request: OrchestrationRequest) -> OrchestrationR
     )
 
     safe_direct_actions = {
-        "reuse_existing_muscle",
+        "run_existing_script",
         "retrieve_gap_directed_context",
         "inspect_system_state",
     }
