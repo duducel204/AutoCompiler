@@ -41,6 +41,7 @@ TESTS=[
  "tests.test_assistant_chat",
  "tests.test_gemini_client",
  "tests.test_workflow_lifecycle",
+ "tests.test_workflow_installations",
 ]
 
 def run(cmd):
