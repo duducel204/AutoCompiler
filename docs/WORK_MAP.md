@@ -29,6 +29,7 @@ flowchart LR
   W_AY_C3["AY-C3<br/>Resolver routes complex gaps to node context<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C4["AY-C4<br/>Crystallize repeated complex analysis into task scripts<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C5["AY-C5<br/>Close resolution into evidence state and cheaper reuse<br/>SYSTEM_PROOF_WIRED"]
+  W_AY_C6["AY-C6<br/>Post-cycle Spider assimilation via GitHub Actions<br/>COMPONENT_GATE_WIRED"]
   W_CC_01 -->|build| W_CC_01T
   W_CC_03 -->|build| W_CC_03S
   W_CC_01T -.->|proof| W_CC_03S
@@ -45,6 +46,9 @@ flowchart LR
   W_AY_C3 -->|build| W_AY_C5
   W_AY_C4 -->|build| W_AY_C5
   W_CC_04 -.->|proof| W_AY_C5
+  W_AY_C2A -->|build| W_AY_C6
+  W_AY_C2B -->|build| W_AY_C6
+  W_AY_C5 -->|build| W_AY_C6
 ```
 
 ## Work board
@@ -63,6 +67,7 @@ flowchart LR
 | `AY-C3` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C4` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C5` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
+| `AY-C6` | ✓ | ✓ | ✓ | — | ✓ | `COMPONENT_GATE_WIRED` | integrate |
 
 ## Dívida de verificação
 

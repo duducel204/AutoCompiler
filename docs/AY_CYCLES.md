@@ -135,3 +135,44 @@ product-reusable execution contract
 ```
 
 AY decides. Scripts perform repetitive deterministic work quickly. Canonical capabilities remain in the existing capability lifecycle. Evidence proves. Gitutty projects state and relations.
+
+
+## AY-C6 — Post-cycle Spider assimilation
+
+The automatic Spider cycle runs **after** a completed and trusted development cycle, not during active development.
+
+**Automatic trigger:** the GitHub Actions workflow `AutoCompiler Trust Gate` completes successfully for a `push` to `main`.
+
+**Alternative trigger:** manual `workflow_dispatch`.
+
+**Sequence:**
+
+```text
+development cycle
+→ merge/push to main
+→ Trust Gate
+→ PASS
+→ Post-cycle Spider workflow
+→ restore previous derived graph
+→ hash tracked files
+→ parse only changed/new files
+→ remove deleted file records
+→ traverse from changed file nodes
+→ collect bounded structural / semantic / logic context
+→ publish artifact for next cycle
+```
+
+**Reads:** the previous derived node graph plus only repository files whose content hash changed. The Spider traverses the refreshed graph from those changed file nodes.
+
+**Output:**
+- refreshed `.autocompiler/node_context_graph.json`;
+- `.autocompiler/post_cycle_context.json` containing changed/removed files, affected sources, semantic labels, logic nodes and bounded graph relations;
+- a GitHub Actions artifact named `post-cycle-context-<sha>`.
+
+The derived graph is persisted between GitHub Actions runs through the Actions cache. The context artifact is retained for the next development cycle.
+
+**Safety:** this workflow has `contents: read`; it does not commit, open PRs, authorize mutations, promote capabilities or change trust state.
+
+**Loop rule:** one successful trusted `main` cycle produces one Spider assimilation. The Spider workflow itself does not push code, so it cannot recursively trigger another development cycle.
+
+**Success:** after the first baseline run, an unchanged file is not reparsed in subsequent cycles, while changed files generate refreshed nodes and bounded relational context for the next cycle.
