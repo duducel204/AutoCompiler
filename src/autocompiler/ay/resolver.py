@@ -9,7 +9,6 @@ from .state import AYState
 
 class ResolutionStatus(str, Enum):
     READY = "READY"
-    NEED_REUSE = "NEED_REUSE"
     NEED_SYSTEM_DISCOVERY = "NEED_SYSTEM_DISCOVERY"
     NEED_CONTEXT = "NEED_CONTEXT"
     NEED_SCRIPT = "NEED_SCRIPT"
@@ -36,7 +35,7 @@ class ResolutionDecision:
 def resolve_next(
     state: AYState,
     *,
-    requested_muscle: str | None = None,
+    reusable_script: str | None = None,
     needs_context: bool = False,
     needs_human_input: bool = False,
     protected_mutation: bool = False,
@@ -71,12 +70,12 @@ def resolve_next(
             state.missing_capabilities[0],
         )
 
-    if requested_muscle and requested_muscle in state.muscles_available:
+    if reusable_script:
         return ResolutionDecision(
-            ResolutionStatus.NEED_REUSE,
-            "An existing deterministic mechanism already matches the requested work.",
-            "reuse_existing_muscle",
-            requested_muscle,
+            ResolutionStatus.READY,
+            "A concrete deterministic script is already available for this work.",
+            "run_existing_script",
+            reusable_script,
         )
 
     if needs_context:
@@ -89,7 +88,7 @@ def resolve_next(
     if deterministic_repetition:
         return ResolutionDecision(
             ResolutionStatus.NEED_SCRIPT,
-            "The work is repetitive and deterministic but no existing muscle was selected.",
+            "The work is repetitive and deterministic but no concrete script was selected.",
             "create_ephemeral_script",
         )
 
