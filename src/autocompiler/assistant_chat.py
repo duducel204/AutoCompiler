@@ -213,7 +213,6 @@ def _ay_self_context(intent: str) -> str:
         "intent": state.intent,
         "available_capabilities": sorted(state.capabilities_available),
         "missing_capabilities": state.missing_capabilities,
-        "muscles": state.muscles_available,
         "unknown": state.unknown,
         "constraints": state.constraints,
         "evidence_refs": state.evidence_refs,
