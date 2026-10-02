@@ -159,7 +159,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
                         "key": "$param.monitor_key",
                         "val": "$s1",
                         "file": "monitors.db",
-                        "only_if_changed": true
+                        "only_if_changed": True
                     },
                 },
             ],
