@@ -7,6 +7,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from autocompiler.assistant_actions import set_actions_enabled
 from autocompiler.assistant_chat import (
     assistant_status,
     chat_with_assistant,
@@ -108,6 +109,49 @@ class AssistantChatTests(unittest.TestCase):
         self.assertFalse(result["can_authorize"])
         self.assertFalse(result["can_apply"])
         gemini.assert_called_once()
+
+    @patch("autocompiler.assistant_chat.probe")
+    @patch("autocompiler.assistant_chat.execute_assistant_action")
+    @patch("autocompiler.assistant_chat.generate_content")
+    def test_explicit_browser_command_uses_declared_gemini_function_only_when_enabled(self, generate, execute, probe):
+        probe.return_value = {"ok": True, "provider": "google-gemini", "model": "gemini-3.8-flash"}
+        generate.return_value = {
+            "candidates": [{
+                "content": {
+                    "parts": [{
+                        "functionCall": {
+                            "id": "call-1",
+                            "name": "browser_search",
+                            "args": {"query": "tradutor"},
+                        }
+                    }]
+                }
+            }]
+        }
+        execute.return_value = {
+            "ok": True,
+            "status": "navigated",
+            "function": "browser_search",
+            "query": "tradutor",
+            "shell_used": False,
+        }
+        configure_assistant(api_key="AQ.temporary-secret-key", model="gemini-3.8-flash")
+        set_actions_enabled(True)
+
+        result = chat_with_assistant("Pesquise tradutor")
+
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["can_control_browser"])
+        self.assertEqual(result["actions"][0]["function"], "browser_search")
+        self.assertFalse(result["actions"][0]["shell_used"])
+        execute.assert_called_once_with("browser_search", {"query": "tradutor"})
+        _, kwargs = generate.call_args
+        declarations = kwargs["tools"][0]["functionDeclarations"]
+        self.assertEqual(
+            {item["name"] for item in declarations},
+            {"browser_open", "browser_search", "browser_navigate"},
+        )
+        self.assertNotIn("shell", str(declarations).lower())
 
     @patch("autocompiler.assistant_chat.probe")
     @patch("autocompiler.assistant_chat.draft_intent_to_ir")
