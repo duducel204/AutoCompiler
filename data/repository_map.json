@@ -1,72 +1,211 @@
 {
   "schema_version": 1,
   "areas": [
-    {"path": "data", "role": "Registros canônicos; não duplicar estados na documentação", "entry": "data/canonical_capabilities.json"},
-    {"path": "src", "role": "Implementação do core, provedores e superfícies de execução", "entry": "src/autocompiler/local_canvas.py"},
-    {"path": "schemas", "role": "Contrato estrutural das entradas IR", "entry": "schemas/automation-ir.schema.json"},
-    {"path": "examples", "role": "Entradas concretas dos fluxos", "entry": "examples/b1-folder-copy.ir.json"},
-    {"path": "generated", "role": "Saídas compiladas; existência não comprova execução", "entry": "generated/b1/python-sqlite/manifest.json"},
-    {"path": "scripts", "role": "Comandos operacionais, geração e gates", "entry": "scripts/render_repository_map.py"},
-    {"path": "tests", "role": "Contratos exercitados; existência não comprova sucesso", "entry": "tests/test_ir_compiler.py"},
-    {"path": "skills", "role": "Procedimentos de contribuição", "entry": "skills/execute-roadmap-task/SKILL.md"},
-    {"path": "web", "role": "Interface que envia entradas ao backend", "entry": "web/local-canvas/index.html"},
-    {"path": ".github", "role": "Validação e integração", "entry": ".github/workflows/trust-gate.yml"},
-    {"path": "docs", "role": "Visão explicativa e navegação; não é catálogo operacional", "entry": "docs/INDEX.md"}
+    {
+      "path": "data",
+      "role": "Registros canônicos; não duplicar estados na documentação",
+      "entry": "data/canonical_capabilities.json"
+    },
+    {
+      "path": "src",
+      "role": "Implementação do core, provedores e superfícies de execução",
+      "entry": "src/autocompiler/local_canvas.py"
+    },
+    {
+      "path": "schemas",
+      "role": "Contrato estrutural das entradas IR",
+      "entry": "schemas/automation-ir.schema.json"
+    },
+    {
+      "path": "examples",
+      "role": "Entradas concretas dos fluxos",
+      "entry": "examples/b1-folder-copy.ir.json"
+    },
+    {
+      "path": "generated",
+      "role": "Saídas compiladas; existência não comprova execução",
+      "entry": "generated/b1/python-sqlite/manifest.json"
+    },
+    {
+      "path": "scripts",
+      "role": "Comandos operacionais, geração e gates",
+      "entry": "scripts/render_repository_map.py"
+    },
+    {
+      "path": "packaging",
+      "role": "Distribuição do produto Windows, runtime privado, instalador e provas de instalação",
+      "entry": "packaging/windows/build.ps1"
+    },
+    {
+      "path": "tests",
+      "role": "Contratos exercitados; existência não comprova sucesso",
+      "entry": "tests/test_ir_compiler.py"
+    },
+    {
+      "path": "skills",
+      "role": "Procedimentos de contribuição",
+      "entry": "skills/execute-roadmap-task/SKILL.md"
+    },
+    {
+      "path": "web",
+      "role": "Interface que envia entradas ao backend",
+      "entry": "web/local-canvas/index.html"
+    },
+    {
+      "path": ".github",
+      "role": "Validação e integração",
+      "entry": ".github/workflows/trust-gate.yml"
+    },
+    {
+      "path": "docs",
+      "role": "Visão explicativa e navegação; não é catálogo operacional",
+      "entry": "docs/INDEX.md"
+    }
   ],
   "flows": [
     {
       "id": "workspace",
       "name": "Criar e aplicar pela interface",
       "input": "Parâmetros de template ou IR candidato; consentimento para o plano",
-      "stages": ["web/local-canvas/index.html", "src/autocompiler/local_canvas.py", "src/autocompiler/templates.py", "src/autocompiler/ir.py", "src/autocompiler/workflow_lifecycle.py", "src/autocompiler/planner.py", "src/autocompiler/environment.py", "src/autocompiler/compiler.py"],
+      "stages": [
+        "web/local-canvas/index.html",
+        "src/autocompiler/local_canvas.py",
+        "src/autocompiler/templates.py",
+        "src/autocompiler/ir.py",
+        "src/autocompiler/workflow_lifecycle.py",
+        "src/autocompiler/planner.py",
+        "src/autocompiler/environment.py",
+        "src/autocompiler/compiler.py"
+      ],
       "output": "Plano e resultado JSON; automation.py, automation.ir.json e manifest.json no diretório autorizado",
       "limits": "Relação de responsabilidades, não uma única sequência de chamadas. Compilador suporta quatro skills B1; ações aceitas no IR podem exceder o destino.",
-      "docs": ["docs/LOCAL-CANVAS.md", "docs/ARCHITECTURE.md", "docs/NEXT_TASK_PREP.md"]
+      "docs": [
+        "docs/LOCAL-CANVAS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/NEXT_TASK_PREP.md"
+      ]
     },
     {
       "id": "memory",
       "name": "Resolver usando memória existente",
       "input": "Requisitos semânticos, registro canônico e vínculos locais utilizáveis",
-      "stages": ["data/canonical_capabilities.json", "src/autocompiler/canonical_capabilities.py", "src/autocompiler/catalog.py", "src/autocompiler/environment.py", "src/autocompiler/planner.py", "src/autocompiler/provisioning.py"],
+      "stages": [
+        "data/canonical_capabilities.json",
+        "src/autocompiler/canonical_capabilities.py",
+        "src/autocompiler/catalog.py",
+        "src/autocompiler/environment.py",
+        "src/autocompiler/planner.py",
+        "src/autocompiler/provisioning.py"
+      ],
       "output": "Providers, bindings e lacunas; catálogo local .autocompiler/capabilities.json quando registrado",
       "limits": "Confiança, disponibilidade e consentimento são diferentes. Não incluir vínculos privados na documentação gerada.",
-      "docs": ["docs/CANONICAL-MEMORY.md", "docs/CAPABILITY-ACQUISITION-LOOP.md"]
+      "docs": [
+        "docs/CANONICAL-MEMORY.md",
+        "docs/CAPABILITY-ACQUISITION-LOOP.md"
+      ]
     },
     {
       "id": "b1",
       "name": "Compilar B1 independente",
       "input": "IR B1 e arquivos da pasta de entrada",
-      "stages": ["examples/b1-folder-copy.ir.json", "build_b1.py", "src/autocompiler/ir.py", "src/autocompiler/compiler.py", "generated/b1/python-sqlite/automation.py", "generated/b1/python-sqlite/manifest.json", "generated/b1/python-json/automation.py", "generated/b1/python-json/manifest.json"],
+      "stages": [
+        "examples/b1-folder-copy.ir.json",
+        "build_b1.py",
+        "src/autocompiler/ir.py",
+        "src/autocompiler/compiler.py",
+        "generated/b1/python-sqlite/automation.py",
+        "generated/b1/python-sqlite/manifest.json",
+        "generated/b1/python-json/automation.py",
+        "generated/b1/python-json/manifest.json"
+      ],
       "output": "Cópias, histórico SQLite/JSONL e resultado; Python permanece necessário",
       "limits": "build_b1.py regenera a pasta B1. Varredura por invocação; sem instalação de agendamento.",
-      "docs": ["docs/experiments/B1-SKILLS-IR-MULTITARGET.md", "docs/DEMO.md"]
+      "docs": [
+        "docs/experiments/B1-SKILLS-IR-MULTITARGET.md",
+        "docs/DEMO.md"
+      ]
     },
     {
       "id": "prepare",
       "name": "Preparar Windows",
       "input": "Inventário, receitas para lacunas e autorização",
-      "stages": ["src/autocompiler/discover.py", "src/autocompiler/first_run.py", "src/autocompiler/windows_base.py", "src/autocompiler/windows_provisioner.py", "src/autocompiler/change_plan.py", "src/autocompiler/environment_manifest.py"],
+      "stages": [
+        "src/autocompiler/discover.py",
+        "src/autocompiler/first_run.py",
+        "src/autocompiler/windows_base.py",
+        "src/autocompiler/windows_provisioner.py",
+        "src/autocompiler/change_plan.py",
+        "src/autocompiler/environment_manifest.py"
+      ],
       "output": "Diagnóstico, plano, propriedade e indicação de reinspeção",
       "limits": "Aquisição não significa AUTOMATION_READY; faltas sem receita ficam explícitas.",
-      "docs": ["docs/ENVIRONMENT-RESOLUTION.md", "docs/NEXT_TASK_PREP.md"]
+      "docs": [
+        "docs/ENVIRONMENT-RESOLUTION.md",
+        "docs/NEXT_TASK_PREP.md"
+      ]
     },
     {
       "id": "external",
       "name": "Adquirir e consumir jq na prova E-030",
       "input": "Release fixada, SHA-256, plataforma x64 e consentimento",
-      "stages": ["tests/test_external_provider_e030.py", "src/autocompiler/external_provider.py", "src/autocompiler/change_plan.py", "src/autocompiler/environment_manifest.py"],
+      "stages": [
+        "tests/test_external_provider_e030.py",
+        "src/autocompiler/external_provider.py",
+        "src/autocompiler/change_plan.py",
+        "src/autocompiler/environment_manifest.py"
+      ],
       "output": "Provedor verificado, consumidor independente e remoção após liberação",
       "limits": "Prova condicionada; não registra jq como instalado permanentemente.",
-      "docs": ["docs/experiments/E030-EXTERNAL-JQ.md", "docs/experiments/REAL-CAPABILITY-PROVISIONING.md"]
+      "docs": [
+        "docs/experiments/E030-EXTERNAL-JQ.md",
+        "docs/experiments/REAL-CAPABILITY-PROVISIONING.md"
+      ]
+    },
+    {
+      "id": "windows-product",
+      "name": "Construir e instalar o produto Windows",
+      "input": "Código validado, runtime Python oficial fixado por hash e componentes Ready Automation",
+      "stages": [
+        "packaging/windows/build.ps1",
+        "packaging/windows/AutoCompilerSetup.cs",
+        "packaging/windows/bootstrap.ps1",
+        "packaging/windows/AutoCompilerReadyBridge.cs",
+        "web/ready-automations/browser-selection-powershell/manifest.json",
+        "src/autocompiler/desktop_launcher.py",
+        ".github/workflows/windows-package.yml"
+      ],
+      "output": "AutoCompilerSetup.exe único; instalação em perfil do usuário com runtime privado, Canvas, Automation Base e Ready Actions",
+      "limits": "Windows x64 primeiro. Browser Ready Action usa extensão local carregada pelo atalho AutoCompiler e não executa texto selecionado automaticamente.",
+      "docs": [
+        "docs/CORE_CONVERGENCE_EXECUTION_PLAN.md",
+        "docs/PRODUCT_INTENT.md"
+      ]
     },
     {
       "id": "documentation",
       "name": "Atualizar documentação a partir das fontes",
       "input": "CSVs, catálogo, mapa editorial e relações estáticas entre arquivos",
-      "stages": ["data/repository_map.json", "data/roadmap.csv", "data/discoveries.csv", "data/hypotheses.csv", "data/resources.csv", "scripts/render_readme.py", "scripts/render_repository_map.py", "scripts/render_repository_index.py", "README.md", "docs/REPOSITORY_MAP.md", "docs/REPOSITORY_INDEX.xlsx"],
+      "stages": [
+        "data/repository_map.json",
+        "data/roadmap.csv",
+        "data/discoveries.csv",
+        "data/hypotheses.csv",
+        "data/resources.csv",
+        "scripts/render_readme.py",
+        "scripts/render_repository_map.py",
+        "scripts/render_repository_index.py",
+        "README.md",
+        "docs/REPOSITORY_MAP.md",
+        "docs/REPOSITORY_INDEX.xlsx"
+      ],
       "output": "Seções do README, mapa navegável e planilha principal",
       "limits": "Não executa providers, não promove trust e não comprova comportamentos por presença de arquivos.",
-      "docs": ["docs/INDEX.md", "docs/REPOSITORY_INDEX.md", "docs/evidence/INDEX.md", "docs/experiments/INDEX.md"]
+      "docs": [
+        "docs/INDEX.md",
+        "docs/REPOSITORY_INDEX.md",
+        "docs/evidence/INDEX.md",
+        "docs/experiments/INDEX.md"
+      ]
     }
   ]
 }

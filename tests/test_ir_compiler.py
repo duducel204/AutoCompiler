@@ -1,6 +1,6 @@
 import json, sqlite3, subprocess, sys, tempfile, unittest
 from pathlib import Path
-from src.autocompiler.compiler import compile_ir
+from src.autocompiler.compiler import analyze_compile_support, compile_ir
 from src.autocompiler.ir import validate_ir, load_ir
 
 class IRCompilerTest(unittest.TestCase):
@@ -55,6 +55,8 @@ class IRCompilerTest(unittest.TestCase):
         validation = validate_ir(ir)
         self.assertEqual(ir["schema_version"], "0.3")
         self.assertIsInstance(validation.required_capabilities, list)
+        self.assertIn("webhook.receive", validation.required_capabilities)
+        self.assertIn("notification.send", validation.required_capabilities)
 
     def test_schema_0_3_w10_persistent_workflow_valid(self):
         w10_path = Path("examples/w10-persistent-workflow.ir.json")
@@ -62,28 +64,71 @@ class IRCompilerTest(unittest.TestCase):
         validation = validate_ir(ir)
         self.assertEqual(ir["schema_version"], "0.3")
         self.assertIn("durable_state", validation.required_capabilities)
+        self.assertIn("wait", validation.required_capabilities)
+        self.assertIn("continuation", validation.required_capabilities)
+        self.assertIn("retry", validation.required_capabilities)
+        self.assertIn("timeout", validation.required_capabilities)
+        self.assertIn("fallback", validation.required_capabilities)
+        self.assertIn("event.receive", validation.required_capabilities)
         step_types = [step.get("type") for step in ir["steps"]]
         self.assertIn("wait", step_types)
         self.assertIn("continue", step_types)
 
+    def test_schedule_and_http_use_canonical_capability_vocabulary(self):
+        ir = {
+            "schema_version": "0.3",
+            "name": "scheduled-http",
+            "trigger": {"type": "schedule", "cron": "0 18 * * *"},
+            "steps": [
+                {"id": "fetch", "skill": "http.request", "with": {"url": "https://example.com"}},
+            ],
+        }
+        validation = validate_ir(ir)
+        self.assertIn("schedule", validation.required_capabilities)
+        self.assertIn("http.request", validation.required_capabilities)
+        self.assertNotIn("http.client", validation.required_capabilities)
+        self.assertIn("trigger:schedule", validation.capability_sources["schedule"])
+
+    def test_compiler_requires_a_materializable_resolved_http_provider(self):
+        ir = {
+            "schema_version": "0.3",
+            "name": "http-only",
+            "trigger": {"type": "manual"},
+            "steps": [{"id": "fetch", "skill": "http.request", "with": {"url": "https://example.com"}}],
+        }
+        wrong = {
+            "schema_version": "0.1",
+            "target": "python-sqlite",
+            "requirements": [
+                {"capability": "http.request", "provider": "custom-http", "status": "resolved"}
+            ],
+        }
+        support = analyze_compile_support(ir, "python-sqlite", wrong)
+        self.assertFalse(support["supported"])
+        self.assertEqual(support["provider_mismatches"][0]["capability"], "http.request")
+
+        right = {
+            "schema_version": "0.1",
+            "target": "python-sqlite",
+            "requirements": [
+                {"capability": "http.request", "provider": "autocompiler.http_provider", "status": "resolved"}
+            ],
+        }
+        self.assertTrue(analyze_compile_support(ir, "python-sqlite", right)["supported"])
+
     def test_schema_malformed_workflows_rejected(self):
-        # Unsupported schema version
         with self.assertRaises(ValueError):
             validate_ir({"schema_version": "99.0", "name": "bad", "trigger": {"type": "manual"}, "steps": [{"id": "s1", "type": "get"}]})
 
-        # Missing name
         with self.assertRaises(ValueError):
             validate_ir({"schema_version": "0.3", "name": "", "trigger": {"type": "manual"}, "steps": [{"id": "s1", "type": "get"}]})
 
-        # Missing trigger type
         with self.assertRaises(ValueError):
             validate_ir({"schema_version": "0.3", "name": "bad", "trigger": {}, "steps": [{"id": "s1", "type": "get"}]})
 
-        # Unsupported trigger type
         with self.assertRaises(ValueError):
             validate_ir({"schema_version": "0.3", "name": "bad", "trigger": {"type": "magic"}, "steps": [{"id": "s1", "type": "get"}]})
 
-        # Unsupported skill/type in step
         with self.assertRaises(ValueError):
             validate_ir({"schema_version": "0.3", "name": "bad", "trigger": {"type": "manual"}, "steps": [{"id": "s1", "type": "unknown_primitive"}]})
 

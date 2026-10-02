@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "AutoCompiler Ready Actions",
+  "version": "0.1.0",
+  "description": "Local Ready Automations installed by AutoCompiler.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuWQvLerIJeemISC5wD45u+LsSGnXrkRCYHST6FBB8JFnVS2Uh+4Vl/DCYkcrbewf0gxZyxZ1S8e1Tj/lz9ttKwYvwWBgs+HP3ibnVSroldGBr1UvbUiovfvQzolX2bhmM3rKfTtG5+uYmzJn+ROOGNn7K9soYxJqyJ1ZbXG3DfLDATXNx/Iwe2iWlFk2wa6ob1sEfuzZPUue3KBCGR0OD45fHM5KAVmuCj6DVbJRozEl89j4s4h0YgcTjmgIDRFNosXAsWSWM4LA/9LKjqEnruTUxPM0B05BgIDu1cffy3HeWAySFK6kLr3jaT9ME2yHqDRpoPruO2rONkZj4O1jawIDAQAB",
+  "permissions": [
+    "contextMenus",
+    "nativeMessaging"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

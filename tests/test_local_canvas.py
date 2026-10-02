@@ -91,6 +91,12 @@ class LocalCanvasTests(unittest.TestCase):
             },
             None,
         )
+        managed = tempfile.TemporaryDirectory()
+        managed_root = Path(managed.name)
+        workflow_patch = patch("autocompiler.local_canvas.WORKFLOW_ROOT", managed_root / "workflows")
+        generated_patch = patch("autocompiler.local_canvas.GENERATED_ROOT", managed_root / "generated")
+        workflow_patch.start()
+        generated_patch.start()
         server = ThreadingHTTPServer(("127.0.0.1", 0), CanvasHandler)
         port = server.server_port
         thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -137,7 +143,7 @@ class LocalCanvasTests(unittest.TestCase):
                 source.mkdir()
                 (source / "demo.txt").write_text("hello", encoding="utf-8")
                 destination = Path(td) / "out"
-                run_out_dir = Path(td) / "compiled"
+                run_out_dir = managed_root / "generated" / "compiled"
 
                 ir_w01 = {
                     "schema_version": "0.1",
@@ -173,19 +179,56 @@ class LocalCanvasTests(unittest.TestCase):
                 self.assertTrue(val_res["ok"])
                 self.assertIn("filesystem.read", val_res["required_capabilities"])
 
-                wf_path = Path(td) / "workflow.ir.json"
+                wf_name = "workflow.ir.json"
                 req = Request(
                     f"{base_url}/api/workflow/save",
-                    data=json.dumps({"path": str(wf_path), "ir": ir_w01}).encode("utf-8"),
+                    data=json.dumps({"path": wf_name, "ir": ir_w01}).encode("utf-8"),
                     headers={"Content-Type": "application/json"},
                 )
                 with urlopen(req) as resp:
                     save_res = json.loads(resp.read().decode("utf-8"))
                 self.assertTrue(save_res["ok"])
 
-                with urlopen(f"{base_url}/api/workflow/load?path={wf_path}") as resp:
+                with urlopen(f"{base_url}/api/workflow/load?path={wf_name}") as resp:
                     load_res = json.loads(resp.read().decode("utf-8"))
                 self.assertTrue(load_res["ok"])
+
+                # Managed HTTP paths cannot escape AutoCompiler-owned roots.
+                bad_save = Request(
+                    f"{base_url}/api/workflow/save",
+                    data=json.dumps({"path": "../../outside.json", "ir": ir_w01}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with self.assertRaises(HTTPError) as bad_save_error:
+                    urlopen(bad_save)
+                self.assertEqual(bad_save_error.exception.code, 400)
+
+                bad_plan = Request(
+                    f"{base_url}/api/workflow/plan",
+                    data=json.dumps({
+                        "ir": ir_w01,
+                        "target": "python-sqlite",
+                        "out_dir": "..\\outside",
+                        "source": "canvas",
+                    }).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with self.assertRaises(HTTPError) as bad_plan_error:
+                    urlopen(bad_plan)
+                self.assertEqual(bad_plan_error.exception.code, 400)
+
+                # A foreign web origin cannot use the localhost API as a bridge.
+                foreign = Request(
+                    f"{base_url}/api/workflow/validate",
+                    data=json.dumps({"ir": ir_w01}).encode("utf-8"),
+                    headers={
+                        "Content-Type": "text/plain",
+                        "Origin": "https://attacker.example",
+                    },
+                )
+                with self.assertRaises(HTTPError) as foreign_error:
+                    urlopen(foreign)
+                self.assertEqual(foreign_error.exception.code, 403)
 
                 # Old direct execution path is closed.
                 direct = Request(
@@ -203,7 +246,7 @@ class LocalCanvasTests(unittest.TestCase):
                     data=json.dumps({
                         "ir": ir_w01,
                         "target": "python-sqlite",
-                        "out_dir": str(run_out_dir),
+                        "out_dir": "compiled",
                         "source": "canvas",
                     }).encode("utf-8"),
                     headers={"Content-Type": "application/json"},
@@ -260,6 +303,9 @@ class LocalCanvasTests(unittest.TestCase):
                 self.assertEqual(replay_error.exception.code, 403)
         finally:
             server.shutdown()
+            generated_patch.stop()
+            workflow_patch.stop()
+            managed.cleanup()
 
     @patch("autocompiler.local_canvas.chat_with_assistant")
     @patch("autocompiler.local_canvas.assistant_status")

@@ -1,12 +1,20 @@
+import json
+import platform
+import subprocess
 import sys
 import tempfile
+import threading
+import time
 import unittest
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from autocompiler.deployment import remove_windows_schedule
+from autocompiler.templates import instantiate_template
 from autocompiler.workflow_lifecycle import (
     WorkflowPlanStore,
     apply_workflow_plan,
@@ -14,13 +22,17 @@ from autocompiler.workflow_lifecycle import (
 )
 
 
-def usable_graph():
+def usable_graph(filesystem_provider: str = "stdlib"):
     return {
         "resources": [
-            {"capability": "filesystem.read", "provider": "stdlib", "state": "usable", "cost": "free"},
-            {"capability": "filesystem.write", "provider": "stdlib", "state": "usable", "cost": "free"},
+            {"capability": "filesystem.read", "provider": filesystem_provider, "state": "usable", "cost": "free"},
+            {"capability": "filesystem.write", "provider": filesystem_provider, "state": "usable", "cost": "free"},
             {"capability": "durable_state", "provider": "sqlite", "state": "usable", "cost": "free"},
-            {"capability": "http.client", "provider": "stdlib-http", "state": "usable", "cost": "free"},
+            {"capability": "http.request", "provider": "autocompiler.http_provider", "state": "usable", "cost": "free"},
+            {"capability": "csv.read", "provider": "python-stdlib-csv", "state": "usable", "cost": "free"},
+            {"capability": "xlsx.write", "provider": "python-stdlib-xlsx", "state": "usable", "cost": "free"},
+            {"capability": "state.check", "provider": "sqlite", "state": "usable", "cost": "free"},
+            {"capability": "state.update", "provider": "sqlite", "state": "usable", "cost": "free"},
         ]
     }
 
@@ -61,8 +73,11 @@ class WorkflowLifecycleTests(unittest.TestCase):
         self.assertEqual(plan["recurring_cost"]["amount"], 0)
         self.assertFalse(plan["schedule"]["background"])
         self.assertIn("filesystem.read", plan["providers"])
+        self.assertTrue(plan["compiler_support"]["supported"])
+        self.assertTrue(plan["deployment_support"]["supported"])
+        self.assertEqual(plan["resolved_execution"]["target"], "python-sqlite")
 
-    def test_plan_makes_build_time_ai_and_schedule_visible(self):
+    def test_plan_makes_build_time_ai_and_schedule_visible_but_not_ready(self):
         ir = {
             "schema_version": "0.1",
             "name": "Scheduled API snapshot",
@@ -74,7 +89,7 @@ class WorkflowLifecycleTests(unittest.TestCase):
             "state": {"file": "history.db"},
         }
         graph = usable_graph()
-        graph["resources"].append({"capability": "filesystem.write", "provider": "stdlib", "state": "usable", "cost": "free"})
+        graph["resources"].append({"capability": "schedule", "provider": "windows-task-scheduler", "state": "usable", "cost": "free"})
         plan = build_workflow_plan(
             ir,
             source="ai",
@@ -90,6 +105,37 @@ class WorkflowLifecycleTests(unittest.TestCase):
         self.assertEqual(plan["schedule"]["cron"], "0 18 * * *")
         self.assertEqual(plan["external_services"], ["example.com"])
         self.assertFalse(plan["recurring_cost"]["known"])
+        self.assertTrue(plan["can_apply"])
+        self.assertTrue(plan["compiler_support"]["supported"])
+        self.assertTrue(plan["deployment_support"]["supported"])
+        self.assertEqual(plan["deployment_support"]["provider"], "windows-task-scheduler")
+
+    def test_plan_id_binds_provider_resolution(self):
+        ir = w01_ir("./incoming", "./processed")
+        plan_a = build_workflow_plan(ir, resource_graph=usable_graph("stdlib"))
+        plan_b = build_workflow_plan(ir, resource_graph=usable_graph("python-stdlib-filesystem"))
+        self.assertNotEqual(plan_a["plan_id"], plan_b["plan_id"])
+        req_a = {x["capability"]: x["provider"] for x in plan_a["resolved_execution"]["requirements"]}
+        req_b = {x["capability"]: x["provider"] for x in plan_b["resolved_execution"]["requirements"]}
+        self.assertEqual(req_a["filesystem.read"], "stdlib")
+        self.assertEqual(req_b["filesystem.read"], "python-stdlib-filesystem")
+
+    def test_schedule_resolution_becomes_deployable_only_for_supported_windows_contract(self):
+        ir = w01_ir("./incoming", "./processed")
+        ir["trigger"] = {"type": "schedule", "cron": "0 9 * * *"}
+        graph = usable_graph()
+        graph["resources"].append({"capability": "schedule", "provider": "windows-task-scheduler", "state": "usable", "cost": "free"})
+        plan = build_workflow_plan(ir, resource_graph=graph)
+        self.assertEqual(plan["missing_capabilities"], [])
+        self.assertTrue(plan["compiler_support"]["supported"])
+        self.assertTrue(plan["deployment_support"]["supported"])
+        self.assertEqual(plan["deployment_support"]["windows_schedule"]["schedule"], "DAILY")
+        self.assertTrue(plan["can_apply"])
+
+        ir["trigger"] = {"type": "schedule", "cron": "0 9 * * MON"}
+        unsupported = build_workflow_plan(ir, resource_graph=graph)
+        self.assertFalse(unsupported["deployment_support"]["supported"])
+        self.assertFalse(unsupported["can_apply"])
 
     def test_apply_is_blocked_before_authorization(self):
         with tempfile.TemporaryDirectory() as td:
@@ -131,9 +177,283 @@ class WorkflowLifecycleTests(unittest.TestCase):
             self.assertEqual(result["status"], "verified")
             self.assertTrue(result["verification"]["ir_matches_authorized_plan"])
             self.assertTrue(result["verification"]["manifest_matches_authorized_plan"])
+            self.assertTrue(result["verification"]["resolution_matches_authorized_plan"])
             self.assertTrue(result["verification"]["execution_ok"])
             self.assertFalse(result["verification"]["recurring_ai_used"])
             self.assertTrue((processed / "demo.txt").exists())
+            self.assertEqual(
+                result["manifest"]["resolved_execution_digest"],
+                result["result"]["resolved_execution_digest"],
+            )
+
+    def test_w03_template_consumes_resolved_http_provider_in_independent_artifact(self):
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                payload = json.dumps({"items": [{"id": 1, "name": "alpha"}], "source": "local-proof"}).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+            def log_message(self, format, *args):
+                return
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                url = f"http://127.0.0.1:{server.server_address[1]}/snapshot"
+                instantiated = instantiate_template(
+                    "w03",
+                    {"api_url": url, "output_file": "snapshots.jsonl"},
+                )
+                ir = instantiated["ir"]
+                compiled = root / "compiled"
+                plan = build_workflow_plan(
+                    ir,
+                    out_dir=compiled,
+                    source="template",
+                    resource_graph=usable_graph(),
+                )
+
+                self.assertTrue(plan["can_apply"])
+                resolved = {
+                    x["capability"]: x["provider"]
+                    for x in plan["resolved_execution"]["requirements"]
+                }
+                self.assertEqual(resolved["http.request"], "autocompiler.http_provider")
+
+                store = WorkflowPlanStore()
+                store.create(ir, plan)
+                record = store.authorize(plan["plan_id"])
+                result = apply_workflow_plan(record)
+
+                self.assertTrue(result["ok"])
+                self.assertTrue(result["verification"]["resolution_matches_authorized_plan"])
+                self.assertFalse(result["result"]["autocompiler_runtime_used"])
+                row = json.loads((compiled / "snapshots.jsonl").read_text(encoding="utf-8").splitlines()[0])
+                self.assertEqual(row["source"], "local-proof")
+                self.assertEqual(row["items"][0]["name"], "alpha")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+    def test_scheduled_workflow_deploys_artifact_instead_of_running_it_immediately(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            incoming = root / "incoming"
+            incoming.mkdir()
+            (incoming / "demo.txt").write_text("hello", encoding="utf-8")
+            ir = w01_ir(str(incoming), str(root / "backup"))
+            ir["trigger"] = {"type": "schedule", "cron": "0 9 * * *"}
+            graph = usable_graph()
+            graph["resources"].append({
+                "capability": "schedule",
+                "provider": "windows-task-scheduler",
+                "state": "usable",
+                "cost": "free",
+            })
+            plan = build_workflow_plan(ir, out_dir=root / "compiled", resource_graph=graph)
+            self.assertTrue(plan["can_apply"])
+
+            store = WorkflowPlanStore()
+            store.create(ir, plan)
+            record = store.authorize(plan["plan_id"])
+
+            deployment = {
+                "ok": True,
+                "status": "installed_verified",
+                "task_name": plan["deployment_support"]["task_name"],
+                "provider": "windows-task-scheduler",
+            }
+            with patch("autocompiler.workflow_lifecycle.deploy_windows_schedule", return_value=deployment) as deploy_mock, \
+                 patch("autocompiler.workflow_lifecycle.subprocess.run") as direct_run:
+                result = apply_workflow_plan(record)
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["verification"]["operational_mode"], "deployed")
+            self.assertTrue(result["verification"]["deployment_ok"])
+            self.assertIsNone(result["verification"]["execution_ok"])
+            direct_run.assert_not_called()
+            deploy_mock.assert_called_once()
+
+    def test_w05_template_converts_csv_to_real_xlsx_in_independent_artifact(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            source = root / "input.csv"
+            output = root / "output.xlsx"
+            source.write_text("name,value\nalpha,1\nbeta,2\n", encoding="utf-8")
+
+            instantiated = instantiate_template(
+                "w05",
+                {"input_csv": str(source), "output_xlsx": str(output)},
+            )
+            ir = instantiated["ir"]
+            compiled = root / "compiled"
+            plan = build_workflow_plan(
+                ir,
+                out_dir=compiled,
+                source="template",
+                resource_graph=usable_graph(),
+            )
+            self.assertTrue(plan["can_apply"])
+            resolved = {
+                x["capability"]: x["provider"]
+                for x in plan["resolved_execution"]["requirements"]
+            }
+            self.assertEqual(resolved["csv.read"], "python-stdlib-csv")
+            self.assertEqual(resolved["xlsx.write"], "python-stdlib-xlsx")
+
+            store = WorkflowPlanStore()
+            store.create(ir, plan)
+            record = store.authorize(plan["plan_id"])
+            result = apply_workflow_plan(record)
+
+            self.assertTrue(result["ok"])
+            self.assertTrue(output.is_file())
+            self.assertGreater(output.stat().st_size, 0)
+            self.assertFalse(result["result"]["autocompiler_runtime_used"])
+
+    @unittest.skipUnless(platform.system() == "Windows", "real Task Scheduler acceptance runs only on Windows")
+    def test_w02_real_windows_scheduler_runs_compiled_backup_and_cleans_up(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            source = root / "source"
+            backup = root / "backup"
+            source.mkdir()
+            (source / "proof.txt").write_text("scheduled-proof", encoding="utf-8")
+
+            instantiated = instantiate_template(
+                "w02",
+                {"source_folder": str(source), "backup_folder": str(backup)},
+            )
+            ir = instantiated["ir"]
+            graph = usable_graph()
+            graph["resources"].append({
+                "capability": "schedule",
+                "provider": "native_scheduler",
+                "state": "usable",
+                "cost": "free",
+            })
+            plan = build_workflow_plan(
+                ir,
+                out_dir=root / "compiled",
+                source="template",
+                resource_graph=graph,
+            )
+            self.assertTrue(plan["can_apply"])
+
+            store = WorkflowPlanStore()
+            store.create(ir, plan)
+            record = store.authorize(plan["plan_id"])
+            applied = apply_workflow_plan(record)
+            task_name = applied.get("deployment", {}).get("task_name")
+
+            try:
+                self.assertTrue(applied["ok"])
+                self.assertTrue(task_name)
+                fired = subprocess.run(
+                    ["schtasks.exe", "/Run", "/TN", task_name],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(fired.returncode, 0, fired.stderr)
+
+                deadline = time.time() + 15
+                target = backup / "proof.txt"
+                while time.time() < deadline and not target.exists():
+                    time.sleep(0.25)
+                self.assertTrue(target.exists(), "scheduled artifact did not copy the proof file")
+                self.assertEqual(target.read_text(encoding="utf-8"), "scheduled-proof")
+            finally:
+                if task_name:
+                    removed = remove_windows_schedule(task_name)
+                    self.assertTrue(removed["ok"], removed)
+
+    def test_w04_composes_http_and_state_to_record_only_real_changes(self):
+        payload = {"value": 1}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                body = json.dumps(payload).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, format, *args):
+                return
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                url = f"http://127.0.0.1:{server.server_address[1]}/state"
+                instantiated = instantiate_template(
+                    "w04",
+                    {"monitor_key": "proof", "target_url": url},
+                )
+                ir = instantiated["ir"]
+                graph = usable_graph()
+                graph["resources"].append({
+                    "capability": "schedule",
+                    "provider": "windows-task-scheduler",
+                    "state": "usable",
+                    "cost": "free",
+                })
+                compiled = root / "compiled"
+                plan = build_workflow_plan(
+                    ir,
+                    out_dir=compiled,
+                    source="template",
+                    resource_graph=graph,
+                )
+                self.assertTrue(plan["can_apply"])
+
+                store = WorkflowPlanStore()
+                store.create(ir, plan)
+                record = store.authorize(plan["plan_id"])
+                deployment = {
+                    "ok": True,
+                    "status": "installed_verified",
+                    "task_name": plan["deployment_support"]["task_name"],
+                    "provider": "windows-task-scheduler",
+                }
+                with patch("autocompiler.workflow_lifecycle.deploy_windows_schedule", return_value=deployment):
+                    applied = apply_workflow_plan(record)
+                self.assertTrue(applied["ok"])
+
+                artifact = compiled / "automation.py"
+
+                first = subprocess.run([sys.executable, str(artifact)], capture_output=True, text=True, check=True)
+                first_result = json.loads(first.stdout)
+                self.assertTrue(first_result["context"]["s3"]["changed"])
+                self.assertTrue(first_result["context"]["s3"]["updated"])
+
+                second = subprocess.run([sys.executable, str(artifact)], capture_output=True, text=True, check=True)
+                second_result = json.loads(second.stdout)
+                self.assertFalse(second_result["context"]["s2"]["changed"])
+                self.assertFalse(second_result["context"]["s3"]["changed"])
+                self.assertFalse(second_result["context"]["s3"]["updated"])
+
+                payload["value"] = 2
+                third = subprocess.run([sys.executable, str(artifact)], capture_output=True, text=True, check=True)
+                third_result = json.loads(third.stdout)
+                self.assertTrue(third_result["context"]["s2"]["changed"])
+                self.assertTrue(third_result["context"]["s3"]["changed"])
+                self.assertTrue(third_result["context"]["s3"]["updated"])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
 
     def test_failed_execution_is_not_reported_as_verified(self):
         with tempfile.TemporaryDirectory() as td:

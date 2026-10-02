@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -29,10 +31,56 @@ from .workspace import repository_snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web" / "local-canvas"
-DEFAULT_CATALOG = ROOT / ".autocompiler" / "capabilities.json"
-DEFAULT_ENV_MANIFEST = ROOT / ".autocompiler" / "environment_manifest.json"
+PRODUCT_HOME = Path(os.environ.get("AUTOCOMPILER_HOME", str(ROOT))).expanduser()
+STATE_ROOT = Path(os.environ.get("AUTOCOMPILER_STATE_ROOT", str(PRODUCT_HOME / ".autocompiler"))).expanduser()
+GENERATED_ROOT = Path(os.environ.get("AUTOCOMPILER_GENERATED_ROOT", str(PRODUCT_HOME / "generated"))).expanduser()
+DEFAULT_CATALOG = STATE_ROOT / "capabilities.json"
+DEFAULT_ENV_MANIFEST = STATE_ROOT / "environment_manifest.json"
+WORKFLOW_ROOT = STATE_ROOT / "workflows"
+MAX_REQUEST_BYTES = 2 * 1024 * 1024
+SAFE_LEAF = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 WORKFLOW_PLANS = WorkflowPlanStore()
 MACHINE_PLANS = MachinePreparationStore()
+
+
+def _safe_leaf(value: object, *, default: str, suffix: str | None = None) -> str:
+    raw = str(value if value not in (None, "") else default)
+    if "/" in raw or "\\" in raw or raw in {".", ".."}:
+        raise ValueError("managed path must be a single safe name")
+    if not SAFE_LEAF.fullmatch(raw):
+        raise ValueError("managed path contains unsupported characters")
+    if suffix and not raw.endswith(suffix):
+        raw += suffix
+    return raw
+
+
+def _workflow_path(value: object = None) -> Path:
+    name = _safe_leaf(value, default="workflow.ir.json", suffix=".json")
+    WORKFLOW_ROOT.mkdir(parents=True, exist_ok=True)
+    return WORKFLOW_ROOT / name
+
+
+def _generated_path(value: object = None) -> Path:
+    name = _safe_leaf(value, default="canvas_run")
+    GENERATED_ROOT.mkdir(parents=True, exist_ok=True)
+    return GENERATED_ROOT / name
+
+
+def _host_is_local(host_header: str | None) -> bool:
+    if not host_header:
+        return False
+    host = host_header.split(":", 1)[0].strip().lower()
+    return host in {"127.0.0.1", "localhost"}
+
+
+def _origin_is_local(origin_header: str | None) -> bool:
+    if not origin_header:
+        return True
+    try:
+        parsed = urlparse(origin_header)
+    except ValueError:
+        return False
+    return parsed.scheme in {"http", "https"} and (parsed.hostname or "").lower() in {"127.0.0.1", "localhost"}
 
 
 def snapshot(catalog_path: Path = DEFAULT_CATALOG) -> dict:
@@ -99,7 +147,28 @@ class CanvasHandler(BaseHTTPRequestHandler):
         except (UnicodeDecodeError, json.JSONDecodeError):
             return {}
 
+    def _reject_unsafe_request(self) -> bool:
+        if not _host_is_local(self.headers.get("Host")):
+            self._json({"ok": False, "error": "invalid_local_host"}, 403)
+            return True
+        if not _origin_is_local(self.headers.get("Origin")):
+            self._json({"ok": False, "error": "invalid_local_origin"}, 403)
+            return True
+        raw_length = self.headers.get("Content-Length")
+        if raw_length:
+            try:
+                length = int(raw_length)
+            except ValueError:
+                self._json({"ok": False, "error": "invalid_content_length"}, 400)
+                return True
+            if length > MAX_REQUEST_BYTES:
+                self._json({"ok": False, "error": "request_too_large"}, 413)
+                return True
+        return False
+
     def do_GET(self) -> None:
+        if self._reject_unsafe_request():
+            return
         parsed_url = urlparse(self.path)
         path = parsed_url.path
         if path == "/api/state":
@@ -132,7 +201,11 @@ class CanvasHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/workflow/load":
             qs = parse_qs(parsed_url.query)
-            target_path = Path(qs.get("path", ["workflow.ir.json"])[0]).expanduser()
+            try:
+                target_path = _workflow_path(qs.get("path", ["workflow.ir.json"])[0])
+            except ValueError as exc:
+                self._json({"ok": False, "error": "invalid_workflow_path", "details": str(exc)}, 400)
+                return
             if not target_path.exists():
                 self._json({"ok": False, "error": "file_not_found"}, 404)
                 return
@@ -168,6 +241,8 @@ class CanvasHandler(BaseHTTPRequestHandler):
         self._json({"error": "not found"}, 404)
 
     def do_POST(self) -> None:
+        if self._reject_unsafe_request():
+            return
         path = urlparse(self.path).path
         if path == "/api/preflight/authorize":
             body = self._body()
@@ -288,8 +363,8 @@ class CanvasHandler(BaseHTTPRequestHandler):
         if path == "/api/workflow/save":
             body = self._body()
             ir_data = body.get("ir", {})
-            save_path = Path(body.get("path", "workflow.ir.json")).expanduser()
             try:
+                save_path = _workflow_path(body.get("path"))
                 validate_ir(ir_data)
                 save_path.parent.mkdir(parents=True, exist_ok=True)
                 save_path.write_text(json.dumps(ir_data, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -301,8 +376,8 @@ class CanvasHandler(BaseHTTPRequestHandler):
             body = self._body()
             ir_data = body.get("ir", {})
             target = body.get("target", "python-sqlite")
-            out_dir = Path(body.get("out_dir", ROOT / "generated" / "canvas_run")).expanduser()
             try:
+                out_dir = _generated_path(body.get("out_dir"))
                 workflow_plan = build_workflow_plan(
                     ir_data,
                     target=target,

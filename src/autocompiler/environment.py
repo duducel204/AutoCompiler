@@ -26,8 +26,8 @@ class Resource:
 def build_resource_graph(inventory: dict[str, Any]) -> dict[str, Any]:
     resources: list[dict[str, Any]] = []
     mapping = {
-        "python": ["run_python", "http.client"],
-        "powershell": ["run_shell", "http.client"],
+        "python": ["run_python", "http.request"],
+        "powershell": ["run_shell", "http.request"],
         "native_scheduler": ["schedule"],
         "sqlite": ["durable_state"],
         "filesystem": ["filesystem.read", "filesystem.write"],

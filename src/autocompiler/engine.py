@@ -49,13 +49,13 @@ def execute(ir: dict[str, Any], event: dict[str, Any], root: Path, http_request=
                     resolve(args.get("body"), context),
                     int(args.get("retries", 0)),
                 )
-            from .http_provider import HTTPClientProvider
-            return HTTPClientProvider().execute({
-                "method": args.get("method", "GET"),
-                "url": resolve(args["url"], context),
-                "body": resolve(args.get("body"), context),
-                "retries": int(args.get("retries", 0)),
-            })
+            from .http_provider import request as default_http_request
+            return default_http_request(
+                args.get("method", "GET"),
+                resolve(args["url"], context),
+                resolve(args.get("body"), context),
+                int(args.get("retries", 0)),
+            )
         elif skill == "data.map":
             return {k: resolve(v, context) for k, v in args["fields"].items()}
         elif skill == "flow.condition":

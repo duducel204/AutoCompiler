@@ -58,7 +58,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "user_title": "Backup automático",
         "category": "Proteção",
         "outcome": "Copiar arquivos de uma pasta para um backup em horário programado.",
-        "status": "validation",
+        "status": "ready",
         "difficulty": "Fácil",
         "parameters": [
             {"key": "source_folder", "label": "Qual pasta deve ter backup?", "default": "./data"},
@@ -95,7 +95,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "user_title": "Salvar dados de uma API",
         "category": "Internet",
         "outcome": "Consultar um endereço de API e guardar uma cópia dos dados recebidos.",
-        "status": "validation",
+        "status": "ready",
         "difficulty": "Intermediário",
         "parameters": [
             {"key": "api_url", "label": "Qual endereço da API?", "default": "http://api.example.com/snapshot"},
@@ -123,11 +123,11 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
     "w04": {
         "id": "w04",
         "name": "Change Monitor",
-        "description": "Monitors a key or endpoint and records state updates only when state changes.",
+        "description": "Checks an HTTP endpoint on a schedule and updates durable state only when the observed payload changes.",
         "user_title": "Monitorar mudanças",
         "category": "Monitoramento",
         "outcome": "Verificar periodicamente uma fonte e registrar quando o estado mudar.",
-        "status": "validation",
+        "status": "ready",
         "difficulty": "Intermediário",
         "parameters": [
             {"key": "monitor_key", "label": "Como identificar este monitor?", "default": "page_1"},
@@ -140,31 +140,40 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
             "steps": [
                 {
                     "id": "s1",
-                    "skill": "state.check",
-                    "with": {"key": "$param.monitor_key", "file": "monitors.db"},
-                },
-                {
-                    "id": "s2",
                     "skill": "http.request",
                     "with": {"url": "$param.target_url", "method": "GET"},
                 },
                 {
+                    "id": "s2",
+                    "skill": "state.check",
+                    "with": {
+                        "key": "$param.monitor_key",
+                        "val": "$s1",
+                        "file": "monitors.db"
+                    },
+                },
+                {
                     "id": "s3",
                     "skill": "state.update",
-                    "with": {"key": "$param.monitor_key", "val": "seen", "file": "monitors.db"},
+                    "with": {
+                        "key": "$param.monitor_key",
+                        "val": "$s1",
+                        "file": "monitors.db",
+                        "only_if_changed": True
+                    },
                 },
             ],
             "state": {"file": "history.db"},
         },
     },
-    "w05": {
+        "w05": {
         "id": "w05",
         "name": "Spreadsheet Transformation",
         "description": "Reads a CSV file and transforms/converts it into an XLSX spreadsheet.",
         "user_title": "Converter CSV em Excel",
         "category": "Planilhas",
         "outcome": "Transformar um arquivo CSV em uma planilha XLSX sem trabalho manual.",
-        "status": "validation",
+        "status": "ready",
         "difficulty": "Fácil",
         "parameters": [
             {"key": "input_csv", "label": "Qual arquivo CSV?", "default": "input.csv"},

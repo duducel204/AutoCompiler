@@ -1,0 +1,41 @@
+name: Windows package
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "web/**"
+      - "data/**"
+      - "schemas/**"
+      - "examples/**"
+      - "skills/**"
+      - "packaging/windows/**"
+      - ".github/workflows/windows-package.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build complete AutoCompilerSetup.exe
+        shell: powershell
+        run: .\packaging\windows\build.ps1
+
+      - name: Install, launch, verify, and uninstall package
+        shell: powershell
+        run: .\packaging\windows\smoke.ps1 -SetupExe .\dist\AutoCompilerSetup.exe
+
+      - name: Upload Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoCompiler-Windows
+          path: |
+            dist/AutoCompilerSetup.exe
+            dist/AutoCompilerSetup.manifest.json
+          if-no-files-found: error
