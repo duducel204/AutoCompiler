@@ -1,0 +1,206 @@
+name: Development cycle dispatcher
+
+on:
+  workflow_run:
+    workflows: ["Post-cycle Spider"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Post-cycle Spider workflow run id"
+        required: true
+        type: string
+      source_sha:
+        description: "Trusted main SHA represented by the handoff"
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: development-cycle-${{ github.event.workflow_run.head_sha || inputs.source_sha || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve source Spider run
+        id: source
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "run_id=${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_id=${{ inputs.source_run_id }}" >> "$GITHUB_OUTPUT"
+            echo "sha=${{ inputs.source_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download trusted next-cycle handoff
+        uses: actions/download-artifact@v5
+        with:
+          name: post-cycle-context-${{ steps.source.outputs.sha }}
+          path: ${{ runner.temp }}/cycle-handoff
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.source.outputs.run_id }}
+
+      - name: Validate and route next cycle
+        id: dispatch
+        shell: bash
+        env:
+          PLAN: ${{ runner.temp }}/cycle-handoff/next_cycle.json
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          mkdir -p .autocompiler
+          python scripts/development_cycle_dispatch.py             --plan "$PLAN"             --expected-sha "$SOURCE_SHA"             --output .autocompiler/development_cycle_dispatch.json             | tee .autocompiler/development_cycle_dispatch_run.json
+
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          data = json.loads(Path(".autocompiler/development_cycle_dispatch.json").read_text(encoding="utf-8"))
+          for key in ("status", "work_item", "branch", "executor_path"):
+              value = data.get(key)
+              if value is not None:
+                  print(f"{key}={value}")
+          PY
+
+      - name: Publish dispatch summary
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          data = json.loads(Path(".autocompiler/development_cycle_dispatch.json").read_text(encoding="utf-8"))
+          print("## Development cycle dispatcher")
+          print()
+          print(f"- Status: `{data['status']}`")
+          print(f"- Source SHA: `{data['source_sha']}`")
+          print(f"- Work item: `{data.get('work_item')}`")
+          print(f"- Reason: {data.get('reason', '')}")
+          print(f"- Direct main mutation: `{data['direct_main_mutation']}`")
+          PY
+
+      - name: Upload dispatch decision
+        uses: actions/upload-artifact@v4
+        with:
+          name: development-cycle-dispatch-${{ steps.source.outputs.sha }}
+          path: |
+            .autocompiler/development_cycle_dispatch.json
+            .autocompiler/development_cycle_dispatch_run.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create isolated development branch
+        if: steps.dispatch.outputs.status == 'EXECUTE'
+        shell: bash
+        env:
+          BRANCH: ${{ steps.dispatch.outputs.branch }}
+        run: |
+          git config user.name "autocompiler-cycle"
+          git config user.email "autocompiler-cycle@users.noreply.github.com"
+          git switch -c "$BRANCH"
+
+      - name: Run explicit repository executor
+        if: steps.dispatch.outputs.status == 'EXECUTE'
+        shell: bash
+        env:
+          PLAN: ${{ runner.temp }}/cycle-handoff/next_cycle.json
+          EXECUTOR: ${{ steps.dispatch.outputs.executor_path }}
+        run: |
+          python "$EXECUTOR"             --plan "$PLAN"             --output .autocompiler/executor_result.json
+
+      - name: Enforce declared change scope
+        if: steps.dispatch.outputs.status == 'EXECUTE'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          dispatch = json.loads(Path(".autocompiler/development_cycle_dispatch.json").read_text(encoding="utf-8"))
+          allowed = dispatch["allowed_paths"]
+
+          raw = subprocess.run(
+              ["git", "status", "--porcelain=v1"],
+              text=True,
+              capture_output=True,
+              check=True,
+          ).stdout.splitlines()
+          changed = []
+          for line in raw:
+              path = line[3:]
+              if " -> " in path:
+                  raise SystemExit("renames are not allowed in automated cycles")
+              if path.startswith(".autocompiler/"):
+                  continue
+              changed.append(path)
+
+          if not changed:
+              raise SystemExit("executor produced no repository changes")
+
+          def permitted(path: str) -> bool:
+              return any(
+                  path == item or (item.endswith("/") and path.startswith(item))
+                  for item in allowed
+              )
+
+          unexpected = sorted(path for path in changed if not permitted(path))
+          if unexpected:
+              raise SystemExit("executor changed undeclared paths: " + ", ".join(unexpected))
+
+          Path(".autocompiler/changed_files.json").write_text(
+              json.dumps({"changed": sorted(changed), "allowed": allowed}, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Verify executor result
+        if: steps.dispatch.outputs.status == 'EXECUTE'
+        run: python scripts/trust_gate.py
+
+      - name: Commit and push isolated branch
+        if: steps.dispatch.outputs.status == 'EXECUTE'
+        shell: bash
+        env:
+          BRANCH: ${{ steps.dispatch.outputs.branch }}
+          WORK_ITEM: ${{ steps.dispatch.outputs.work_item }}
+        run: |
+          git add -A
+          git reset -- .autocompiler || true
+          git commit -m "cycle($WORK_ITEM): automated development"
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+      - name: Open pull request
+        if: steps.dispatch.outputs.status == 'EXECUTE'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.dispatch.outputs.branch }}
+          WORK_ITEM: ${{ steps.dispatch.outputs.work_item }}
+        run: |
+          gh pr create             --base main             --head "$BRANCH"             --title "cycle($WORK_ITEM): automated development"             --body "Automated development cycle for `$WORK_ITEM`.
+
+          Source handoff: `${{ steps.source.outputs.sha }}`.
+          Executor: `${{ steps.dispatch.outputs.executor_path }}`.
+
+          This PR must pass the canonical Trust Gate before integration."
