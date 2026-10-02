@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from collections import Counter
 from pathlib import Path
 import subprocess
@@ -35,7 +36,7 @@ def generate(output: Path) -> tuple[int, int]:
     def link(cell, p, label, remote=False):
         from urllib.parse import quote
         cell.value = label
-        cell.hyperlink = ('https://github.com/duducel204/AutoCompiler/blob/main/' + quote(p, safe='/')) if remote else (ROOT / p).as_uri()
+        cell.hyperlink = ('https://github.com/duducel204/AutoCompiler/blob/main/' + quote(p, safe='/')) if remote else Path(os.path.relpath(ROOT / p, output.parent)).as_posix()
         cell.font = Font(name='Arial', size=10, color='0563C1', underline='single')
 
     def title(p):
@@ -50,7 +51,7 @@ def generate(output: Path) -> tuple[int, int]:
 
     put(files, 2, ['Índice principal de desenvolvimento'])
     put(files, 3, ['Filtre por área, tipo ou fluxo. Consulte Relações antes de alterar.'])
-    put(files, 4, ['Links locais dependem da máquina. GitHub aponta à main; arquivos novos aguardam publicação.'])
+    put(files, 4, ['Links locais são relativos à planilha no repositório. GitHub aponta à main.'])
     put(files, 6, ['Caminho', 'Área', 'Tipo', 'Função / título', 'Fluxos', 'Dependências', 'Referências recebidas', 'GitHub main', 'Arquivo local', 'Orientação'])
     for row, p in enumerate(paths, 7):
         area = p.split('/')[0] if '/' in p else 'raiz'
