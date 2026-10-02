@@ -78,7 +78,7 @@
         "src/autocompiler/compiler.py"
       ],
       "output": "Plano e resultado JSON; automation.py, automation.ir.json e manifest.json no diretório autorizado",
-      "limits": "Relação de responsabilidades, não uma única sequência de chamadas. Compilador suporta quatro skills B1; ações aceitas no IR podem exceder o destino.",
+      "limits": "Relação de responsabilidades, não uma única sequência de chamadas. O compiler deve falhar fechado quando uma skill/capability resolvida não puder ser materializada no target.",
       "docs": [
         "docs/LOCAL-CANVAS.md",
         "docs/ARCHITECTURE.md",
@@ -102,6 +102,32 @@
       "docs": [
         "docs/CANONICAL-MEMORY.md",
         "docs/CAPABILITY-ACQUISITION-LOOP.md"
+      ]
+    },
+    {
+      "id": "capability-closure-loop",
+      "name": "Fechar lacuna de capability e retomar o workflow",
+      "input": "Automation IR validado com requisito semântico ainda não resolvido",
+      "stages": [
+        "src/autocompiler/ir.py",
+        "src/autocompiler/workflow_lifecycle.py",
+        "src/autocompiler/environment.py",
+        "src/autocompiler/planner.py",
+        "src/autocompiler/provisioning.py",
+        "src/autocompiler/capability_closure.py",
+        "src/autocompiler/catalog.py",
+        "src/autocompiler/local_canvas.py",
+        "src/autocompiler/compiler.py",
+        "tests/test_capability_closure_service.py",
+        "tests/test_workflow_capability_resume.py",
+        "tests/test_local_canvas_capability_resume.py"
+      ],
+      "output": "Capability validada disponível à resolução normal e novo plano do mesmo workflow, sem herdar autorização anterior",
+      "limits": "Closure, trust hardening e replan já estão integrados. O fechamento completo ainda depende de materialização genérica da capability no artefato compilado e da prova E2E A→closure→resume→run→B→reuse.",
+      "docs": [
+        "docs/MVP_CAPABILITY_CLOSURE.md",
+        "docs/CAPABILITY-ACQUISITION-LOOP.md",
+        "docs/NEXT_TASK_PREP.md"
       ]
     },
     {
