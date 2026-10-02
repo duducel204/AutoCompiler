@@ -73,6 +73,16 @@ def _host_is_local(host_header: str | None) -> bool:
     return host in {"127.0.0.1", "localhost"}
 
 
+def _origin_is_local(origin_header: str | None) -> bool:
+    if not origin_header:
+        return True
+    try:
+        parsed = urlparse(origin_header)
+    except ValueError:
+        return False
+    return parsed.scheme in {"http", "https"} and (parsed.hostname or "").lower() in {"127.0.0.1", "localhost"}
+
+
 def snapshot(catalog_path: Path = DEFAULT_CATALOG) -> dict:
     catalog = CapabilityCatalog(catalog_path)
     records = catalog._load()
@@ -131,22 +141,33 @@ class CanvasHandler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0"))
         if length <= 0:
             return {}
-        if length > MAX_REQUEST_BYTES:
-            raise ValueError("request_too_large")
         try:
             value = json.loads(self.rfile.read(length).decode("utf-8"))
             return value if isinstance(value, dict) else {}
         except (UnicodeDecodeError, json.JSONDecodeError):
             return {}
 
-    def _reject_nonlocal_host(self) -> bool:
-        if _host_is_local(self.headers.get("Host")):
-            return False
-        self._json({"ok": False, "error": "invalid_local_host"}, 403)
-        return True
+    def _reject_unsafe_request(self) -> bool:
+        if not _host_is_local(self.headers.get("Host")):
+            self._json({"ok": False, "error": "invalid_local_host"}, 403)
+            return True
+        if not _origin_is_local(self.headers.get("Origin")):
+            self._json({"ok": False, "error": "invalid_local_origin"}, 403)
+            return True
+        raw_length = self.headers.get("Content-Length")
+        if raw_length:
+            try:
+                length = int(raw_length)
+            except ValueError:
+                self._json({"ok": False, "error": "invalid_content_length"}, 400)
+                return True
+            if length > MAX_REQUEST_BYTES:
+                self._json({"ok": False, "error": "request_too_large"}, 413)
+                return True
+        return False
 
     def do_GET(self) -> None:
-        if self._reject_nonlocal_host():
+        if self._reject_unsafe_request():
             return
         parsed_url = urlparse(self.path)
         path = parsed_url.path
@@ -220,7 +241,7 @@ class CanvasHandler(BaseHTTPRequestHandler):
         self._json({"error": "not found"}, 404)
 
     def do_POST(self) -> None:
-        if self._reject_nonlocal_host():
+        if self._reject_unsafe_request():
             return
         path = urlparse(self.path).path
         if path == "/api/preflight/authorize":
