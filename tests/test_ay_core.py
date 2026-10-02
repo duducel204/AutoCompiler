@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from autocompiler.ay import (
+from src.autocompiler.ay import (
     OrchestrationRequest,
     ResolutionStatus,
     build_ay_state,
