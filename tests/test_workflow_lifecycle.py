@@ -97,9 +97,10 @@ class WorkflowLifecycleTests(unittest.TestCase):
         self.assertEqual(plan["schedule"]["cron"], "0 18 * * *")
         self.assertEqual(plan["external_services"], ["example.com"])
         self.assertFalse(plan["recurring_cost"]["known"])
-        self.assertFalse(plan["can_apply"])
+        self.assertTrue(plan["can_apply"])
         self.assertTrue(plan["compiler_support"]["supported"])
-        self.assertFalse(plan["deployment_support"]["supported"])
+        self.assertTrue(plan["deployment_support"]["supported"])
+        self.assertEqual(plan["deployment_support"]["provider"], "windows-task-scheduler")
 
     def test_plan_id_binds_provider_resolution(self):
         ir = w01_ir("./incoming", "./processed")
@@ -111,7 +112,7 @@ class WorkflowLifecycleTests(unittest.TestCase):
         self.assertEqual(req_a["filesystem.read"], "stdlib")
         self.assertEqual(req_b["filesystem.read"], "python-stdlib-filesystem")
 
-    def test_schedule_resolution_alone_does_not_claim_deployment_ready(self):
+    def test_schedule_resolution_becomes_deployable_only_for_supported_windows_contract(self):
         ir = w01_ir("./incoming", "./processed")
         ir["trigger"] = {"type": "schedule", "cron": "0 9 * * *"}
         graph = usable_graph()
@@ -119,8 +120,14 @@ class WorkflowLifecycleTests(unittest.TestCase):
         plan = build_workflow_plan(ir, resource_graph=graph)
         self.assertEqual(plan["missing_capabilities"], [])
         self.assertTrue(plan["compiler_support"]["supported"])
-        self.assertFalse(plan["deployment_support"]["supported"])
-        self.assertFalse(plan["can_apply"])
+        self.assertTrue(plan["deployment_support"]["supported"])
+        self.assertEqual(plan["deployment_support"]["windows_schedule"]["schedule"], "DAILY")
+        self.assertTrue(plan["can_apply"])
+
+        ir["trigger"] = {"type": "schedule", "cron": "0 9 * * MON"}
+        unsupported = build_workflow_plan(ir, resource_graph=graph)
+        self.assertFalse(unsupported["deployment_support"]["supported"])
+        self.assertFalse(unsupported["can_apply"])
 
     def test_apply_is_blocked_before_authorization(self):
         with tempfile.TemporaryDirectory() as td:
@@ -226,6 +233,45 @@ class WorkflowLifecycleTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join(timeout=2)
+
+    def test_scheduled_workflow_deploys_artifact_instead_of_running_it_immediately(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            incoming = root / "incoming"
+            incoming.mkdir()
+            (incoming / "demo.txt").write_text("hello", encoding="utf-8")
+            ir = w01_ir(str(incoming), str(root / "backup"))
+            ir["trigger"] = {"type": "schedule", "cron": "0 9 * * *"}
+            graph = usable_graph()
+            graph["resources"].append({
+                "capability": "schedule",
+                "provider": "windows-task-scheduler",
+                "state": "usable",
+                "cost": "free",
+            })
+            plan = build_workflow_plan(ir, out_dir=root / "compiled", resource_graph=graph)
+            self.assertTrue(plan["can_apply"])
+
+            store = WorkflowPlanStore()
+            store.create(ir, plan)
+            record = store.authorize(plan["plan_id"])
+
+            deployment = {
+                "ok": True,
+                "status": "installed_verified",
+                "task_name": plan["deployment_support"]["task_name"],
+                "provider": "windows-task-scheduler",
+            }
+            with patch("autocompiler.workflow_lifecycle.deploy_windows_schedule", return_value=deployment) as deploy_mock, \
+                 patch("autocompiler.workflow_lifecycle.subprocess.run") as direct_run:
+                result = apply_workflow_plan(record)
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["verification"]["operational_mode"], "deployed")
+            self.assertTrue(result["verification"]["deployment_ok"])
+            self.assertIsNone(result["verification"]["execution_ok"])
+            direct_run.assert_not_called()
+            deploy_mock.assert_called_once()
 
     def test_failed_execution_is_not_reported_as_verified(self):
         with tempfile.TemporaryDirectory() as td:
