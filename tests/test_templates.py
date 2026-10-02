@@ -24,13 +24,15 @@ class StarterTemplatesTests(unittest.TestCase):
         self.assertIn("w03", ids)
         self.assertIn("w04", ids)
         self.assertIn("w05", ids)
+        for template_id in ("w11", "w12", "w13", "w14", "w15"):
+            self.assertIn(template_id, ids)
 
     def test_utility_catalog_separates_ready_from_planned(self):
         utilities = list_utilities()
         ready = [u for u in utilities if u["status"] == "ready"]
         validation = [u for u in utilities if u["status"] == "validation"]
         planned = [u for u in utilities if u["status"] == "planned"]
-        self.assertEqual(len(ready), 5)
+        self.assertEqual(len(ready), 10)
         self.assertEqual(len(validation), 0)
         self.assertGreaterEqual(len(planned), 5)
         self.assertTrue(all(u["template_id"] for u in ready + validation))
@@ -38,7 +40,9 @@ class StarterTemplatesTests(unittest.TestCase):
         self.assertIn("Organizar PDFs", [u["user_title"] for u in ready])
         self.assertIn("Backup automático", [u["user_title"] for u in ready])
         self.assertIn("Monitorar mudanças", [u["user_title"] for u in ready])
-        self.assertIn("Organizar Downloads", [u["user_title"] for u in planned])
+        self.assertIn("Organizar Downloads", [u["user_title"] for u in ready])
+        self.assertIn("Caixa de entrada de PDFs", [u["user_title"] for u in ready])
+        self.assertNotIn("Organizar Downloads", [u["user_title"] for u in planned])
 
     def test_get_template_returns_correct_definition(self):
         w01 = get_template("w01")
