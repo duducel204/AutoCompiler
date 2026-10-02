@@ -11,6 +11,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from .compiler import analyze_compile_support, compile_ir
+from .deployment import analyze_deployment_support, deploy_windows_schedule
 from .environment import build_unified_resource_graph
 from .ir import SUPPORTED_SKILLS, validate_ir
 from .planner import Requirement, plan as semantic_plan
@@ -125,26 +126,6 @@ def _resolved_execution(validation, semantic, execution, target: str) -> dict[st
     }
 
 
-def _deployment_support(ir: dict[str, Any], resolved_execution: dict[str, Any]) -> dict[str, Any]:
-    trigger = ir.get("trigger", {})
-    trigger_type = trigger.get("type")
-    if trigger_type == "manual":
-        return {"supported": True, "type": "manual", "reason": "no background deployment required"}
-
-    # Be explicit until native deployment is closed end-to-end. Capability
-    # resolution may already know a schedule/watch/webhook provider, but that
-    # does not prove install/reread/disable/remove semantics.
-    return {
-        "supported": False,
-        "type": trigger_type,
-        "reason": "trigger capability may resolve, but canonical deployment is not yet end-to-end verified",
-        "resolved_requirements": [
-            item for item in resolved_execution.get("requirements", [])
-            if any(source.startswith("trigger:") for source in item.get("sources", []))
-        ],
-    }
-
-
 def build_workflow_plan(
     ir: dict[str, Any],
     *,
@@ -168,7 +149,7 @@ def build_workflow_plan(
     execution = CapabilityRegistry().resolve(validation.required_capabilities, graph)
     resolved_execution = _resolved_execution(validation, semantic, execution, target)
     compiler_support = analyze_compile_support(ir, target, resolved_execution)
-    deployment_support = _deployment_support(ir, resolved_execution)
+    deployment_support = analyze_deployment_support(ir, resolved_execution)
 
     out_path = str(Path(out_dir).expanduser())
     filesystem = _filesystem_impact(ir, out_path)
@@ -275,6 +256,7 @@ def verify_workflow_application(
     resolved_execution: dict[str, Any],
     returncode: int,
     run_result: dict[str, Any],
+    deployment_result: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     out = Path(out_dir)
     automation_path = out / "automation.py"
@@ -297,8 +279,14 @@ def verify_workflow_application(
     except (OSError, json.JSONDecodeError):
         pass
 
-    execution_ok = returncode == 0 and bool(run_result.get("ok"))
-    ok = artifacts_exist and ir_matches and manifest_matches and resolution_matches and execution_ok
+    trigger_type = ir.get("trigger", {}).get("type")
+    execution_ok = returncode == 0 and bool(run_result.get("ok")) if trigger_type == "manual" else None
+    deployment_ok = (
+        True if trigger_type == "manual"
+        else bool(deployment_result and deployment_result.get("ok"))
+    )
+    operational_ok = execution_ok if trigger_type == "manual" else deployment_ok
+    ok = artifacts_exist and ir_matches and manifest_matches and resolution_matches and bool(operational_ok)
     return {
         "ok": ok,
         "artifacts_exist": artifacts_exist,
@@ -306,6 +294,8 @@ def verify_workflow_application(
         "manifest_matches_authorized_plan": manifest_matches,
         "resolution_matches_authorized_plan": resolution_matches,
         "execution_ok": execution_ok,
+        "deployment_ok": deployment_ok,
+        "operational_mode": "run" if trigger_type == "manual" else "deployed",
         "recurring_ai_used": bool(run_result.get("recurring_ai_used", False)),
     }
 
@@ -341,24 +331,50 @@ def apply_workflow_plan(record: dict[str, Any]) -> dict[str, Any]:
         resolved_execution=resolved_execution,
     )
 
-    try:
-        process = subprocess.run(
-            [sys.executable, str(Path(out_dir) / "automation.py")],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
+    trigger_type = ir.get("trigger", {}).get("type")
+    deployment_result: dict[str, Any] = {"ok": True, "status": "not_required"}
+
+    if trigger_type == "manual":
+        try:
+            process = subprocess.run(
+                [sys.executable, str(Path(out_dir) / "automation.py")],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            if process.returncode == 0 and process.stdout.strip().startswith("{"):
+                run_result = json.loads(process.stdout)
+            else:
+                run_result = {
+                    "ok": False,
+                    "stdout": process.stdout,
+                    "stderr": process.stderr,
+                }
+        except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+            run_result = {"ok": False, "error": str(exc)}
+            process = type("FailedProcess", (), {"returncode": 1})()
+    elif trigger_type == "schedule":
+        deployment_result = deploy_windows_schedule(
+            deployment_plan=plan["deployment_support"],
+            automation_path=Path(out_dir) / "automation.py",
+            python_executable=sys.executable,
         )
-        if process.returncode == 0 and process.stdout.strip().startswith("{"):
-            run_result = json.loads(process.stdout)
-        else:
-            run_result = {
-                "ok": False,
-                "stdout": process.stdout,
-                "stderr": process.stderr,
-            }
-    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
-        run_result = {"ok": False, "error": str(exc)}
+        run_result = {
+            "ok": bool(deployment_result.get("ok")),
+            "deployed": bool(deployment_result.get("ok")),
+            "task_name": deployment_result.get("task_name"),
+            "autocompiler_runtime_used": False,
+            "recurring_ai_used": False,
+        }
+        process = type(
+            "DeploymentProcess",
+            (),
+            {"returncode": 0 if deployment_result.get("ok") else 1},
+        )()
+    else:
+        run_result = {"ok": False, "error": f"unsupported deployment trigger: {trigger_type}"}
+        deployment_result = {"ok": False, "status": "unsupported_trigger", "type": trigger_type}
         process = type("FailedProcess", (), {"returncode": 1})()
 
     verification = verify_workflow_application(
@@ -368,12 +384,14 @@ def apply_workflow_plan(record: dict[str, Any]) -> dict[str, Any]:
         resolved_execution=resolved_execution,
         returncode=process.returncode,
         run_result=run_result,
+        deployment_result=deployment_result,
     )
     return {
         "ok": verification["ok"],
         "status": "verified" if verification["ok"] else "verification_failed",
         "manifest": manifest,
         "result": run_result,
+        "deployment": deployment_result,
         "verification": verification,
     }
 
