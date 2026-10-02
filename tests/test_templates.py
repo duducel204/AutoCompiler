@@ -36,7 +36,8 @@ class StarterTemplatesTests(unittest.TestCase):
         self.assertTrue(all(u["template_id"] for u in ready + validation))
         self.assertTrue(all(u["template_id"] is None for u in planned))
         self.assertIn("Organizar PDFs", [u["user_title"] for u in ready])
-        self.assertIn("Backup automático", [u["user_title"] for u in validation])
+        self.assertIn("Backup automático", [u["user_title"] for u in ready])
+        self.assertIn("Monitorar mudanças", [u["user_title"] for u in validation])
         self.assertIn("Organizar Downloads", [u["user_title"] for u in planned])
 
     def test_get_template_returns_correct_definition(self):
