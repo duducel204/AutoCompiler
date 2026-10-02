@@ -123,7 +123,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
     "w04": {
         "id": "w04",
         "name": "Change Monitor",
-        "description": "Monitors a key or endpoint and records state updates only when state changes.",
+        "description": "Checks an HTTP endpoint on a schedule and updates durable state only when the observed payload changes.",
         "user_title": "Monitorar mudanças",
         "category": "Monitoramento",
         "outcome": "Verificar periodicamente uma fonte e registrar quando o estado mudar.",
@@ -140,24 +140,33 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
             "steps": [
                 {
                     "id": "s1",
-                    "skill": "state.check",
-                    "with": {"key": "$param.monitor_key", "file": "monitors.db"},
-                },
-                {
-                    "id": "s2",
                     "skill": "http.request",
                     "with": {"url": "$param.target_url", "method": "GET"},
                 },
                 {
+                    "id": "s2",
+                    "skill": "state.check",
+                    "with": {
+                        "key": "$param.monitor_key",
+                        "val": "$s1",
+                        "file": "monitors.db"
+                    },
+                },
+                {
                     "id": "s3",
                     "skill": "state.update",
-                    "with": {"key": "$param.monitor_key", "val": "seen", "file": "monitors.db"},
+                    "with": {
+                        "key": "$param.monitor_key",
+                        "val": "$s1",
+                        "file": "monitors.db",
+                        "only_if_changed": true
+                    },
                 },
             ],
             "state": {"file": "history.db"},
         },
     },
-    "w05": {
+        "w05": {
         "id": "w05",
         "name": "Spreadsheet Transformation",
         "description": "Reads a CSV file and transforms/converts it into an XLSX spreadsheet.",
