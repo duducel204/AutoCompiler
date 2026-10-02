@@ -2,7 +2,10 @@ from __future__ import annotations
 import json, subprocess, sys
 from pathlib import Path
 
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[1 "tests.test_capability_closure_e2e",
+ "tests.test_repo_contract_diff",
+ "tests.test_ay_cycle_state",
+]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
