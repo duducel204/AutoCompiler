@@ -39,6 +39,7 @@ TESTS=[
  "tests.test_templates",
  "tests.test_ai_draft",
  "tests.test_assistant_chat",
+ "tests.test_assistant_actions",
  "tests.test_gemini_client",
  "tests.test_workflow_lifecycle",
  "tests.test_workflow_installations",
