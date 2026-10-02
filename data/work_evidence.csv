@@ -9,3 +9,7 @@ CC-02,ci_check,PR#76@b9b751ef3900f2819f49ac16ee561c590f62cd53:Documentation map,
 AY-C1,merged_pr,PR#81,pass,2026-10-02,integration,"AY self-state/resolver/orchestrator and concrete task scripts merged; canonical Trust Gate passed on Ubuntu and Windows before merge."
 AY-C2A,merged_pr,PR#82,pass,2026-10-02,integration,"Incremental semantic/logic node index merged; changed-file reuse and node-kind extraction are covered by Trust Gate."
 AY-C2B,merged_pr,PR#82,pass,2026-10-02,integration,"Bounded node-context spider merged over derived graph; semantic seed, limits and empty-context behavior passed Trust Gate on Ubuntu and Windows."
+CC-04,merged_pr,PR#84,pass,2026-10-02,integration,"Full A→gap→authorized closure→validated memory→resume→compile→run and B→reuse→compile→run proof merged; exact-head Trust Gate passed on Ubuntu and Windows."
+AY-C3,merged_pr,PR#84,pass,2026-10-02,integration,"AY NEED_CONTEXT now routes through the bounded node-context spider as a safe read-only mechanism; Trust Gate passed on Ubuntu and Windows."
+AY-C4,merged_pr,PR#84,pass,2026-10-02,integration,"Repeated IR-vs-compiler analysis crystallized into scripts/repo_contract_diff.py with deterministic structured output and gated proof."
+AY-C5,merged_pr,PR#84,pass,2026-10-02,integration,"Verified successful derived results can be cached with evidence refs and source fingerprint; equivalent next resolution reuses only matching-fingerprint state."
