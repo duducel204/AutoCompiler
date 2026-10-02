@@ -9,6 +9,7 @@ SUPPORTED_SKILLS = {
     "filesystem.scan": {"requires": ["filesystem.read"], "permissions": ["read"]},
     "filter.extension": {"requires": [], "permissions": []},
     "filesystem.copy": {"requires": ["filesystem.read", "filesystem.write"], "permissions": ["read", "write"]},
+    "filesystem.move": {"requires": ["filesystem.read", "filesystem.write"], "permissions": ["read", "write"]},
     "state.record": {"requires": ["durable_state"], "permissions": ["write"]},
     "http.request": {"requires": ["http.request"], "permissions": ["network"]},
     "data.map": {"requires": [], "permissions": []},
