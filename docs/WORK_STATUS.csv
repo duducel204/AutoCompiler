@@ -1,0 +1,7 @@
+id,goal,title,priority,state,deps_ready,implementation,task_test,task_gate,integrated,system_proof,next
+CC-01,capability-closure,Capability closure core,P0,INTEGRATED_COMPONENT_WIRED,yes,yes,yes,yes,yes,no,add/wire system proof
+CC-01T,capability-closure,Capability closure trust hardening,P0,INTEGRATED_COMPONENT_WIRED,yes,yes,yes,yes,yes,no,add/wire system proof
+CC-03,capability-closure,Workflow capability-gap resume,P0,TEST_DEFINED_NOT_GATED,yes,yes,yes,no,yes,no,wire task test into Trust Gate
+CC-03S,capability-closure,Product/API gap inspection and resume seam,P0,TEST_DEFINED_NOT_GATED,yes,yes,yes,no,yes,no,wire task test into Trust Gate
+CC-02,capability-closure,Generic compiled capability consumption,P0,TEST_DEFINED_NOT_GATED,yes,yes,yes,no,yes,no,wire task test into Trust Gate
+CC-04,capability-closure,Full capability-closure end-to-end proof,P0,READY,yes,no,no,no,no,no,implement
