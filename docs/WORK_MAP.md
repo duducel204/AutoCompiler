@@ -9,7 +9,7 @@ O CSV declara trabalho e evidência; estado operacional é derivado. Merge, test
 ## Agora
 
 - Ready: `CC-04`
-- Dívida de verificação: `CC-03`, `CC-03S`, `CC-02`
+- Dívida de verificação: nenhuma
 - Bloqueados: nenhum
 - Conflitos de ownership acionáveis: 0
 
@@ -19,12 +19,11 @@ O CSV declara trabalho e evidência; estado operacional é derivado. Merge, test
 flowchart LR
   W_CC_01["CC-01<br/>Capability closure core<br/>INTEGRATED_COMPONENT_WIRED"]
   W_CC_01T["CC-01T<br/>Capability closure trust hardening<br/>INTEGRATED_COMPONENT_WIRED"]
-  W_CC_03["CC-03<br/>Workflow capability-gap resume<br/>TEST_DEFINED_NOT_GATED"]
-  W_CC_03S["CC-03S<br/>Product/API gap inspection and resume seam<br/>TEST_DEFINED_NOT_GATED"]
-  W_CC_02["CC-02<br/>Generic compiled capability consumption<br/>TEST_DEFINED_NOT_GATED"]
+  W_CC_03["CC-03<br/>Workflow capability-gap resume<br/>INTEGRATED_COMPONENT_WIRED"]
+  W_CC_03S["CC-03S<br/>Product/API gap inspection and resume seam<br/>INTEGRATED_COMPONENT_WIRED"]
+  W_CC_02["CC-02<br/>Generic compiled capability consumption<br/>INTEGRATED_COMPONENT_WIRED"]
   W_CC_04["CC-04<br/>Full capability-closure end-to-end proof<br/>READY"]
   W_CC_01 -->|build| W_CC_01T
-  W_CC_01 -.->|proof| W_CC_01T
   W_CC_03 -->|build| W_CC_03S
   W_CC_01T -.->|proof| W_CC_03S
   W_CC_01T -->|build| W_CC_04
@@ -40,16 +39,14 @@ flowchart LR
 |---|---:|---:|---:|---:|---:|---|---|
 | `CC-01` | ✓ | ✓ | ✓ | ✓ | — | `INTEGRATED_COMPONENT_WIRED` | add/wire system proof |
 | `CC-01T` | ✓ | ✓ | ✓ | ✓ | — | `INTEGRATED_COMPONENT_WIRED` | add/wire system proof |
-| `CC-03` | ✓ | ✓ | — | ✓ | — | `TEST_DEFINED_NOT_GATED` | wire task test into Trust Gate |
-| `CC-03S` | ✓ | ✓ | — | ✓ | — | `TEST_DEFINED_NOT_GATED` | wire task test into Trust Gate |
-| `CC-02` | ✓ | ✓ | — | ✓ | — | `TEST_DEFINED_NOT_GATED` | wire task test into Trust Gate |
+| `CC-03` | ✓ | ✓ | ✓ | ✓ | — | `INTEGRATED_COMPONENT_WIRED` | add/wire system proof |
+| `CC-03S` | ✓ | ✓ | ✓ | ✓ | — | `INTEGRATED_COMPONENT_WIRED` | add/wire system proof |
+| `CC-02` | ✓ | ✓ | ✓ | ✓ | — | `INTEGRATED_COMPONENT_WIRED` | add/wire system proof |
 | `CC-04` | — | — | — | — | — | `READY` | implement |
 
 ## Dívida de verificação
 
-- `CC-03`: teste existe e trabalho está integrado, mas o teste ainda não está no Trust Gate.
-- `CC-03S`: teste existe e trabalho está integrado, mas o teste ainda não está no Trust Gate.
-- `CC-02`: teste existe e trabalho está integrado, mas o teste ainda não está no Trust Gate.
+Nenhuma.
 
 ## Paralelismo
 
