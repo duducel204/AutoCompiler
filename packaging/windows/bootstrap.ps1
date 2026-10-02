@@ -2,8 +2,6 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$PayloadRoot,
 
-    [string]$InstallRoot = (Join-Path $env:LOCALAPPDATA "AutoCompiler"),
-
     [switch]$NoLaunch,
     [switch]$NoShortcuts,
     [switch]$Uninstall
@@ -52,7 +50,7 @@ function Find-Browser([string]$Name) {
     return $null
 }
 
-$InstallRoot = [System.IO.Path]::GetFullPath($InstallRoot)
+$InstallRoot = [System.IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA "AutoCompiler"))
 $script:LogPath = $null
 
 if ($Uninstall) {
