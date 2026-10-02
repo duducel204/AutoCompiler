@@ -119,6 +119,14 @@ class LocalCanvasTests(unittest.TestCase):
             self.assertIn('class="brand-logo"', page)
             self.assertIn('id="assistant-input"', page)
             self.assertIn('id="assistant-draft"', page)
+            self.assertIn('id="canvas-viewport"', page)
+            self.assertIn('id="graph-wires"', page)
+            self.assertIn('id="inspector-raw"', page)
+            self.assertIn("Workflow Graph", page)
+            self.assertIn("Impact Plan", page)
+            self.assertIn("Node Inspector", page)
+            self.assertIn("Fit View", page)
+            self.assertIn("Aplicar ao rascunho", page)
             self.assertNotIn("AUTOCOMPILER_CHAT_API_KEY", page)
 
             with urlopen(f"{base_url}/favicon.ico") as resp:
