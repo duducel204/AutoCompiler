@@ -40,7 +40,7 @@ class AIProvider(ABC):
         """Name of this AI provider."""
 
     @abstractmethod
-    def draft(self, prompt: str, api_key: str | None = None) -> dict[str, Any]:
+    def draft(self, prompt: str, api_key: str | None = None, model: str | None = None) -> dict[str, Any]:
         """Convert natural language prompt to a draft IR dictionary or ambiguity response."""
 
 
@@ -51,7 +51,7 @@ class DeterministicRuleAIProvider(AIProvider):
     def provider_name(self) -> str:
         return "deterministic-rules"
 
-    def draft(self, prompt: str, api_key: str | None = None) -> dict[str, Any]:
+    def draft(self, prompt: str, api_key: str | None = None, model: str | None = None) -> dict[str, Any]:
         low = prompt.lower()
 
         # Check for ambiguity / missing target
@@ -133,7 +133,7 @@ class GeminiDraftProvider(AIProvider):
     def provider_name(self) -> str:
         return "google-gemini"
 
-    def draft(self, prompt: str, api_key: str | None = None) -> dict[str, Any]:
+    def draft(self, prompt: str, api_key: str | None = None, model: str | None = None) -> dict[str, Any]:
         if not api_key:
             return {
                 "ok": False,
@@ -143,7 +143,8 @@ class GeminiDraftProvider(AIProvider):
 
         # Urllib REST call to Gemini API endpoint
         import urllib.request
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        model_id = (model or "gemini-3.8-flash").strip()
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent"
         payload = {
             "contents": [
                 {
@@ -158,7 +159,7 @@ class GeminiDraftProvider(AIProvider):
             req = urllib.request.Request(
                 url,
                 data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=15) as resp:
@@ -194,6 +195,7 @@ def draft_intent_to_ir(
     *,
     api_key: str | None = None,
     provider: str = "deterministic-rules",
+    model: str | None = None,
 ) -> dict[str, Any]:
     """Draft natural language intent into valid Automation IR or ambiguity response.
 
@@ -207,7 +209,7 @@ def draft_intent_to_ir(
         }
 
     ai_impl = ALL_AI_PROVIDERS[provider]
-    result = ai_impl.draft(prompt, api_key=api_key)
+    result = ai_impl.draft(prompt, api_key=api_key, model=model)
 
     if result.get("ok") and "ir" in result:
         try:
