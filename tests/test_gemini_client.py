@@ -9,7 +9,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from autocompiler.gemini_client import GeminiAPIError, _classify_http_error, extract_text, probe
+from autocompiler.gemini_client import GeminiAPIError, _classify_http_error, extract_function_calls, extract_text, probe
 
 
 class GeminiClientTests(unittest.TestCase):
@@ -20,6 +20,30 @@ class GeminiClientTests(unittest.TestCase):
             ]
         }
         self.assertEqual(extract_text(payload), "OK")
+
+    def test_extract_function_calls_reads_declared_tool_call(self):
+        payload = {
+            "candidates": [{
+                "content": {
+                    "parts": [
+                        {"text": "Vou executar a ação pedida."},
+                        {
+                            "functionCall": {
+                                "id": "call-1",
+                                "name": "browser_search",
+                                "args": {"query": "tradutor"},
+                            }
+                        },
+                    ]
+                }
+            }]
+        }
+        calls = extract_function_calls(payload)
+        self.assertEqual(calls, [{
+            "id": "call-1",
+            "name": "browser_search",
+            "args": {"query": "tradutor"},
+        }])
 
     def test_authentication_errors_are_classified_without_secret_material(self):
         body = json.dumps({

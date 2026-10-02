@@ -53,6 +53,15 @@ try {
         }
     }
 
+    $AssistantActions = Join-Path $App "src\autocompiler\assistant_actions.py"
+    $CanvasHtml = Join-Path $App "web\local-canvas\index.html"
+    if (-not (Test-Path $AssistantActions)) {
+        throw "Installed product is missing assistant browser actions."
+    }
+    if (-not (Select-String -Path $CanvasHtml -Pattern 'id="assistant-actions"' -Quiet)) {
+        throw "Installed Canvas does not expose the assistant local-actions control."
+    }
+
     & $Bridge --self-test | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "Installed Ready Bridge failed self-test."

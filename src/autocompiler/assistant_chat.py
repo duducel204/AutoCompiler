@@ -7,7 +7,21 @@ from dataclasses import dataclass
 from typing import Any
 
 from .ai_draft import draft_intent_to_ir
-from .gemini_client import DEFAULT_MODEL, GeminiAPIError, extract_text, generate_content, probe
+from .assistant_actions import (
+    BROWSER_FUNCTION_DECLARATIONS,
+    actions_status,
+    describe_action,
+    execute_assistant_action,
+    set_actions_enabled,
+)
+from .gemini_client import (
+    DEFAULT_MODEL,
+    GeminiAPIError,
+    extract_function_calls,
+    extract_text,
+    generate_content,
+    probe,
+)
 
 
 SYSTEM_PROMPT = """Você é o copiloto de desenvolvimento do AutoCompiler Basic.
@@ -21,8 +35,11 @@ Regras:
 - nunca diga que uma utilidade está pronta se o catálogo marcar validation ou planned;
 - ajude a definir gatilho, entradas, regras, ações, estado, falhas e resultado esperado;
 - quando a intenção estiver suficientemente clara, diga que o usuário pode gerar/atualizar o rascunho;
-- você pode propor mudanças no RASCUNHO, mas NÃO autoriza, NÃO aplica e NÃO executa automações;
+- você pode propor mudanças no RASCUNHO, mas NÃO autoriza nem aplica automações persistentes;
 - alterações protegidas continuam obrigatoriamente em Plan → Authorize → Apply → Verify;
+- quando AÇÕES LOCAIS estiverem habilitadas, você pode solicitar SOMENTE as funções de navegador declaradas pelo AutoCompiler;
+- só use função local quando o usuário der uma instrução explícita de ação; não transforme conversa, hipótese ou exemplo em execução;
+- nunca solicite shell, PowerShell, execução arbitrária, exclusão de arquivos, instalação ou ação fora das funções declaradas;
 - se faltar uma informação essencial, faça no máximo uma pergunta por vez;
 - detalhes técnicos só quando forem úteis ou pedidos.
 """
@@ -105,6 +122,7 @@ def configure_assistant(
             "api_key": api_key,
             "model": model,
         })
+    set_actions_enabled(False)
 
     return {
         "ok": True,
@@ -114,13 +132,15 @@ def configure_assistant(
         "storage": "process_memory_only",
         "verified": True,
         "message": "Conexão com a Gemini API validada nesta sessão local.",
+        "actions": actions_status(),
     }
 
 
 def clear_assistant_configuration() -> dict[str, Any]:
     with _RUNTIME_LOCK:
         _RUNTIME_CONFIG.clear()
-    return {"ok": True, "configured": False}
+    set_actions_enabled(False)
+    return {"ok": True, "configured": False, "actions": actions_status()}
 
 
 def assistant_status() -> dict[str, Any]:
@@ -133,6 +153,7 @@ def assistant_status() -> dict[str, Any]:
             "default_model": DEFAULT_MODEL,
             "storage": "process_memory_only",
             "message": "Conecte uma chave temporária para desenvolver automações com IA.",
+            "actions": actions_status(),
         }
     return {
         "ok": True,
@@ -141,6 +162,7 @@ def assistant_status() -> dict[str, Any]:
         "model": config.model,
         "storage": "process_memory_only",
         "message": "IA de desenvolvimento conectada nesta sessão local.",
+        "actions": actions_status(),
     }
 
 
@@ -198,6 +220,59 @@ def _gemini_chat(
     return extract_text(payload)
 
 
+def _gemini_action_chat(
+    *,
+    config: AssistantConfig,
+    message: str,
+    history: list[dict[str, str]],
+    utilities: list[dict[str, Any]],
+) -> dict[str, Any]:
+    contents: list[dict[str, Any]] = []
+    for turn in history:
+        contents.append({
+            "role": "user" if turn["role"] == "user" else "model",
+            "parts": [{"text": turn["text"]}],
+        })
+    contents.append({"role": "user", "parts": [{"text": message}]})
+
+    prompt = (
+        SYSTEM_PROMPT
+        + "\n\nAÇÕES LOCAIS: habilitadas para navegador nesta sessão."
+        + "\nUse função somente para pedido explícito do usuário."
+        + "\n\nCATÁLOGO ATUAL DE UTILIDADES:\n"
+        + _catalog_context(utilities)
+    )
+    allowed = [item["name"] for item in BROWSER_FUNCTION_DECLARATIONS]
+    payload = generate_content(
+        api_key=config.api_key,
+        model=config.model,
+        contents=contents,
+        system_instruction=prompt,
+        generation_config={"maxOutputTokens": 1200},
+        tools=[{"functionDeclarations": BROWSER_FUNCTION_DECLARATIONS}],
+        tool_config={
+            "functionCallingConfig": {
+                "mode": "AUTO",
+                "allowedFunctionNames": allowed,
+            }
+        },
+        timeout=40,
+    )
+    calls = extract_function_calls(payload)[:3]
+    if not calls:
+        return {"reply": extract_text(payload), "actions": []}
+
+    results = [
+        execute_assistant_action(call["name"], call.get("args", {}))
+        for call in calls
+    ]
+    return {
+        "reply": "\n".join(describe_action(result) for result in results),
+        "actions": results,
+        "function_calls": calls,
+    }
+
+
 def chat_with_assistant(
     message: str,
     *,
@@ -227,12 +302,23 @@ def chat_with_assistant(
         }
 
     try:
-        answer = _gemini_chat(
-            config=config,
-            message=message[:5000],
-            history=clean_history,
-            utilities=utility_catalog,
-        )
+        if actions_status()["enabled"]:
+            action_turn = _gemini_action_chat(
+                config=config,
+                message=message[:5000],
+                history=clean_history,
+                utilities=utility_catalog,
+            )
+            answer = action_turn["reply"]
+            executed_actions = action_turn.get("actions", [])
+        else:
+            answer = _gemini_chat(
+                config=config,
+                message=message[:5000],
+                history=clean_history,
+                utilities=utility_catalog,
+            )
+            executed_actions = []
     except GeminiAPIError as exc:
         return {
             "ok": False,
@@ -250,6 +336,9 @@ def chat_with_assistant(
         "can_mutate_machine": False,
         "can_authorize": False,
         "can_apply": False,
+        "can_control_browser": actions_status()["enabled"],
+        "actions": executed_actions,
+        "action_scope": actions_status()["scope"],
     }
 
 

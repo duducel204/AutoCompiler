@@ -101,6 +101,8 @@ def generate_content(
     contents: list[dict[str, Any]],
     system_instruction: str | None = None,
     generation_config: dict[str, Any] | None = None,
+    tools: list[dict[str, Any]] | None = None,
+    tool_config: dict[str, Any] | None = None,
     timeout: int = 40,
 ) -> dict[str, Any]:
     key = str(api_key or "").strip()
@@ -115,6 +117,10 @@ def generate_content(
         payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
     if generation_config:
         payload["generationConfig"] = generation_config
+    if tools:
+        payload["tools"] = tools
+    if tool_config:
+        payload["toolConfig"] = tool_config
 
     request = urllib.request.Request(
         f"{BASE_URL}/{model_id}:generateContent",
@@ -143,6 +149,31 @@ def generate_content(
     except json.JSONDecodeError as exc:
         raise GeminiAPIError("invalid_response", "A Gemini API retornou uma resposta que não pôde ser lida.") from exc
 
+
+
+def extract_function_calls(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    candidates = payload.get("candidates", [])
+    if not isinstance(candidates, list) or not candidates:
+        return []
+    content = candidates[0].get("content", {})
+    parts = content.get("parts", []) if isinstance(content, dict) else []
+    calls: list[dict[str, Any]] = []
+    for part in parts:
+        if not isinstance(part, dict):
+            continue
+        call = part.get("functionCall")
+        if not isinstance(call, dict):
+            continue
+        name = str(call.get("name", "")).strip()
+        args = call.get("args", {})
+        if not name or not isinstance(args, dict):
+            continue
+        calls.append({
+            "id": str(call.get("id", "")).strip() or None,
+            "name": name,
+            "args": args,
+        })
+    return calls
 
 def extract_text(payload: dict[str, Any]) -> str:
     candidates = payload.get("candidates", [])

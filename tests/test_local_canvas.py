@@ -417,6 +417,53 @@ class LocalCanvasTests(unittest.TestCase):
         finally:
             server.shutdown()
 
+    @patch("autocompiler.local_canvas.set_actions_enabled")
+    @patch("autocompiler.local_canvas.assistant_status")
+    def test_assistant_browser_actions_require_explicit_session_authorization(self, status, set_actions):
+        status.return_value = {
+            "ok": True,
+            "configured": True,
+            "provider": "google-gemini",
+            "model": "gemini-3.8-flash",
+        }
+        set_actions.return_value = {
+            "ok": True,
+            "enabled": True,
+            "scope": "browser_low_risk",
+            "allowed_functions": ["browser_open", "browser_search", "browser_navigate"],
+        }
+        server = ThreadingHTTPServer(("127.0.0.1", 0), CanvasHandler)
+        port = server.server_port
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            base_url = f"http://127.0.0.1:{port}"
+            denied = Request(
+                f"{base_url}/api/assistant/actions",
+                data=json.dumps({"enabled": True}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with self.assertRaises(HTTPError) as error:
+                urlopen(denied)
+            self.assertEqual(error.exception.code, 403)
+            set_actions.assert_not_called()
+
+            allowed = Request(
+                f"{base_url}/api/assistant/actions",
+                data=json.dumps({
+                    "enabled": True,
+                    "authorization": "enable-browser-actions",
+                }).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with urlopen(allowed) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(result["ok"])
+            self.assertTrue(result["enabled"])
+            set_actions.assert_called_once_with(True)
+        finally:
+            server.shutdown()
+
     @patch("autocompiler.local_canvas.draft_from_conversation")
     @patch("autocompiler.local_canvas.configure_assistant")
     def test_basic_assistant_can_configure_session_and_create_draft_only(self, configure, draft):

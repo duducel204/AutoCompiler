@@ -16,6 +16,7 @@ from .environment import build_unified_resource_graph
 from .first_run import MachinePreparationStore, build_machine_preflight
 from .git_acquisition import plan_git_capability
 from .ai_draft import draft_intent_to_ir
+from .assistant_actions import actions_status, set_actions_enabled
 from .assistant_chat import (
     assistant_status,
     chat_with_assistant,
@@ -337,6 +338,18 @@ class CanvasHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/assistant/clear":
             self._json(clear_assistant_configuration())
+            return
+        if path == "/api/assistant/actions":
+            body = self._body()
+            enabled = body.get("enabled") is True
+            if enabled:
+                if not assistant_status().get("configured"):
+                    self._json({"ok": False, "status": "assistant_not_configured"}, 409)
+                    return
+                if body.get("authorization") != "enable-browser-actions":
+                    self._json({"ok": False, "status": "authorization_required"}, 403)
+                    return
+            self._json(set_actions_enabled(enabled))
             return
         if path == "/api/assistant/chat":
             body = self._body()

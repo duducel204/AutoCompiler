@@ -4,6 +4,7 @@ import platform
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, Callable
 
@@ -286,10 +287,19 @@ def remove_windows_schedule(
     host = host_system or platform.system()
     if host.lower() != "windows":
         return {"ok": False, "status": "unsupported_host", "actual": host}
+
+    # Deleting a scheduled task does not necessarily terminate an already
+    # running instance. End it first so workflow-owned SQLite/files can release
+    # their handles before lifecycle cleanup removes generated artifacts.
+    ended = _run(["schtasks.exe", "/End", "/TN", task_name], executor)
+    if ended.returncode == 0:
+        time.sleep(0.2)
+
     result = _run(["schtasks.exe", "/Delete", "/TN", task_name, "/F"], executor)
     return {
         "ok": result.returncode == 0,
         "status": "removed" if result.returncode == 0 else "remove_failed",
         "task_name": task_name,
+        "ended_running_instance": ended.returncode == 0,
         "stderr": getattr(result, "stderr", ""),
     }
