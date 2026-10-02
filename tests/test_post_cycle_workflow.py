@@ -15,8 +15,9 @@ class PostCycleSpiderWorkflowTests(unittest.TestCase):
         self.assertIn("types: [completed]", text)
         self.assertIn("workflow_dispatch:", text)
         self.assertIn("github.event.workflow_run.conclusion == 'success'", text)
-        self.assertIn("github.event.workflow_run.event == 'push'", text)
         self.assertIn("github.event.workflow_run.head_branch == 'main'", text)
+        self.assertIn("contents: read", text)
+        self.assertNotIn("contents: write", text)
 
     def test_workflow_restores_graph_runs_spider_and_publishes_next_cycle_context(self):
         text = WORKFLOW.read_text(encoding="utf-8")
