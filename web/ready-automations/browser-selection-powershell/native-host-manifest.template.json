@@ -1,0 +1,9 @@
+{
+  "name": "com.autocompiler.ready_bridge",
+  "description": "AutoCompiler Ready Automation native bridge",
+  "path": "__AUTOCOMPILER_READY_BRIDGE_EXE__",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://__AUTOCOMPILER_EXTENSION_ID__/"
+  ]
+}
