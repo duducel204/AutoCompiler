@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -29,8 +30,11 @@ from .workspace import repository_snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web" / "local-canvas"
-DEFAULT_CATALOG = ROOT / ".autocompiler" / "capabilities.json"
-DEFAULT_ENV_MANIFEST = ROOT / ".autocompiler" / "environment_manifest.json"
+PRODUCT_HOME = Path(os.environ.get("AUTOCOMPILER_HOME", str(ROOT))).expanduser()
+STATE_ROOT = Path(os.environ.get("AUTOCOMPILER_STATE_ROOT", str(PRODUCT_HOME / ".autocompiler"))).expanduser()
+GENERATED_ROOT = Path(os.environ.get("AUTOCOMPILER_GENERATED_ROOT", str(PRODUCT_HOME / "generated"))).expanduser()
+DEFAULT_CATALOG = STATE_ROOT / "capabilities.json"
+DEFAULT_ENV_MANIFEST = STATE_ROOT / "environment_manifest.json"
 WORKFLOW_PLANS = WorkflowPlanStore()
 MACHINE_PLANS = MachinePreparationStore()
 
@@ -301,7 +305,7 @@ class CanvasHandler(BaseHTTPRequestHandler):
             body = self._body()
             ir_data = body.get("ir", {})
             target = body.get("target", "python-sqlite")
-            out_dir = Path(body.get("out_dir", ROOT / "generated" / "canvas_run")).expanduser()
+            out_dir = Path(body.get("out_dir", GENERATED_ROOT / "canvas_run")).expanduser()
             try:
                 workflow_plan = build_workflow_plan(
                     ir_data,
