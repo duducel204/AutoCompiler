@@ -122,6 +122,7 @@ def configure_assistant(
             "api_key": api_key,
             "model": model,
         })
+    set_actions_enabled(False)
 
     return {
         "ok": True,
@@ -131,6 +132,7 @@ def configure_assistant(
         "storage": "process_memory_only",
         "verified": True,
         "message": "Conexão com a Gemini API validada nesta sessão local.",
+        "actions": actions_status(),
     }
 
 
