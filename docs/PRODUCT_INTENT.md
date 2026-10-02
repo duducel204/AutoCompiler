@@ -200,6 +200,31 @@ human review
 
 If AI is still required at runtime, that fact and its expected cost/privacy impact must be visible in the plan.
 
+
+### 7.1 Crystallization: intelligence should become cheaper over time
+
+Successful AI-assisted work should leave behind a cheaper reusable mechanism whenever the repeated part becomes deterministic and verifiable.
+
+Preferred evolution:
+
+```text
+expensive reasoning
+→ pattern observed
+→ specific deterministic script
+→ verified evidence
+→ reuse without repeated reasoning
+→ canonical capability/provider only when the execution contract deserves promotion
+```
+
+This is not a requirement to turn every script into a capability. Promotion is earned by stable semantics, verification and genuine reuse.
+
+The same principle applies to AutoCompiler's own development loops: repository context may be explored with the Spider and interpreted by AY, but repeated analysis should crystallize into bounded scripts instead of requiring recurring LLM work.
+
+The target property is:
+
+> **Correct successful work should reduce the cost and ambiguity of the next equivalent task.**
+
+
 ## 8. Runtime independence
 
 When technically reasonable, compiled automations should continue working without:
