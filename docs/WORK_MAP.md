@@ -10,7 +10,7 @@ O CSV declara trabalho e evidência; estado operacional é derivado. Merge, test
 
 - Ready: `CC-04`
 - Dívida de verificação: nenhuma
-- Bloqueados: `AY-C2B`, `AY-C3`, `AY-C4`, `AY-C5`
+- Bloqueados: `AY-C4`, `AY-C5`
 - Conflitos de ownership acionáveis: 0
 
 ## Grafo
@@ -24,9 +24,9 @@ flowchart LR
   W_CC_02["CC-02<br/>Generic compiled capability consumption<br/>INTEGRATED_COMPONENT_WIRED"]
   W_CC_04["CC-04<br/>Full capability-closure end-to-end proof<br/>READY"]
   W_AY_C1["AY-C1<br/>Self state and truth projection<br/>SYSTEM_PROOF_WIRED"]
-  W_AY_C2A["AY-C2A<br/>Incremental semantic and logic node index<br/>COMPONENT_GATE_WIRED"]
-  W_AY_C2B["AY-C2B<br/>Bounded node-context spider for complex gaps<br/>BLOCKED"]
-  W_AY_C3["AY-C3<br/>Resolver routes complex gaps to node context<br/>BLOCKED"]
+  W_AY_C2A["AY-C2A<br/>Incremental semantic and logic node index<br/>SYSTEM_PROOF_WIRED"]
+  W_AY_C2B["AY-C2B<br/>Bounded node-context spider for complex gaps<br/>SYSTEM_PROOF_WIRED"]
+  W_AY_C3["AY-C3<br/>Resolver routes complex gaps to node context<br/>COMPONENT_GATE_WIRED"]
   W_AY_C4["AY-C4<br/>Crystallize repeated complex analysis into task scripts<br/>BLOCKED"]
   W_AY_C5["AY-C5<br/>Close resolution into evidence state and cheaper reuse<br/>BLOCKED"]
   W_CC_01 -->|build| W_CC_01T
@@ -58,9 +58,9 @@ flowchart LR
 | `CC-02` | ✓ | ✓ | ✓ | ✓ | — | `INTEGRATED_COMPONENT_WIRED` | add/wire system proof |
 | `CC-04` | — | — | — | — | — | `READY` | implement |
 | `AY-C1` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
-| `AY-C2A` | ✓ | ✓ | ✓ | — | ✓ | `COMPONENT_GATE_WIRED` | integrate |
-| `AY-C2B` | ✓ | ✓ | ✓ | — | ✓ | `BLOCKED` | wait for AY-C2A |
-| `AY-C3` | ✓ | ✓ | ✓ | — | ✓ | `BLOCKED` | wait for AY-C2B |
+| `AY-C2A` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
+| `AY-C2B` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
+| `AY-C3` | ✓ | ✓ | ✓ | — | ✓ | `COMPONENT_GATE_WIRED` | integrate |
 | `AY-C4` | — | ✓ | ✓ | — | ✓ | `BLOCKED` | wait for AY-C3 |
 | `AY-C5` | — | — | — | — | — | `BLOCKED` | wait for AY-C3,AY-C4 |
 
@@ -84,6 +84,8 @@ Nenhuma colisão de ownership entre trabalhos acionáveis.
 | `CC-02` | `ci_check` | PR#76@b9b751ef3900f2819f49ac16ee561c590f62cd53:Trust Gate | `pass` | repository-gate | 2026-10-02 | Exact-head Trust Gate passed, but test_compiler_capability_binding.py is not yet listed in scripts/trust_gate.py; do not treat this as component-proof coverage. |
 | `CC-02` | `ci_check` | PR#76@b9b751ef3900f2819f49ac16ee561c590f62cd53:Documentation map | `fail` | documentation | 2026-10-02 | Documentation map failed on the CC-02 head; unrelated to runtime behavior but preserved as evidence. |
 | `AY-C1` | `merged_pr` | PR#81 | `pass` | integration | 2026-10-02 | AY self-state/resolver/orchestrator and concrete task scripts merged; canonical Trust Gate passed on Ubuntu and Windows before merge. |
+| `AY-C2A` | `merged_pr` | PR#82 | `pass` | integration | 2026-10-02 | Incremental semantic/logic node index merged; changed-file reuse and node-kind extraction are covered by Trust Gate. |
+| `AY-C2B` | `merged_pr` | PR#82 | `pass` | integration | 2026-10-02 | Bounded node-context spider merged over derived graph; semantic seed, limits and empty-context behavior passed Trust Gate on Ubuntu and Windows. |
 
 ## Comandos
 
