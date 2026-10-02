@@ -1,6 +1,6 @@
 # Guia de leitura do AutoCompiler
 
-Esta é a entrada da documentação. Ela conecta propósito, estrutura, fluxo, regras e estado. Os registros operacionais continuam em `data` e no catálogo local; a implementação continua em `src`. Use o [Development Control Map](WORK_MAP.md) para trabalho/dependências/verificação/next e o [mapa do repositório](REPOSITORY_MAP.md) para estrutura, imports, links e contratos.
+Esta é a entrada da documentação. Ela conecta propósito, estrutura, fluxo, regras e estado. Os registros operacionais continuam em `data` e no catálogo local; a implementação continua em `src`. Use o [Development Control Map](WORK_MAP.md) para trabalho/dependências/verificação/next, o [mapa do repositório](REPOSITORY_MAP.md) para estrutura, imports, links e contratos, e [AY_CYCLES.md](AY_CYCLES.md) para os objetivos de ciclo fechado do AY.
 
 ## 1. Propósito
 
