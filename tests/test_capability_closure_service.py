@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(ROOT / "src"))
 
 from autocompiler.acquisition import AcquisitionArtifact, Provenance
 from autocompiler.capability_closure import CapabilityClosureService
@@ -69,19 +74,43 @@ class CapabilityClosureServiceTests(unittest.TestCase):
             catalog_file = Path(td) / "capabilities.json"
             service = CapabilityClosureService(local_catalog_path=catalog_file)
 
-            closure_plan = service.plan_closure("custom.formatter", provider="portable-formatter")
+            closure_plan = service.plan_closure(
+                "custom.formatter",
+                provider="portable-formatter",
+                contract_tests=("tests/test_formatter.py",),
+                rollback="uninstall",
+            )
 
             # Apply without authorization
-            result = service.apply_closure(closure_plan, authorized=False)
+            result = service.apply_closure(closure_plan, authorized=False, evidence=("ev-1",))
             self.assertFalse(result.ok)
             self.assertEqual(result.status, "authorization_required")
             self.assertFalse(catalog_file.exists())
 
-    def test_failed_verification_cannot_promote_to_validated(self):
+    def test_missing_verifier_blocks_validation(self):
+        with tempfile.TemporaryDirectory() as td:
+            catalog_file = Path(td) / "capabilities.json"
+            service = CapabilityClosureService(local_catalog_path=catalog_file)  # verifier=None
+
+            closure_plan = service.plan_closure(
+                "custom.formatter",
+                provider="portable-formatter",
+                contract_tests=("tests/test_formatter.py",),
+                rollback="uninstall",
+            )
+
+            # Apply with authorization and evidence, but NO verifier configured
+            result = service.apply_closure(closure_plan, authorized=True, evidence=("ev-1",))
+            self.assertFalse(result.ok)
+            self.assertEqual(result.status, "verification_required")
+
+            catalog = CapabilityCatalog(catalog_file)
+            self.assertEqual(len(catalog.validated()), 0)
+
+    def test_failing_verifier_blocks_validation(self):
         with tempfile.TemporaryDirectory() as td:
             catalog_file = Path(td) / "capabilities.json"
 
-            # Custom verifier that always fails
             def failing_verifier(cap: str, prov: str) -> bool:
                 return False
 
@@ -90,16 +119,70 @@ class CapabilityClosureServiceTests(unittest.TestCase):
                 verifier=failing_verifier,
             )
 
-            closure_plan = service.plan_closure("custom.formatter", provider="portable-formatter")
+            closure_plan = service.plan_closure(
+                "custom.formatter",
+                provider="portable-formatter",
+                contract_tests=("tests/test_formatter.py",),
+                rollback="uninstall",
+            )
 
-            # Apply with authorization, but failing verification
-            result = service.apply_closure(closure_plan, authorized=True)
+            # Apply with authorization and evidence, but failing verifier
+            result = service.apply_closure(closure_plan, authorized=True, evidence=("ev-1",))
             self.assertFalse(result.ok)
             self.assertEqual(result.status, "verification_failed")
 
-            # Ensure catalog remains empty or candidate unpromoted
             catalog = CapabilityCatalog(catalog_file)
             self.assertEqual(len(catalog.validated()), 0)
+
+    def test_missing_evidence_blocks_validation(self):
+        with tempfile.TemporaryDirectory() as td:
+            catalog_file = Path(td) / "capabilities.json"
+
+            def dummy_verifier(cap: str, prov: str) -> bool:
+                return True
+
+            service = CapabilityClosureService(
+                local_catalog_path=catalog_file,
+                verifier=dummy_verifier,
+            )
+
+            closure_plan = service.plan_closure(
+                "custom.formatter",
+                provider="portable-formatter",
+                contract_tests=("tests/test_formatter.py",),
+                rollback="uninstall",
+            )
+
+            # Apply with authorization, valid verifier, but EMPTY evidence
+            result = service.apply_closure(closure_plan, authorized=True, evidence=())
+            self.assertFalse(result.ok)
+            self.assertEqual(result.status, "evidence_required")
+
+            catalog = CapabilityCatalog(catalog_file)
+            self.assertEqual(len(catalog.validated()), 0)
+
+    def test_candidate_without_evidence_not_usable_by_ordinary_planner(self):
+        with tempfile.TemporaryDirectory() as td:
+            catalog_file = Path(td) / "capabilities.json"
+            catalog = CapabilityCatalog(catalog_file)
+
+            # Manually register candidate in catalog (simulating candidate stage without promotion)
+            cap_id = "custom.unvalidated_capability"
+            catalog.register_candidate(
+                capability=cap_id,
+                provider="candidate-provider",
+                version="1.0.0",
+                contract_tests=("tests/test_candidate.py",),
+                rollback="uninstall",
+            )
+
+            # Verify candidate exists in catalog raw records but is NOT in validated()
+            self.assertEqual(len(catalog.validated()), 0)
+
+            # Ordinary planner query MUST NOT find candidate capability as usable
+            plan_result = plan("Process intent", [Requirement(cap_id)], local_catalog_path=catalog_file)
+            self.assertIn(cap_id, plan_result.missing)
+            self.assertNotIn(cap_id, plan_result.providers)
 
     def test_successful_apply_promotes_validated_record_and_enables_planner_reuse(self):
         with tempfile.TemporaryDirectory() as td:
@@ -124,15 +207,17 @@ class CapabilityClosureServiceTests(unittest.TestCase):
             plan_initial = plan("Process intent", [Requirement(cap_id)], local_catalog_path=catalog_file)
             self.assertIn(cap_id, plan_initial.missing)
 
-            # 2. Plan closure
+            # 2. Plan closure with explicit contract_tests and rollback
             closure_plan = service.plan_closure(
                 cap_id,
                 provider=prov_id,
                 binding={"executable": "/bin/true"},
+                contract_tests=("tests/test_dynamic_xyz.py",),
+                rollback="uninstall_provider_xyz",
             )
             self.assertEqual(closure_plan.action, "acquire")
 
-            # 3. Apply closure with authorization and verification evidence
+            # 3. Apply closure with authorization and real verification evidence
             evidence = ("verification-evidence-123",)
             result = service.apply_closure(closure_plan, authorized=True, evidence=evidence)
             self.assertTrue(result.ok)
@@ -156,13 +241,25 @@ class CapabilityClosureServiceTests(unittest.TestCase):
     def test_dynamic_capability_names_no_hardcoding(self):
         with tempfile.TemporaryDirectory() as td:
             catalog_file = Path(td) / "capabilities.json"
-            service = CapabilityClosureService(local_catalog_path=catalog_file)
+
+            def dummy_verifier(cap: str, prov: str) -> bool:
+                return True
+
+            service = CapabilityClosureService(
+                local_catalog_path=catalog_file,
+                verifier=dummy_verifier,
+            )
 
             # Arbitrary dynamic capability names
             caps = ["domain.custom_alpha", "domain.custom_beta", "domain.custom_gamma"]
 
             for cap in caps:
-                p = service.plan_closure(cap, provider=f"prov-{cap}")
+                p = service.plan_closure(
+                    cap,
+                    provider=f"prov-{cap}",
+                    contract_tests=(f"tests/test_{cap}.py",),
+                    rollback="rollback",
+                )
                 res = service.apply_closure(p, authorized=True, evidence=(f"ev-{cap}",))
                 self.assertTrue(res.ok)
 

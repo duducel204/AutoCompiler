@@ -35,7 +35,7 @@ class ClosurePlan:
 @dataclass(frozen=True)
 class ClosureResult:
     ok: bool
-    status: str  # "validated", "authorization_required", "verification_failed", "unresolved"
+    status: str  # "validated", "authorization_required", "verification_required", "evidence_required", "verification_failed", "unresolved"
     capability: str
     provider: str
     reason: str
@@ -51,6 +51,7 @@ class CapabilityClosureService:
 
     Separates read-only gap inspection from authorized mutation/promotion.
     Does not duplicate catalog or planner logic; delegates to CapabilityRegistry and CapabilityCatalog.
+    Enforces strict trust boundaries: candidate != validated, detected != trusted.
     """
 
     def __init__(
@@ -62,8 +63,8 @@ class CapabilityClosureService:
     ):
         self.local_catalog_path = Path(local_catalog_path)
         self.recipes = recipes or []
-        self.runner = runner or (lambda cmd: 0)
-        self.verifier = verifier or (lambda cap, prov: True)
+        self.runner = runner
+        self.verifier = verifier
 
     def plan_closure(
         self,
@@ -113,6 +114,11 @@ class CapabilityClosureService:
             recipe = matching_recipes[0]
             prov_name = recipe.provider
             cmd = tuple(recipe.artifact.command)
+            recipe_rollback = (
+                recipe.artifact.provenance.rollback
+                if (recipe.artifact and recipe.artifact.provenance)
+                else ""
+            )
             return ClosurePlan(
                 capability=capability,
                 provider=prov_name,
@@ -125,7 +131,7 @@ class CapabilityClosureService:
                 command=cmd,
                 contract_tests=contract_tests,
                 permissions=permissions or (("environment.modify",) if recipe.requires_admin else ()),
-                rollback=rollback,
+                rollback=rollback or recipe_rollback,
                 details={"reason": explanation.get("reason", "")},
             )
 
@@ -164,7 +170,7 @@ class CapabilityClosureService:
     ) -> ClosureResult:
         """Apply a closure plan after authorization gate and external verification.
 
-        If verification succeeds and evidence is supplied, candidate is registered
+        If verification succeeds and explicit evidence is supplied, candidate is registered
         and promoted to validated state in CapabilityCatalog.
         """
         if closure_plan.action == "reuse":
@@ -194,10 +200,45 @@ class CapabilityClosureService:
                 reason=f"Authorization required to acquire capability '{closure_plan.capability}'.",
             )
 
-        runner = custom_runner or self.runner
         verifier = custom_verifier or self.verifier
+        if verifier is None:
+            return ClosureResult(
+                ok=False,
+                status="verification_required",
+                capability=closure_plan.capability,
+                provider=closure_plan.provider,
+                reason=f"Verifier required to validate capability '{closure_plan.capability}/{closure_plan.provider}'.",
+            )
 
-        if closure_plan.command:
+        if not evidence:
+            return ClosureResult(
+                ok=False,
+                status="evidence_required",
+                capability=closure_plan.capability,
+                provider=closure_plan.provider,
+                reason=f"Verification evidence required to promote capability '{closure_plan.capability}/{closure_plan.provider}'.",
+            )
+
+        if not closure_plan.contract_tests:
+            return ClosureResult(
+                ok=False,
+                status="verification_failed",
+                capability=closure_plan.capability,
+                provider=closure_plan.provider,
+                reason=f"Contract tests required to validate capability '{closure_plan.capability}/{closure_plan.provider}'.",
+            )
+
+        if not closure_plan.rollback:
+            return ClosureResult(
+                ok=False,
+                status="verification_failed",
+                capability=closure_plan.capability,
+                provider=closure_plan.provider,
+                reason=f"Rollback contract required to validate capability '{closure_plan.capability}/{closure_plan.provider}'.",
+            )
+
+        runner = custom_runner or self.runner
+        if closure_plan.command and runner:
             exit_code = runner(list(closure_plan.command))
             if exit_code != 0:
                 return ClosureResult(
@@ -219,21 +260,20 @@ class CapabilityClosureService:
             )
 
         catalog = CapabilityCatalog(self.local_catalog_path)
-        candidate = catalog.register_candidate(
+        catalog.register_candidate(
             capability=closure_plan.capability,
             provider=closure_plan.provider,
             version=closure_plan.version,
-            contract_tests=closure_plan.contract_tests or ("tests/test_capability_closure_service.py",),
+            contract_tests=closure_plan.contract_tests,
             permissions=closure_plan.permissions,
-            rollback=closure_plan.rollback or "Remove catalog record and uninstall provider",
+            rollback=closure_plan.rollback,
             binding=closure_plan.binding,
         )
 
-        promoted_evidence = evidence or (f"closure-service:{closure_plan.capability}:{closure_plan.provider}",)
         validated_record = catalog.promote(
             capability=closure_plan.capability,
             provider=closure_plan.provider,
-            evidence=promoted_evidence,
+            evidence=evidence,
         )
 
         return ClosureResult(
