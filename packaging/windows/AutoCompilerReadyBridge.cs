@@ -19,6 +19,11 @@ internal static class AutoCompilerReadyBridge
     {
         if (args.Length > 0 && args[0] == "--self-test")
         {
+            bool safeLine = CanPasteIntoTerminal("Get-Process");
+            bool blocksNewline = !CanPasteIntoTerminal("Get-Process\nRemove-Item C:\\x");
+            bool blocksEscape = !CanPasteIntoTerminal("Write-Host " + (char)27 + "[31m");
+            if (!safeLine || !blocksNewline || !blocksEscape)
+                return 2;
             Console.WriteLine("READY_BRIDGE_OK");
             return 0;
         }
@@ -78,6 +83,11 @@ internal static class AutoCompilerReadyBridge
 
         Clipboard.SetText(text);
 
+        if (!CanPasteIntoTerminal(text))
+        {
+            return Result(true, "clipboard_only_unsafe_for_terminal_paste", false);
+        }
+
         IntPtr target = FindPowerShellWindow();
         if (target == IntPtr.Zero)
             return Result(true, "clipboard_only", false);
@@ -91,6 +101,16 @@ internal static class AutoCompilerReadyBridge
         Dictionary<string, object> result = Result(true, "pasted", false);
         result["window"] = target.ToInt64();
         return result;
+    }
+
+    private static bool CanPasteIntoTerminal(string text)
+    {
+        foreach (char ch in text)
+        {
+            if (Char.IsControl(ch) || ch == '\u2028' || ch == '\u2029')
+                return false;
+        }
+        return true;
     }
 
     private static IntPtr FindPowerShellWindow()
