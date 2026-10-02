@@ -54,12 +54,16 @@ class PostCycleSpiderTests(unittest.TestCase):
             self.assertIn("edges", payload["spider"])
             self.assertIn("semantic_labels", payload["spider"])
             self.assertIn("logic_nodes", payload["spider"])
+            self.assertEqual(payload["index"]["cache_state"], "missing")
+            self.assertEqual(len(payload["index"]["contract_fingerprint"]), 64)
 
             second = self._run(graph, second_report, "cycle-two")
             self.assertTrue(second["ok"])
             self.assertEqual(second["changed_files"], 0)
             self.assertEqual(second["context_nodes"], 0)
             self.assertEqual(second["context_edges"], 0)
+            self.assertEqual(second["cache_state"], "reused")
+            self.assertEqual(len(second["contract_fingerprint"]), 64)
 
             payload2 = json.loads(second_report.read_text(encoding="utf-8"))
             self.assertEqual(payload2["cycle"]["changed_files"], [])
