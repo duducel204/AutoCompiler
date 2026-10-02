@@ -5,3 +5,9 @@ CC-03,capability-closure,Workflow capability-gap resume,P0,INTEGRATED_COMPONENT_
 CC-03S,capability-closure,Product/API gap inspection and resume seam,P0,INTEGRATED_COMPONENT_WIRED,yes,yes,yes,yes,yes,no,add/wire system proof
 CC-02,capability-closure,Generic compiled capability consumption,P0,INTEGRATED_COMPONENT_WIRED,yes,yes,yes,yes,yes,no,add/wire system proof
 CC-04,capability-closure,Full capability-closure end-to-end proof,P0,READY,yes,no,no,no,no,no,implement
+AY-C1,ay-closed-loop,Self state and truth projection,P0,SYSTEM_PROOF_WIRED,yes,yes,yes,yes,yes,yes,observe system proof execution
+AY-C2A,ay-closed-loop,Incremental semantic and logic node index,P0,COMPONENT_GATE_WIRED,yes,yes,yes,yes,no,yes,integrate
+AY-C2B,ay-closed-loop,Bounded node-context spider for complex gaps,P0,BLOCKED,no,yes,yes,yes,no,yes,wait for AY-C2A
+AY-C3,ay-closed-loop,Resolver routes complex gaps to node context,P0,BLOCKED,no,yes,yes,yes,no,yes,wait for AY-C2B
+AY-C4,ay-closed-loop,Crystallize repeated complex analysis into task scripts,P0,BLOCKED,no,no,yes,yes,no,yes,wait for AY-C3
+AY-C5,ay-closed-loop,Close resolution into evidence state and cheaper reuse,P0,BLOCKED,no,no,no,no,no,no,"wait for AY-C3,AY-C4"

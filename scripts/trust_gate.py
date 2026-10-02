@@ -49,6 +49,8 @@ TESTS=[
  "tests.test_workflow_installations",
  "tests.test_ay_core",
  "tests.test_ay_scripts",
+ "tests.test_node_context_index",
+ "tests.test_node_context_spider",
 ]
 
 def run(cmd):
