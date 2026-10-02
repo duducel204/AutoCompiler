@@ -40,7 +40,7 @@ class AIProvider(ABC):
         """Name of this AI provider."""
 
     @abstractmethod
-    def draft(self, prompt: str, api_key: str | None = None) -> dict[str, Any]:
+    def draft(self, prompt: str, api_key: str | None = None, model: str | None = None) -> dict[str, Any]:
         """Convert natural language prompt to a draft IR dictionary or ambiguity response."""
 
 
@@ -51,7 +51,7 @@ class DeterministicRuleAIProvider(AIProvider):
     def provider_name(self) -> str:
         return "deterministic-rules"
 
-    def draft(self, prompt: str, api_key: str | None = None) -> dict[str, Any]:
+    def draft(self, prompt: str, api_key: str | None = None, model: str | None = None) -> dict[str, Any]:
         low = prompt.lower()
 
         # Check for ambiguity / missing target
@@ -133,7 +133,7 @@ class GeminiDraftProvider(AIProvider):
     def provider_name(self) -> str:
         return "google-gemini"
 
-    def draft(self, prompt: str, api_key: str | None = None) -> dict[str, Any]:
+    def draft(self, prompt: str, api_key: str | None = None, model: str | None = None) -> dict[str, Any]:
         if not api_key:
             return {
                 "ok": False,
@@ -143,7 +143,8 @@ class GeminiDraftProvider(AIProvider):
 
         # Urllib REST call to Gemini API endpoint
         import urllib.request
-        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent"
+        model_id = (model or "gemini-3.8-flash").strip()
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent"
         payload = {
             "contents": [
                 {
@@ -194,6 +195,7 @@ def draft_intent_to_ir(
     *,
     api_key: str | None = None,
     provider: str = "deterministic-rules",
+    model: str | None = None,
 ) -> dict[str, Any]:
     """Draft natural language intent into valid Automation IR or ambiguity response.
 
@@ -207,7 +209,7 @@ def draft_intent_to_ir(
         }
 
     ai_impl = ALL_AI_PROVIDERS[provider]
-    result = ai_impl.draft(prompt, api_key=api_key)
+    result = ai_impl.draft(prompt, api_key=api_key, model=model)
 
     if result.get("ok") and "ir" in result:
         try:
