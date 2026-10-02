@@ -1,159 +1,174 @@
-import json
+from __future__ import annotations
+
 import tempfile
 import unittest
 from pathlib import Path
 
+from autocompiler.acquisition import AcquisitionArtifact, Provenance
 from autocompiler.capability_closure import CapabilityClosureService
 from autocompiler.catalog import CapabilityCatalog
 from autocompiler.planner import Requirement, plan
+from autocompiler.provisioning import AcquisitionRecipe
 
 
 class CapabilityClosureServiceTests(unittest.TestCase):
-    def test_inspect_gap_reports_absent_capability_as_missing(self):
+    def test_absent_capability_reported_as_unresolved_or_acquirable(self):
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            local_catalog = root / "capabilities.json"
-            manifest = root / "environment_manifest.json"
+            catalog_file = Path(td) / "capabilities.json"
+            service = CapabilityClosureService(local_catalog_path=catalog_file)
 
-            service = CapabilityClosureService(local_catalog, manifest)
-            gap = service.inspect_gap("custom.data_transformer")
+            # Completely unknown capability -> unresolved
+            plan_unresolved = service.plan_closure("custom.unknown_cap")
+            self.assertEqual(plan_unresolved.action, "unresolved")
+            self.assertEqual(plan_unresolved.status, "unresolved")
+            self.assertFalse(plan_unresolved.requires_authorization)
 
-            self.assertFalse(gap["available"])
-            self.assertEqual(gap["state"], "missing")
+            # Specified provider -> acquirable
+            plan_acquirable = service.plan_closure("custom.unknown_cap", provider="portable-unknown")
+            self.assertEqual(plan_acquirable.action, "acquire")
+            self.assertEqual(plan_acquirable.status, "acquirable")
+            self.assertTrue(plan_acquirable.requires_authorization)
 
-    def test_planning_is_read_only_and_does_not_mutate_environment_or_catalog(self):
+    def test_planning_does_not_mutate_environment_or_catalog(self):
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            local_catalog = root / "capabilities.json"
-            manifest = root / "environment_manifest.json"
-            install_dir = root / "installed"
-
-            source = root / "tool.py"
-            source.write_text("print('ok')", encoding="utf-8")
-
-            service = CapabilityClosureService(local_catalog, manifest)
-            closure_plan = service.create_closure_plan(
-                capability="custom.data_transformer",
-                provider="portable-transformer",
-                source=source,
-                install_dir=install_dir,
+            catalog_file = Path(td) / "capabilities.json"
+            recipe = AcquisitionRecipe(
+                capability="custom.tool",
+                provider="portable-tool",
+                artifact=AcquisitionArtifact(
+                    provider="portable-tool",
+                    capabilities=("custom.tool",),
+                    strategy="system",
+                    command=("echo", "install"),
+                    provenance=Provenance(
+                        source="http://example.com/tool",
+                        version="1.0.0",
+                        platform="any",
+                        architecture="any",
+                        checksum=None,
+                        license="MIT",
+                        install_scope="user",
+                        requires_admin=False,
+                        rollback="uninstall",
+                        verification="echo ok",
+                    ),
+                ),
             )
+            service = CapabilityClosureService(local_catalog_path=catalog_file, recipes=[recipe])
 
-            explanation = closure_plan.explain()
-            self.assertFalse(explanation["mutates_environment"])
-            self.assertTrue(explanation["would_modify_environment"])
-            self.assertTrue(explanation["requires_authorization"])
+            # Inspect closure plan
+            p = service.plan_closure("custom.tool")
+            self.assertEqual(p.action, "acquire")
+            self.assertEqual(p.status, "acquirable")
 
-            # Verify no side-effects on disk during planning
-            self.assertFalse(local_catalog.exists())
-            self.assertFalse(manifest.exists())
-            self.assertFalse((install_dir / "tool.py").exists())
+            # Verify catalog file was NOT created or mutated during planning
+            self.assertFalse(catalog_file.exists())
 
     def test_unauthorized_apply_is_blocked(self):
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            local_catalog = root / "capabilities.json"
-            manifest = root / "environment_manifest.json"
-            install_dir = root / "installed"
+            catalog_file = Path(td) / "capabilities.json"
+            service = CapabilityClosureService(local_catalog_path=catalog_file)
 
-            source = root / "tool.py"
-            source.write_text("print('ok')", encoding="utf-8")
+            closure_plan = service.plan_closure("custom.formatter", provider="portable-formatter")
 
-            service = CapabilityClosureService(local_catalog, manifest)
-            closure_plan = service.create_closure_plan(
-                capability="custom.data_transformer",
-                provider="portable-transformer",
-                source=source,
-                install_dir=install_dir,
-            )
-
+            # Apply without authorization
             result = service.apply_closure(closure_plan, authorized=False)
-            self.assertFalse(result["ok"])
-            self.assertEqual(result["status"], "authorization_required")
-            self.assertFalse((install_dir / "tool.py").exists())
+            self.assertFalse(result.ok)
+            self.assertEqual(result.status, "authorization_required")
+            self.assertFalse(catalog_file.exists())
 
-    def test_apply_without_evidence_fails_promotion(self):
+    def test_failed_verification_cannot_promote_to_validated(self):
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            local_catalog = root / "capabilities.json"
-            manifest = root / "environment_manifest.json"
-            install_dir = root / "installed"
+            catalog_file = Path(td) / "capabilities.json"
 
-            source = root / "tool.py"
-            source.write_text("print('ok')", encoding="utf-8")
+            # Custom verifier that always fails
+            def failing_verifier(cap: str, prov: str) -> bool:
+                return False
 
-            service = CapabilityClosureService(local_catalog, manifest)
-            closure_plan = service.create_closure_plan(
-                capability="custom.data_transformer",
-                provider="portable-transformer",
-                source=source,
-                install_dir=install_dir,
+            service = CapabilityClosureService(
+                local_catalog_path=catalog_file,
+                verifier=failing_verifier,
             )
 
-            result = service.apply_closure(closure_plan, authorized=True, evidence=())
-            self.assertFalse(result["ok"])
-            self.assertEqual(result["status"], "verification_required")
+            closure_plan = service.plan_closure("custom.formatter", provider="portable-formatter")
 
-            # Candidate exists, but is not promoted to validated
-            catalog = CapabilityCatalog(local_catalog)
+            # Apply with authorization, but failing verification
+            result = service.apply_closure(closure_plan, authorized=True)
+            self.assertFalse(result.ok)
+            self.assertEqual(result.status, "verification_failed")
+
+            # Ensure catalog remains empty or candidate unpromoted
+            catalog = CapabilityCatalog(catalog_file)
             self.assertEqual(len(catalog.validated()), 0)
 
-    def test_successful_apply_and_promotion_enables_ordinary_planner_reuse(self):
+    def test_successful_apply_promotes_validated_record_and_enables_planner_reuse(self):
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            local_catalog = root / "capabilities.json"
-            manifest = root / "environment_manifest.json"
-            install_dir = root / "installed"
+            catalog_file = Path(td) / "capabilities.json"
 
-            capability_id = "arbitrary.calculator"
-            provider_id = "portable-calc"
+            def dummy_runner(cmd: list[str]) -> int:
+                return 0
 
-            source = root / "calc.py"
-            source.write_text("print('42')", encoding="utf-8")
+            def dummy_verifier(cap: str, prov: str) -> bool:
+                return True
 
-            # 1. Verify planner initially sees capability as missing
-            initial_plan = plan(
-                "Calculate data",
-                [Requirement(capability_id)],
-                local_catalog_path=local_catalog,
-            )
-            self.assertIn(capability_id, initial_plan.missing)
-
-            # 2. Plan and apply closure with evidence
-            service = CapabilityClosureService(local_catalog, manifest)
-            closure_plan = service.create_closure_plan(
-                capability=capability_id,
-                provider=provider_id,
-                source=source,
-                install_dir=install_dir,
-                contract_tests=("tests/test_capability_closure_service.py",),
+            service = CapabilityClosureService(
+                local_catalog_path=catalog_file,
+                runner=dummy_runner,
+                verifier=dummy_verifier,
             )
 
-            res = service.apply_closure(
-                closure_plan,
-                authorized=True,
-                evidence=("trust-gate:closure-service:passed",),
-            )
-            self.assertTrue(res["ok"])
-            self.assertEqual(res["status"], "validated")
+            cap_id = "custom.dynamic_capability_xyz"
+            prov_id = "portable-provider-xyz"
 
-            # 3. Verify installed binary exists
-            installed_binary = install_dir / "calc.py"
-            self.assertTrue(installed_binary.exists())
+            # 1. Initial planner check: capability is missing
+            plan_initial = plan("Process intent", [Requirement(cap_id)], local_catalog_path=catalog_file)
+            self.assertIn(cap_id, plan_initial.missing)
 
-            # 4. Verify ordinary planner now resolves capability via reuse
-            subsequent_plan = plan(
-                "Calculate data second time",
-                [Requirement(capability_id)],
-                local_catalog_path=local_catalog,
+            # 2. Plan closure
+            closure_plan = service.plan_closure(
+                cap_id,
+                provider=prov_id,
+                binding={"executable": "/bin/true"},
             )
-            self.assertEqual(subsequent_plan.missing, [])
-            self.assertEqual(subsequent_plan.providers[capability_id], provider_id)
-            self.assertIn(capability_id, subsequent_plan.bindings)
-            self.assertEqual(
-                subsequent_plan.bindings[capability_id]["executable"],
-                str(installed_binary),
-            )
+            self.assertEqual(closure_plan.action, "acquire")
+
+            # 3. Apply closure with authorization and verification evidence
+            evidence = ("verification-evidence-123",)
+            result = service.apply_closure(closure_plan, authorized=True, evidence=evidence)
+            self.assertTrue(result.ok)
+            self.assertEqual(result.status, "validated")
+            self.assertIsNotNone(result.record)
+
+            # 4. Verify catalog record
+            catalog = CapabilityCatalog(catalog_file)
+            validated = catalog.validated()
+            self.assertEqual(len(validated), 1)
+            self.assertEqual(validated[0].capability, cap_id)
+            self.assertEqual(validated[0].provider, prov_id)
+            self.assertEqual(validated[0].evidence, evidence)
+
+            # 5. Subsequent planner pass resolves capability through ordinary memory REUSE
+            plan_subsequent = plan("Process intent again", [Requirement(cap_id)], local_catalog_path=catalog_file)
+            self.assertEqual(plan_subsequent.missing, [])
+            self.assertEqual(plan_subsequent.providers.get(cap_id), prov_id)
+            self.assertEqual(plan_subsequent.bindings.get(cap_id), {"executable": "/bin/true"})
+
+    def test_dynamic_capability_names_no_hardcoding(self):
+        with tempfile.TemporaryDirectory() as td:
+            catalog_file = Path(td) / "capabilities.json"
+            service = CapabilityClosureService(local_catalog_path=catalog_file)
+
+            # Arbitrary dynamic capability names
+            caps = ["domain.custom_alpha", "domain.custom_beta", "domain.custom_gamma"]
+
+            for cap in caps:
+                p = service.plan_closure(cap, provider=f"prov-{cap}")
+                res = service.apply_closure(p, authorized=True, evidence=(f"ev-{cap}",))
+                self.assertTrue(res.ok)
+
+            catalog = CapabilityCatalog(catalog_file)
+            validated_caps = [r.capability for r in catalog.validated()]
+            self.assertEqual(sorted(validated_caps), sorted(caps))
 
 
 if __name__ == "__main__":

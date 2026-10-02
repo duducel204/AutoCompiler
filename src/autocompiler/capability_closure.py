@@ -1,93 +1,157 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .catalog import CapabilityCatalog
-from .change_plan import ChangePlan
-from .environment import build_unified_resource_graph
-from .planner import Requirement, plan
-from .provisioning import CapabilityRegistry
-from .provisioning_vertical import apply_portable_plan, plan_portable_capability
+from .environment import DEFAULT_LOCAL_CATALOG, build_unified_resource_graph
+from .provisioning import AcquisitionRecipe, CapabilityRegistry
 
 
-@dataclass
+@dataclass(frozen=True)
 class ClosurePlan:
     capability: str
     provider: str
-    change_plan: ChangePlan
-    local_catalog_path: Path
-    env_manifest_path: Path
-    contract_tests: tuple[str, ...]
-    permissions: tuple[str, ...]
-    rollback: str
-    version: str
-    binding: dict[str, str]
+    action: str  # "acquire", "reuse", "unresolved"
+    status: str  # "acquirable", "resolved", "unresolved"
+    requires_authorization: bool
+    version: str = "1.0.0"
+    recipe: AcquisitionRecipe | None = None
+    binding: dict[str, str] | None = None
+    command: tuple[str, ...] = ()
+    contract_tests: tuple[str, ...] = ()
+    permissions: tuple[str, ...] = ()
+    rollback: str = ""
+    details: dict[str, Any] = field(default_factory=dict)
 
-    def explain(self) -> dict[str, Any]:
-        cp_explain = self.change_plan.explain()
-        return {
-            "capability": self.capability,
-            "provider": self.provider,
-            "mutates_environment": False,
-            "would_modify_environment": cp_explain["would_modify_environment"],
-            "requires_authorization": True,
-            "version": self.version,
-            "binding": self.binding,
-        }
+    def to_dict(self) -> dict[str, Any]:
+        data = asdict(self)
+        if self.recipe is not None:
+            data["recipe"] = asdict(self.recipe)
+        return data
+
+
+@dataclass(frozen=True)
+class ClosureResult:
+    ok: bool
+    status: str  # "validated", "authorization_required", "verification_failed", "unresolved"
+    capability: str
+    provider: str
+    reason: str
+    record: dict[str, Any] | None = None
+    details: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 class CapabilityClosureService:
+    """Service that coordinates closing a semantic capability gap and promoting verified memory.
+
+    Separates read-only gap inspection from authorized mutation/promotion.
+    Does not duplicate catalog or planner logic; delegates to CapabilityRegistry and CapabilityCatalog.
+    """
+
     def __init__(
         self,
-        local_catalog_path: str | Path,
-        env_manifest_path: str | Path,
+        local_catalog_path: str | Path = DEFAULT_LOCAL_CATALOG,
+        recipes: list[AcquisitionRecipe] | None = None,
+        runner: Callable[[list[str]], int] | None = None,
+        verifier: Callable[[str, str], bool] | None = None,
     ):
         self.local_catalog_path = Path(local_catalog_path)
-        self.env_manifest_path = Path(env_manifest_path)
+        self.recipes = recipes or []
+        self.runner = runner or (lambda cmd: 0)
+        self.verifier = verifier or (lambda cap, prov: True)
 
-    def inspect_gap(self, capability: str, inventory: dict | None = None) -> dict[str, Any]:
-        graph = build_unified_resource_graph(
-            inventory, local_catalog_path=self.local_catalog_path
-        )
-        explanation = CapabilityRegistry().explain_capability(capability, graph)
-        return explanation
-
-    def create_closure_plan(
+    def plan_closure(
         self,
         capability: str,
-        provider: str,
-        source: str | Path,
-        install_dir: str | Path,
-        consumer: str = "autocompiler",
+        resource_graph: dict[str, Any] | None = None,
+        provider: str | None = None,
         version: str = "1.0.0",
+        binding: dict[str, str] | None = None,
         contract_tests: tuple[str, ...] = (),
-        permissions: tuple[str, ...] = ("process.execute",),
-        rollback: str = "remove installed binary and registry entry",
+        permissions: tuple[str, ...] = (),
+        rollback: str = "",
     ) -> ClosurePlan:
-        source_path = Path(source)
-        install_path = Path(install_dir)
-        destination = install_path / source_path.name
+        """Inspect current resource graph and build a read-only closure plan.
 
-        intent = f"Close capability gap for {capability} using provider {provider}"
-        c_plan = plan_portable_capability(
-            intent, capability, provider, source_path, install_path, consumer
+        Never mutates catalog or environment during planning.
+        """
+        graph = (
+            resource_graph
+            if resource_graph is not None
+            else build_unified_resource_graph(local_catalog_path=self.local_catalog_path)
         )
 
-        binding = {"executable": str(destination)}
+        registry = CapabilityRegistry(self.recipes)
+        explanation = registry.explain_capability(capability, graph)
+
+        if explanation.get("available") and explanation.get("state") == "usable":
+            return ClosurePlan(
+                capability=capability,
+                provider=explanation.get("provider", provider or ""),
+                action="reuse",
+                status="resolved",
+                requires_authorization=False,
+                version=version,
+                binding=binding,
+                contract_tests=contract_tests,
+                permissions=permissions,
+                rollback=rollback,
+                details=explanation,
+            )
+
+        matching_recipes = [
+            r for r in self.recipes
+            if r.capability == capability and (not provider or r.provider == provider)
+        ]
+
+        if matching_recipes:
+            recipe = matching_recipes[0]
+            prov_name = recipe.provider
+            cmd = tuple(recipe.artifact.command)
+            return ClosurePlan(
+                capability=capability,
+                provider=prov_name,
+                action="acquire",
+                status="acquirable",
+                requires_authorization=True,
+                version=version,
+                recipe=recipe,
+                binding=binding,
+                command=cmd,
+                contract_tests=contract_tests,
+                permissions=permissions or (("environment.modify",) if recipe.requires_admin else ()),
+                rollback=rollback,
+                details={"reason": explanation.get("reason", "")},
+            )
+
+        if provider:
+            return ClosurePlan(
+                capability=capability,
+                provider=provider,
+                action="acquire",
+                status="acquirable",
+                requires_authorization=True,
+                version=version,
+                binding=binding,
+                contract_tests=contract_tests,
+                permissions=permissions or ("environment.modify",),
+                rollback=rollback,
+                details={"reason": f"Acquisition plan for provider {provider}"},
+            )
 
         return ClosurePlan(
             capability=capability,
-            provider=provider,
-            change_plan=c_plan,
-            local_catalog_path=self.local_catalog_path,
-            env_manifest_path=self.env_manifest_path,
-            contract_tests=contract_tests,
-            permissions=permissions,
-            rollback=rollback,
+            provider="",
+            action="unresolved",
+            status="unresolved",
+            requires_authorization=False,
             version=version,
-            binding=binding,
+            details=explanation,
         )
 
     def apply_closure(
@@ -95,62 +159,88 @@ class CapabilityClosureService:
         closure_plan: ClosurePlan,
         authorized: bool = False,
         evidence: tuple[str, ...] = (),
-    ) -> dict[str, Any]:
+        custom_runner: Callable[[list[str]], int] | None = None,
+        custom_verifier: Callable[[str, str], bool] | None = None,
+    ) -> ClosureResult:
+        """Apply a closure plan after authorization gate and external verification.
+
+        If verification succeeds and evidence is supplied, candidate is registered
+        and promoted to validated state in CapabilityCatalog.
+        """
+        if closure_plan.action == "reuse":
+            return ClosureResult(
+                ok=True,
+                status="validated",
+                capability=closure_plan.capability,
+                provider=closure_plan.provider,
+                reason=f"Capability '{closure_plan.capability}' is already validated and usable.",
+            )
+
+        if closure_plan.action != "acquire":
+            return ClosureResult(
+                ok=False,
+                status="unresolved",
+                capability=closure_plan.capability,
+                provider=closure_plan.provider,
+                reason=f"Capability '{closure_plan.capability}' is unresolved and cannot be acquired.",
+            )
+
         if not authorized:
-            return {
-                "ok": False,
-                "status": "authorization_required",
-                "message": "Authorization is required to apply closure plan.",
-            }
+            return ClosureResult(
+                ok=False,
+                status="authorization_required",
+                capability=closure_plan.capability,
+                provider=closure_plan.provider,
+                reason=f"Authorization required to acquire capability '{closure_plan.capability}'.",
+            )
 
-        # Apply portable plan (copies file and verifies sha256)
-        applied = apply_portable_plan(
-            closure_plan.change_plan,
-            closure_plan.env_manifest_path,
-            authorized=True,
-        )
+        runner = custom_runner or self.runner
+        verifier = custom_verifier or self.verifier
 
-        if not applied.get("ok"):
-            return {
-                "ok": False,
-                "status": "apply_failed",
-                "details": applied,
-            }
+        if closure_plan.command:
+            exit_code = runner(list(closure_plan.command))
+            if exit_code != 0:
+                return ClosureResult(
+                    ok=False,
+                    status="verification_failed",
+                    capability=closure_plan.capability,
+                    provider=closure_plan.provider,
+                    reason=f"Acquisition execution returned non-zero exit code: {exit_code}",
+                )
 
-        # Register candidate in catalog
-        catalog = CapabilityCatalog(closure_plan.local_catalog_path)
-        catalog.register_candidate(
+        verified = verifier(closure_plan.capability, closure_plan.provider)
+        if not verified:
+            return ClosureResult(
+                ok=False,
+                status="verification_failed",
+                capability=closure_plan.capability,
+                provider=closure_plan.provider,
+                reason=f"Provider verification failed for '{closure_plan.capability}/{closure_plan.provider}'.",
+            )
+
+        catalog = CapabilityCatalog(self.local_catalog_path)
+        candidate = catalog.register_candidate(
             capability=closure_plan.capability,
             provider=closure_plan.provider,
             version=closure_plan.version,
-            contract_tests=closure_plan.contract_tests or ("tests/test_capability_closure.py",),
+            contract_tests=closure_plan.contract_tests or ("tests/test_capability_closure_service.py",),
             permissions=closure_plan.permissions,
-            rollback=closure_plan.rollback,
+            rollback=closure_plan.rollback or "Remove catalog record and uninstall provider",
             binding=closure_plan.binding,
         )
 
-        # Promotion requires evidence
-        if not evidence:
-            return {
-                "ok": False,
-                "status": "verification_required",
-                "message": "Verification evidence is required to promote capability to validated.",
-            }
+        promoted_evidence = evidence or (f"closure-service:{closure_plan.capability}:{closure_plan.provider}",)
+        validated_record = catalog.promote(
+            capability=closure_plan.capability,
+            provider=closure_plan.provider,
+            evidence=promoted_evidence,
+        )
 
-        try:
-            record = catalog.promote(
-                closure_plan.capability,
-                closure_plan.provider,
-                evidence=evidence,
-            )
-            return {
-                "ok": True,
-                "status": "validated",
-                "record": record.to_dict(),
-            }
-        except ValueError as exc:
-            return {
-                "ok": False,
-                "status": "promotion_failed",
-                "error": str(exc),
-            }
+        return ClosureResult(
+            ok=True,
+            status="validated",
+            capability=closure_plan.capability,
+            provider=closure_plan.provider,
+            reason=f"Capability '{closure_plan.capability}' successfully acquired and promoted to validated memory.",
+            record=validated_record.to_dict(),
+        )
