@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import subprocess
+import sys
 import threading
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -13,6 +15,7 @@ from .deployment import (
     disable_windows_schedule,
     enable_windows_schedule,
     remove_windows_schedule,
+    run_windows_schedule,
 )
 
 
@@ -136,6 +139,55 @@ class WorkflowInstallationRegistry:
             payload["installations"][installation_id] = record
             self._save(payload)
         return {"ok": bool(outcome.get("ok")), **outcome, "installation": self.decorate(record)}
+
+    def run(self, installation_id: str) -> dict[str, Any]:
+        record = self.get(installation_id)
+        if record is None:
+            return {"ok": False, "status": "installation_not_found", "installation_id": installation_id}
+        if record.get("status") == "removed":
+            return {"ok": False, "status": "already_removed"}
+        if record.get("status") == "disabled":
+            return {"ok": False, "status": "installation_disabled"}
+
+        if record.get("trigger_type") == "schedule":
+            task_name = record.get("task_name")
+            if not task_name:
+                return {"ok": False, "status": "missing_task_name"}
+            result = run_windows_schedule(str(task_name))
+            return {"ok": bool(result.get("ok")), **result, "installation": self.get(installation_id)}
+
+        artifact_dir = _safe_child(self.generated_root, record["artifact_dir"])
+        automation_path = _safe_child(self.generated_root, record["automation_path"])
+        if not automation_path.exists():
+            return {"ok": False, "status": "artifact_missing", "installation": record}
+        try:
+            process = subprocess.run(
+                [sys.executable, str(automation_path)],
+                cwd=artifact_dir,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return {"ok": False, "status": "run_failed", "error": str(exc), "installation": record}
+
+        parsed: dict[str, Any] | None = None
+        if process.stdout.strip().startswith("{"):
+            try:
+                value = json.loads(process.stdout)
+                parsed = value if isinstance(value, dict) else None
+            except json.JSONDecodeError:
+                parsed = None
+        return {
+            "ok": process.returncode == 0 and bool(parsed and parsed.get("ok")),
+            "status": "executed" if process.returncode == 0 and parsed and parsed.get("ok") else "run_failed",
+            "returncode": process.returncode,
+            "result": parsed,
+            "stdout": process.stdout[-4000:] if parsed is None else "",
+            "stderr": process.stderr[-4000:],
+            "installation": self.get(installation_id),
+        }
 
     def disable(self, installation_id: str) -> dict[str, Any]:
         def mutate(record: dict[str, Any]) -> dict[str, Any]:
