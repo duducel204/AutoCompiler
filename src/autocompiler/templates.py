@@ -127,7 +127,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
         "user_title": "Monitorar mudanças",
         "category": "Monitoramento",
         "outcome": "Verificar periodicamente uma fonte e registrar quando o estado mudar.",
-        "status": "validation",
+        "status": "ready",
         "difficulty": "Intermediário",
         "parameters": [
             {"key": "monitor_key", "label": "Como identificar este monitor?", "default": "page_1"},
