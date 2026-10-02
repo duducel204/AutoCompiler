@@ -7,12 +7,15 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $SetupExe = (Resolve-Path $SetupExe).Path
-$InstallRoot = Join-Path $env:RUNNER_TEMP ("AutoCompiler-Smoke-" + [Guid]::NewGuid().ToString("N"))
+$InstallRoot = Join-Path $env:LOCALAPPDATA "AutoCompiler"
 
 try {
     Write-Host "[smoke] Installing into clean root: $InstallRoot"
+    if (Test-Path $InstallRoot) {
+        Remove-Item -Recurse -Force $InstallRoot
+    }
     $InstallProcess = Start-Process -FilePath $SetupExe -ArgumentList @(
-        "--install-root", $InstallRoot, "--no-launch", "--no-shortcuts"
+        "--no-launch", "--no-shortcuts"
     ) -Wait -PassThru
     if ($InstallProcess.ExitCode -ne 0) {
         throw "Setup failed with exit code $($InstallProcess.ExitCode)"
@@ -80,7 +83,7 @@ try {
 
     Write-Host "[smoke] Uninstalling"
     $UninstallProcess = Start-Process -FilePath $SetupExe -ArgumentList @(
-        "--install-root", $InstallRoot, "--uninstall", "--no-launch", "--no-shortcuts"
+        "--uninstall", "--no-launch", "--no-shortcuts"
     ) -Wait -PassThru
     if ($UninstallProcess.ExitCode -ne 0) {
         throw "Uninstall failed with exit code $($UninstallProcess.ExitCode)"
