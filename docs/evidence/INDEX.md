@@ -4,6 +4,7 @@ Os arquivos desta pasta preservam observações de uma execução específica. N
 
 | Registro | Resultado observado | Alcance e consequência |
 |---|---|---|
+| [Planilha principal](REPOSITORY_INDEX_EXECUTION.md) | XLSX gerado, reaberto e hyperlinks conferidos | Prova de inventário e navegação; não executa o core |
 | [Gerador do mapa](REPOSITORY_MAP_EXECUTION.md) | Script executado e mapa gerado | Prova de geração de documentação; integração como ação do motor pendente |
 | [E-003 Windows real 001](E-003-windows-real-001.md) | 5/9 probes disponíveis; Chrome em uso não foi encontrado pelo probe inicial | Evidenciou o limite de detecção por PATH e motivou distinguir instalado, detectado, acessível, autorizado e utilizável |
 
