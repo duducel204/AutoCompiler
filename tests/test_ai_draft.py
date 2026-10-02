@@ -2,11 +2,13 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from autocompiler.ai_draft import DeterministicRuleAIProvider, GeminiDraftProvider, draft_intent_to_ir
+from autocompiler.gemini_client import GeminiAPIError
 from autocompiler.ir import validate_ir
 from autocompiler.planner import Requirement, plan
 from autocompiler.templates import list_templates
@@ -42,6 +44,42 @@ class AIDraftingTests(unittest.TestCase):
         gemini_res = draft_intent_to_ir("test", provider="google-gemini")
         self.assertFalse(gemini_res["ok"])
         self.assertEqual(gemini_res["error"], "gemini_api_key_required")
+
+    @patch("autocompiler.ai_draft.extract_text")
+    @patch("autocompiler.ai_draft.generate_content")
+    def test_gemini_draft_falls_back_when_structured_mode_is_rejected(self, generate, extract):
+        generate.side_effect = [
+            GeminiAPIError(
+                kind="invalid_request",
+                message="structured mode rejected",
+                http_status=400,
+            ),
+            {"candidates": [{"content": {"parts": [{"text": "{}"}]}}]},
+        ]
+        extract.return_value = json.dumps({
+            "schema_version": "0.1",
+            "name": "Fallback Draft",
+            "trigger": {"type": "manual"},
+            "steps": [
+                {"id": "s1", "skill": "filesystem.scan", "with": {"path": ".", "glob": "*"}},
+                {"id": "s2", "skill": "state.record", "with": {"from": "s1"}},
+            ],
+            "state": {"file": "history.db"},
+        })
+
+        result = draft_intent_to_ir(
+            "registre arquivos",
+            provider="google-gemini",
+            api_key="temporary-key",
+            model="gemini-3.8-flash",
+        )
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(generate.call_count, 2)
+        first = generate.call_args_list[0].kwargs["generation_config"]
+        second = generate.call_args_list[1].kwargs["generation_config"]
+        self.assertEqual(first["responseMimeType"], "application/json")
+        self.assertNotIn("responseMimeType", second)
 
     def test_draft_with_unresolved_capability_flows_normally_to_capability_resolution(self):
         # AI creates a draft IR with a skill requiring custom capability 'vault.write'
