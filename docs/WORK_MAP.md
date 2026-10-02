@@ -29,7 +29,7 @@ flowchart LR
   W_AY_C3["AY-C3<br/>Resolver routes complex gaps to node context<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C4["AY-C4<br/>Crystallize repeated complex analysis into task scripts<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C5["AY-C5<br/>Close resolution into evidence state and cheaper reuse<br/>SYSTEM_PROOF_WIRED"]
-  W_AY_C6["AY-C6<br/>Post-cycle Spider assimilation via GitHub Actions<br/>COMPONENT_GATE_WIRED"]
+  W_AY_C6["AY-C6<br/>Post-cycle Spider assimilation via GitHub Actions<br/>SYSTEM_PROOF_WIRED"]
   W_CC_01 -->|build| W_CC_01T
   W_CC_03 -->|build| W_CC_03S
   W_CC_01T -.->|proof| W_CC_03S
@@ -67,7 +67,7 @@ flowchart LR
 | `AY-C3` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C4` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C5` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
-| `AY-C6` | ✓ | ✓ | ✓ | — | ✓ | `COMPONENT_GATE_WIRED` | integrate |
+| `AY-C6` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 
 ## Dívida de verificação
 
@@ -95,6 +95,8 @@ Nenhuma colisão de ownership entre trabalhos acionáveis.
 | `AY-C3` | `merged_pr` | PR#84 | `pass` | integration | 2026-10-02 | AY NEED_CONTEXT now routes through the bounded node-context spider as a safe read-only mechanism; Trust Gate passed on Ubuntu and Windows. |
 | `AY-C4` | `merged_pr` | PR#84 | `pass` | integration | 2026-10-02 | Repeated IR-vs-compiler analysis crystallized into scripts/repo_contract_diff.py with deterministic structured output and gated proof. |
 | `AY-C5` | `merged_pr` | PR#84 | `pass` | integration | 2026-10-02 | Verified successful derived results can be cached with evidence refs and source fingerprint; equivalent next resolution reuses only matching-fingerprint state. |
+| `AY-C6` | `merged_pr` | PR#86 | `pass` | integration | 2026-10-02 | Post-cycle Spider workflow merged to main with read-only GitHub Actions orchestration. |
+| `AY-C6` | `ci_check` | Actions#37075409824 | `pass` | system-proof | 2026-10-02 | Successful main Trust Gate automatically triggered Post-cycle Spider; baseline graph cache was saved and post-cycle-context artifact 11256660815 was published for SHA 324ae3e8c8e29ed02d4117adf51eb260f475f283. |
 
 ## Comandos
 

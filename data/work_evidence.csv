@@ -13,3 +13,5 @@ CC-04,merged_pr,PR#84,pass,2026-10-02,integration,"Full A→gap→authorized clo
 AY-C3,merged_pr,PR#84,pass,2026-10-02,integration,"AY NEED_CONTEXT now routes through the bounded node-context spider as a safe read-only mechanism; Trust Gate passed on Ubuntu and Windows."
 AY-C4,merged_pr,PR#84,pass,2026-10-02,integration,"Repeated IR-vs-compiler analysis crystallized into scripts/repo_contract_diff.py with deterministic structured output and gated proof."
 AY-C5,merged_pr,PR#84,pass,2026-10-02,integration,"Verified successful derived results can be cached with evidence refs and source fingerprint; equivalent next resolution reuses only matching-fingerprint state."
+AY-C6,merged_pr,PR#86,pass,2026-10-02,integration,"Post-cycle Spider workflow merged to main with read-only GitHub Actions orchestration."
+AY-C6,ci_check,Actions#37075409824,pass,2026-10-02,system-proof,"Successful main Trust Gate automatically triggered Post-cycle Spider; baseline graph cache was saved and post-cycle-context artifact 11256660815 was published for SHA 324ae3e8c8e29ed02d4117adf51eb260f475f283."
