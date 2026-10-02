@@ -8,9 +8,9 @@ O CSV declara trabalho e evidência; estado operacional é derivado. Merge, test
 
 ## Agora
 
-- Ready: `AY-C8`
+- Ready: nenhum
 - Dívida de verificação: nenhuma
-- Bloqueados: nenhum
+- Bloqueados: `AY-C9`
 - Conflitos de ownership acionáveis: 0
 
 ## Grafo
@@ -31,7 +31,8 @@ flowchart LR
   W_AY_C5["AY-C5<br/>Close resolution into evidence state and cheaper reuse<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C6["AY-C6<br/>Post-cycle Spider assimilation via GitHub Actions<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C7["AY-C7<br/>Post-cycle next-work synthesis<br/>SYSTEM_PROOF_WIRED"]
-  W_AY_C8["AY-C8<br/>GitHub Actions development-cycle dispatcher<br/>READY"]
+  W_AY_C8["AY-C8<br/>GitHub Actions development-cycle dispatcher<br/>COMPONENT_GATE_WIRED"]
+  W_AY_C9["AY-C9<br/>First automated branch PR development cycle proof<br/>BLOCKED"]
   W_CC_01 -->|build| W_CC_01T
   W_CC_03 -->|build| W_CC_03S
   W_CC_01T -.->|proof| W_CC_03S
@@ -53,6 +54,7 @@ flowchart LR
   W_AY_C5 -->|build| W_AY_C6
   W_AY_C6 -->|build| W_AY_C7
   W_AY_C7 -->|build| W_AY_C8
+  W_AY_C8 -->|build| W_AY_C9
 ```
 
 ## Work board
@@ -73,7 +75,8 @@ flowchart LR
 | `AY-C5` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C6` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C7` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
-| `AY-C8` | — | — | — | — | — | `READY` | implement |
+| `AY-C8` | ✓ | ✓ | ✓ | — | ✓ | `COMPONENT_GATE_WIRED` | integrate |
+| `AY-C9` | — | ✓ | ✓ | — | ✓ | `BLOCKED` | wait for AY-C8 |
 
 ## Dívida de verificação
 
