@@ -11,9 +11,11 @@ $InstallRoot = Join-Path $env:RUNNER_TEMP ("AutoCompiler-Smoke-" + [Guid]::NewGu
 
 try {
     Write-Host "[smoke] Installing into clean root: $InstallRoot"
-    & $SetupExe --install-root $InstallRoot --no-launch --no-shortcuts
-    if ($LASTEXITCODE -ne 0) {
-        throw "Setup failed with exit code $LASTEXITCODE"
+    $InstallProcess = Start-Process -FilePath $SetupExe -ArgumentList @(
+        "--install-root", $InstallRoot, "--no-launch", "--no-shortcuts"
+    ) -Wait -PassThru
+    if ($InstallProcess.ExitCode -ne 0) {
+        throw "Setup failed with exit code $($InstallProcess.ExitCode)"
     }
 
     $Python = Join-Path $InstallRoot "runtime\python.exe"
@@ -77,9 +79,11 @@ try {
     }
 
     Write-Host "[smoke] Uninstalling"
-    & $SetupExe --install-root $InstallRoot --uninstall --no-launch --no-shortcuts
-    if ($LASTEXITCODE -ne 0) {
-        throw "Uninstall failed with exit code $LASTEXITCODE"
+    $UninstallProcess = Start-Process -FilePath $SetupExe -ArgumentList @(
+        "--install-root", $InstallRoot, "--uninstall", "--no-launch", "--no-shortcuts"
+    ) -Wait -PassThru
+    if ($UninstallProcess.ExitCode -ne 0) {
+        throw "Uninstall failed with exit code $($UninstallProcess.ExitCode)"
     }
 
     for ($i = 0; $i -lt 40 -and (Test-Path $InstallRoot); $i++) {
