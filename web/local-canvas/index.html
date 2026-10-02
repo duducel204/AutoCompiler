@@ -354,6 +354,10 @@ let latestPreflight=null;
 let selectedUtility=null;
 let assistantHistory=[];
 let assistantConfigured=false;
+let selectedCanvasNode=null;
+let nodePositions={};
+let canvasZoom=1;
+let currentCanvasView='graph';
 let currentIR={schema_version:"0.1",name:"Automação Manual Canvas",trigger:{type:"manual"},steps:[],state:{file:"history.db"}};
 
 const humanSkill={
@@ -371,8 +375,11 @@ const humanSkill={
 };
 
 function log(type,msg,isErr=false){
+  const stamp=new Date().toLocaleTimeString();
   const e=document.createElement('div'); e.className='event '+(isErr?'status-err':'status-ok');
-  e.textContent=new Date().toLocaleTimeString()+'  ['+type+']  '+msg; events.prepend(e);
+  e.textContent=stamp+'  ['+type+']  '+msg; events.prepend(e);
+  const feed=document.querySelector('#builder-console-feed');
+  if(feed) feed.innerHTML='<strong>['+esc(type.toUpperCase())+']</strong> '+esc(msg);
 }
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
 
@@ -435,6 +442,7 @@ async function bootProduct(){
     fetch('/api/assistant/status').then(r=>r.json())
   ]);
   document.querySelector('#repo-head').textContent='LOCAL · '+workspace.name+' · '+(workspace.branch||'sem branch');
+  const consoleSource=document.querySelector('#builder-console-source');if(consoleSource)consoleSource.textContent=(workspace.branch||'LOCAL').toUpperCase();
   utilitiesData=utilities.utilities||[];templatesData=templates.templates||[];
   renderUtilities();renderTechnicalResources(state);loadBuilderTemplates();renderFlow();renderAssistantStatus(assistantStatus);
   log('product.ready','Computador verificado; utilidades liberadas');
@@ -634,8 +642,13 @@ function openUtilityInBuilder(u){
   document.querySelector('#tmpl-select').value=tmpl.id;renderTemplateFields();
 }
 function showMode(mode){
-  const basic=mode==='basic';document.querySelector('#basic-shell').classList.toggle('hidden',!basic);document.querySelector('#builder-shell').classList.toggle('active',!basic);
-  document.querySelector('#mode-basic').classList.toggle('active',basic);document.querySelector('#mode-builder').classList.toggle('active',!basic);
+  const basic=mode==='basic';
+  document.querySelector('#basic-shell').classList.toggle('hidden',!basic);
+  document.querySelector('#builder-shell').classList.toggle('active',!basic);
+  document.querySelector('#mode-basic').classList.toggle('active',basic);
+  document.querySelector('#mode-builder').classList.toggle('active',!basic);
+  document.body.classList.toggle('builder-mode',!basic);
+  if(!basic){renderFlow();requestAnimationFrame(()=>fitCanvas(false));}
 }
 document.querySelector('#mode-basic').onclick=()=>showMode('basic');document.querySelector('#mode-builder').onclick=()=>showMode('builder');
 
@@ -657,21 +670,208 @@ document.querySelector('#btn-instantiate').onclick=async()=>{
 
 function resetPlan(reason){
   currentPlan=null;document.querySelector('#btn-authorize').disabled=true;document.querySelector('#btn-apply').disabled=true;
-  document.querySelector('#plan-status-label').textContent='PLANO DE IMPACTO · precisa ser gerado';document.querySelector('#plan-content').textContent='O fluxo mudou. Gere um novo plano.';
+  document.querySelector('#plan-status-label').textContent='precisa ser gerado';document.querySelector('#plan-content').textContent='O fluxo mudou. Gere um novo plano.';
+  const status=document.querySelector('#builder-plan-status');if(status){status.textContent='—';status.style.color='#889484';}
+  const consolePlan=document.querySelector('#builder-console-plan');if(consolePlan)consolePlan.textContent='NO PLAN';
   if(reason)log('plan.invalidated',reason);
 }
+
+function skillKind(skill,isTrigger=false){
+  if(isTrigger)return 'WHEN';
+  if(['filesystem.scan','http.request','csv.read','xlsx.read','pdf.detect','pdf.basic_text'].includes(skill))return 'GET';
+  if(['filter.extension','json.transform','csv.write','xlsx.write'].includes(skill))return 'TRANSFORM';
+  if(['state.check','flow.condition'].includes(skill))return 'IF';
+  if(['state.record','state.record_jsonl'].includes(skill))return 'SAVE';
+  if(['notify','notification.send'].includes(skill))return 'NOTIFY';
+  return 'ACT';
+}
+function skillLabel(skill,isTrigger=false){
+  if(isTrigger)return 'trigger.'+(currentIR.trigger?.type||'manual');
+  return skill||'step';
+}
+function nodeSummary(skill,isTrigger=false){
+  if(isTrigger){
+    const t=currentIR.trigger?.type||'manual';
+    if(t==='schedule')return 'Executa conforme o agendamento definido.';
+    if(t==='webhook')return 'Inicia quando o webhook recebe um evento.';
+    if(t==='event')return 'Inicia quando o evento configurado ocorre.';
+    return 'Inicia manualmente quando você aciona a automação.';
+  }
+  return humanSkill[skill]||'Etapa determinística do workflow.';
+}
+function nextStepId(){
+  let max=0;for(const step of currentIR.steps||[]){const m=String(step.id||'').match(/^s(\d+)$/);if(m)max=Math.max(max,Number(m[1]));}
+  return 's'+(max+1);
+}
+function previousStepId(index){
+  if(index<=0)return null;
+  return currentIR.steps[index-1]?.id||null;
+}
+function defaultWithForSkill(skill,index){
+  const from=previousStepId(index);
+  if(skill==='filesystem.scan')return {path:'.',glob:'*'};
+  if(skill==='filter.extension')return {from:from||'s1',extension:'.pdf'};
+  if(skill==='filesystem.copy')return {from:from||'s1',destination:'./output'};
+  if(skill==='http.request')return {url:'https://example.com',method:'GET'};
+  if(skill==='state.record')return {from:from||'s1'};
+  if(skill==='state.check')return {key:'item'};
+  if(skill==='notify')return {message:'Automação concluída'};
+  if(skill==='csv.read')return {path:'input.csv'};
+  return {};
+}
+function allCanvasNodes(){
+  return [{id:'__trigger__',skill:skillLabel(null,true),with:currentIR.trigger||{type:'manual'},isTrigger:true},...(currentIR.steps||[]).map(s=>({...s,isTrigger:false}))];
+}
+function ensureNodePosition(node,index){
+  if(!nodePositions[node.id]){
+    nodePositions[node.id]={x:44+index*300,y:118};
+  }
+  return nodePositions[node.id];
+}
+function graphBounds(nodes){
+  let maxX=880,maxY=430;
+  nodes.forEach((node,index)=>{const p=ensureNodePosition(node,index);maxX=Math.max(maxX,p.x+290);maxY=Math.max(maxY,p.y+220);});
+  return {width:maxX,height:maxY};
+}
 function renderFlow(){
-  flowContainer.innerHTML='';if(!currentIR.steps.length){flowContainer.innerHTML='<div class="muted" style="padding:40px">Nenhum bloco ainda.</div>';return;}
-  currentIR.steps.forEach((step,idx)=>{
-    if(idx>0){const arrow=document.createElement('div');arrow.className='flow-arrow';arrow.textContent='↓';flowContainer.appendChild(arrow);}
-    const card=document.createElement('div');card.className='block-card';
-    const skill=step.skill||step.type||'step';
-    card.innerHTML='<div class="block-header"><span>#'+esc(step.id)+' — '+esc(skill)+'</span><span class="block-type">'+esc((humanSkill[skill]||'AÇÃO').split(' ')[0].toUpperCase())+'</span></div><div class="muted">Parâmetros</div><pre style="font-size:12px;background:#0d1620;padding:7px;border-radius:5px;overflow:auto">'+esc(JSON.stringify(step.with||{},null,2))+'</pre><button onclick="removeBlock(\''+esc(step.id)+'\')" class="btn" style="padding:3px 7px;font-size:11px">Remover</button>';
+  const nodes=allCanvasNodes();
+  const oldSvg=document.querySelector('#graph-wires');
+  flowContainer.innerHTML='';
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.id='graph-wires';svg.setAttribute('class','graph-wires');svg.setAttribute('aria-hidden','true');flowContainer.appendChild(svg);
+  nodes.forEach((node,index)=>{
+    const p=ensureNodePosition(node,index);
+    const skill=node.isTrigger?skillLabel(null,true):node.skill;
+    const kind=skillKind(skill,node.isTrigger);
+    const params=node.isTrigger?Object.entries(currentIR.trigger||{}).filter(([k])=>k!=='type'):Object.entries(node.with||{});
+    const card=document.createElement('article');
+    card.className='graph-node '+(node.isTrigger?'trigger-node ':'')+(selectedCanvasNode===node.id?'selected':'');
+    card.dataset.nodeId=node.id;card.style.left=p.x+'px';card.style.top=p.y+'px';
+    card.innerHTML=
+      '<div class="node-port in"></div><div class="node-port out"></div>'+
+      '<div class="graph-node-header"><span class="graph-node-kind kind-'+kind+'">'+esc(String(index+1).padStart(2,'0')+' '+kind)+'</span><span class="graph-node-state"><i></i>'+(node.isTrigger?'TRIGGER':'DRAFT')+'</span></div>'+
+      '<div class="graph-node-body"><div class="graph-node-title">'+esc(skill)+'</div><div class="graph-node-subtitle">'+esc(nodeSummary(skill,node.isTrigger))+'</div>'+
+      '<div class="node-param-row">'+(params.length?params.slice(0,3).map(([k,v])=>'<span class="node-param">'+esc(k)+': '+esc(typeof v==='string'?v:JSON.stringify(v))+'</span>').join(''):'<span class="node-param">sem parâmetros</span>')+'</div></div>';
+    card.addEventListener('pointerdown',e=>startNodeDrag(e,node.id));
+    card.addEventListener('click',()=>selectCanvasNode(node.id));
     flowContainer.appendChild(card);
   });
+  const bounds=graphBounds(nodes);flowContainer.style.width=bounds.width+'px';flowContainer.style.height=bounds.height+'px';
+  updateGraphScale(bounds);drawConnections(nodes,bounds);renderInsertButtons(nodes);renderIRView();updateBuilderMeta();
+  if(selectedCanvasNode&&!nodes.some(n=>n.id===selectedCanvasNode)){selectedCanvasNode=null;renderInspector();}
 }
-function addBlock(bType,label,skill){const id='s'+(currentIR.steps.length+1);currentIR.steps.push({id,skill,with:{}});currentSource='canvas';buildTimeAI=false;currentAIProvider=null;resetPlan('fluxo editado');renderFlow();}
-function removeBlock(id){currentIR.steps=currentIR.steps.filter(s=>s.id!==id);currentSource='canvas';buildTimeAI=false;currentAIProvider=null;resetPlan('bloco removido');renderFlow();}
+function drawConnections(nodes,bounds){
+  const svg=document.querySelector('#graph-wires');if(!svg)return;
+  svg.setAttribute('width',bounds.width);svg.setAttribute('height',bounds.height);svg.setAttribute('viewBox','0 0 '+bounds.width+' '+bounds.height);svg.innerHTML='';
+  for(let i=0;i<nodes.length-1;i++){
+    const a=ensureNodePosition(nodes[i],i),b=ensureNodePosition(nodes[i+1],i+1);
+    const x1=a.x+242,y1=a.y+67,x2=b.x,y2=b.y+67;
+    const bend=Math.max(55,Math.abs(x2-x1)*.45);
+    const d='M '+x1+' '+y1+' C '+(x1+bend)+' '+y1+', '+(x2-bend)+' '+y2+', '+x2+' '+y2;
+    const base=document.createElementNS('http://www.w3.org/2000/svg','path');base.setAttribute('d',d);base.setAttribute('class','wire-base');svg.appendChild(base);
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',d);path.setAttribute('class','wire-path '+(i%3===2?'blue':''));svg.appendChild(path);
+  }
+}
+function renderInsertButtons(nodes){
+  flowContainer.querySelectorAll('.edge-insert,.insert-menu').forEach(x=>x.remove());
+  for(let i=0;i<nodes.length-1;i++){
+    const a=ensureNodePosition(nodes[i],i),b=ensureNodePosition(nodes[i+1],i+1);
+    const btn=document.createElement('button');btn.className='edge-insert';btn.textContent='+';btn.title='Inserir bloco nesta conexão';
+    btn.style.left=((a.x+242+b.x)/2-11)+'px';btn.style.top=((a.y+b.y)/2+56)+'px';
+    btn.onclick=e=>{e.stopPropagation();showInsertMenu(i,Number.parseFloat(btn.style.left)+25,Number.parseFloat(btn.style.top)-5);};
+    flowContainer.appendChild(btn);
+  }
+}
+function showInsertMenu(stepIndex,x,y){
+  flowContainer.querySelectorAll('.insert-menu').forEach(m=>m.remove());
+  const menu=document.createElement('div');menu.className='insert-menu';menu.style.left=x+'px';menu.style.top=y+'px';
+  const options=[['GET · arquivos','filesystem.scan'],['GET · HTTP','http.request'],['TRANSFORM','filter.extension'],['IF · estado','state.check'],['ACT · copiar','filesystem.copy'],['SAVE · estado','state.record'],['NOTIFY','notify'],['GET · CSV','csv.read']];
+  options.forEach(([label,skill])=>{const b=document.createElement('button');b.textContent=label;b.onclick=e=>{e.stopPropagation();insertBlockAt(stepIndex,skill);};menu.appendChild(b);});
+  flowContainer.appendChild(menu);
+}
+function insertBlockAt(index,skill){
+  const id=nextStepId();const step={id,skill,with:defaultWithForSkill(skill,index)};
+  currentIR.steps.splice(index,0,step);nodePositions[id]=null;selectedCanvasNode=id;currentSource='canvas';buildTimeAI=false;currentAIProvider=null;resetPlan('bloco inserido na conexão');renderFlow();selectCanvasNode(id);
+}
+function addBlock(bType,label,skill){
+  const id=nextStepId(),index=currentIR.steps.length;currentIR.steps.push({id,skill,with:defaultWithForSkill(skill,index)});
+  selectedCanvasNode=id;currentSource='canvas';buildTimeAI=false;currentAIProvider=null;resetPlan('bloco adicionado');renderFlow();selectCanvasNode(id);
+}
+function removeBlock(id){
+  if(id==='__trigger__')return;
+  currentIR.steps=currentIR.steps.filter(s=>s.id!==id);delete nodePositions[id];if(selectedCanvasNode===id)selectedCanvasNode=null;
+  currentSource='canvas';buildTimeAI=false;currentAIProvider=null;resetPlan('bloco removido');renderFlow();renderInspector();
+}
+function startNodeDrag(e,id){
+  if(e.button!==0)return;
+  selectCanvasNode(id);const node=e.currentTarget;const pos=nodePositions[id]||{x:0,y:0};const sx=e.clientX,sy=e.clientY,ox=pos.x,oy=pos.y;let moved=false;
+  node.setPointerCapture?.(e.pointerId);
+  const move=ev=>{const dx=(ev.clientX-sx)/canvasZoom,dy=(ev.clientY-sy)/canvasZoom;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;pos.x=Math.max(8,ox+dx);pos.y=Math.max(38,oy+dy);nodePositions[id]=pos;node.style.left=pos.x+'px';node.style.top=pos.y+'px';const nodes=allCanvasNodes();const bounds=graphBounds(nodes);flowContainer.style.width=bounds.width+'px';flowContainer.style.height=bounds.height+'px';updateGraphScale(bounds);drawConnections(nodes,bounds);renderInsertButtons(nodes);};
+  const up=()=>{node.removeEventListener('pointermove',move);node.removeEventListener('pointerup',up);node.removeEventListener('pointercancel',up);if(moved)log('canvas.layout','posição visual de '+id+' atualizada');};
+  node.addEventListener('pointermove',move);node.addEventListener('pointerup',up);node.addEventListener('pointercancel',up);
+}
+function selectCanvasNode(id){
+  selectedCanvasNode=id;flowContainer.querySelectorAll('.graph-node').forEach(n=>n.classList.toggle('selected',n.dataset.nodeId===id));renderInspector();
+}
+function renderInspector(){
+  const empty=document.querySelector('#inspector-empty'),content=document.querySelector('#inspector-content'),footer=document.querySelector('#inspector-footer'),badge=document.querySelector('#inspector-node-badge');
+  if(!selectedCanvasNode){empty.classList.remove('hidden');content.classList.add('hidden');footer.classList.add('hidden');badge.textContent='nenhum';return;}
+  const isTrigger=selectedCanvasNode==='__trigger__';const node=isTrigger?{id:'__trigger__',skill:skillLabel(null,true),with:currentIR.trigger,isTrigger:true}:currentIR.steps.find(s=>s.id===selectedCanvasNode);
+  if(!node){selectedCanvasNode=null;return renderInspector();}
+  empty.classList.add('hidden');content.classList.remove('hidden');footer.classList.remove('hidden');badge.textContent=isTrigger?'TRIGGER':node.id;
+  const skill=isTrigger?skillLabel(null,true):node.skill;document.querySelector('#inspector-skill').textContent=skill;document.querySelector('#inspector-summary').textContent=nodeSummary(skill,isTrigger);
+  const params=document.querySelector('#inspector-params');params.innerHTML='';
+  const source=isTrigger?(currentIR.trigger||{}):(node.with||{});
+  Object.entries(source).forEach(([key,value])=>{
+    const wrap=document.createElement('div');wrap.className='inspector-param';const lab=document.createElement('label');lab.textContent=key;
+    let input;
+    if(isTrigger&&key==='type'){input=document.createElement('select');['manual','schedule','webhook','event'].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;if(v===value)o.selected=true;input.appendChild(o);});}
+    else{input=document.createElement('input');input.value=typeof value==='string'?value:JSON.stringify(value);}
+    input.dataset.paramKey=key;wrap.append(lab,input);params.appendChild(wrap);
+  });
+  const raw=isTrigger?currentIR.trigger:node;document.querySelector('#inspector-raw').value=JSON.stringify(raw,null,2);
+  document.querySelector('#inspector-remove').style.visibility=isTrigger?'hidden':'visible';
+}
+function parseEditorValue(value){
+  const v=String(value);try{return JSON.parse(v);}catch{return v;}
+}
+function applyInspectorChanges(){
+  if(!selectedCanvasNode)return;
+  const isTrigger=selectedCanvasNode==='__trigger__';let parsed;
+  try{parsed=JSON.parse(document.querySelector('#inspector-raw').value);}catch(e){log('inspector.error','JSON inválido no Inspector',true);return;}
+  document.querySelectorAll('#inspector-params [data-param-key]').forEach(input=>{
+    const key=input.dataset.paramKey;if(isTrigger)parsed[key]=parseEditorValue(input.value);else{parsed.with=parsed.with||{};parsed.with[key]=parseEditorValue(input.value);}
+  });
+  if(isTrigger){if(!parsed.type)parsed.type='manual';currentIR.trigger=parsed;}
+  else{const idx=currentIR.steps.findIndex(s=>s.id===selectedCanvasNode);if(idx<0)return;parsed.id=selectedCanvasNode;parsed.skill=parsed.skill||currentIR.steps[idx].skill;parsed.with=parsed.with||{};currentIR.steps[idx]=parsed;}
+  currentSource='canvas';buildTimeAI=false;currentAIProvider=null;resetPlan('parâmetros do nó alterados');renderFlow();selectCanvasNode(selectedCanvasNode);log('canvas.node_updated',selectedCanvasNode+' atualizado');
+}
+document.querySelector('#inspector-apply').onclick=applyInspectorChanges;
+document.querySelector('#inspector-remove').onclick=()=>removeBlock(selectedCanvasNode);
+
+function updateBuilderMeta(){
+  const trigger=currentIR.trigger?.type||'manual';const steps=currentIR.steps?.length||0;
+  const t=document.querySelector('#builder-trigger-status'),count=document.querySelector('#builder-step-count'),source=document.querySelector('#builder-source-badge'),layout=document.querySelector('#canvas-layout-info');
+  if(t)t.textContent=trigger;if(count)count.textContent=String(steps);if(source)source.textContent=currentSource||'canvas';if(layout)layout.textContent='LR · '+(steps+1)+' nodes';
+}
+function renderIRView(){const pre=document.querySelector('#ir-preview');if(pre)pre.textContent=JSON.stringify(currentIR,null,2);}
+function setCanvasView(view){
+  currentCanvasView=view;['graph','plan','ir'].forEach(v=>{document.querySelector('#canvas-view-'+v)?.classList.toggle('active',v===view);document.querySelector('#canvas-tab-'+v)?.classList.toggle('active',v===view);});
+  if(view==='ir')renderIRView();if(view==='graph')requestAnimationFrame(()=>drawConnections(allCanvasNodes(),graphBounds(allCanvasNodes())));
+}
+function setCanvasZoom(value){
+  canvasZoom=Math.max(.45,Math.min(1.45,value));const bounds=graphBounds(allCanvasNodes());updateGraphScale(bounds);document.querySelector('#canvas-zoom-label').textContent=Math.round(canvasZoom*100)+'%';
+}
+function updateGraphScale(bounds){
+  flowContainer.style.transform='scale('+canvasZoom+')';const shell=document.querySelector('#graph-stage-shell');if(shell){shell.style.width=Math.max(900,bounds.width*canvasZoom+70)+'px';shell.style.height=Math.max(470,bounds.height*canvasZoom+90)+'px';}
+}
+function fitCanvas(logIt=true){
+  const viewport=document.querySelector('#canvas-viewport');if(!viewport)return;const bounds=graphBounds(allCanvasNodes());const available=Math.max(320,viewport.clientWidth-80);setCanvasZoom(Math.min(1,available/bounds.width));viewport.scrollLeft=0;viewport.scrollTop=0;if(logIt)log('canvas.fit','workflow ajustado à área visível');
+}
+document.querySelector('#canvas-fit').onclick=()=>fitCanvas(true);
+document.querySelector('#canvas-zoom-in').onclick=()=>setCanvasZoom(canvasZoom+.1);
+document.querySelector('#canvas-zoom-out').onclick=()=>setCanvasZoom(canvasZoom-.1);
+document.querySelector('#canvas-viewport').addEventListener('wheel',e=>{if(e.ctrlKey){e.preventDefault();setCanvasZoom(canvasZoom+(e.deltaY<0?.08:-.08));}},{passive:false});
+flowContainer.addEventListener('click',e=>{if(e.target===flowContainer)flowContainer.querySelectorAll('.insert-menu').forEach(m=>m.remove());});
 
 document.querySelector('#ai-provider').onchange=e=>document.querySelector('#gemini-key-box').style.display=e.target.value==='google-gemini'?'flex':'none';
 async function createDraft(prompt,provider='deterministic-rules',apiKey=null){
