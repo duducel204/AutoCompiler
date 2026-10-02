@@ -449,6 +449,7 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 self._json({"ok": False, "status": "apply_failed", "error": str(exc)}, 500)
             return
         if path in {
+            "/api/installations/run",
             "/api/installations/disable",
             "/api/installations/enable",
             "/api/installations/remove",
@@ -461,7 +462,9 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 self._json({"ok": False, "status": "authorization_required"}, 403)
                 return
             try:
-                if action == "disable":
+                if action == "run":
+                    result = _installations_registry().run(installation_id)
+                elif action == "disable":
                     result = _installations_registry().disable(installation_id)
                 elif action == "enable":
                     result = _installations_registry().enable(installation_id)
