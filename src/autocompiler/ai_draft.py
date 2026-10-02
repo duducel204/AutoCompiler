@@ -144,22 +144,39 @@ class GeminiDraftProvider(AIProvider):
 
         model_id = (model or DEFAULT_MODEL).strip()
         try:
-            payload = generate_content(
-                api_key=api_key,
-                model=model_id,
-                contents=[
-                    {
-                        "role": "user",
-                        "parts": [{"text": "User Intent: " + prompt}],
-                    }
-                ],
-                system_instruction=SYSTEM_PROMPT,
-                generation_config={
-                    "maxOutputTokens": 4000,
-                    "responseMimeType": "application/json",
-                },
-                timeout=40,
-            )
+            try:
+                payload = generate_content(
+                    api_key=api_key,
+                    model=model_id,
+                    contents=[
+                        {
+                            "role": "user",
+                            "parts": [{"text": "User Intent: " + prompt}],
+                        }
+                    ],
+                    system_instruction=SYSTEM_PROMPT,
+                    generation_config={
+                        "maxOutputTokens": 4000,
+                        "responseMimeType": "application/json",
+                    },
+                    timeout=40,
+                )
+            except GeminiAPIError as exc:
+                if exc.kind != "invalid_request":
+                    raise
+                payload = generate_content(
+                    api_key=api_key,
+                    model=model_id,
+                    contents=[
+                        {
+                            "role": "user",
+                            "parts": [{"text": "User Intent: " + prompt}],
+                        }
+                    ],
+                    system_instruction=SYSTEM_PROMPT,
+                    generation_config={"maxOutputTokens": 4000},
+                    timeout=40,
+                )
             text_content = extract_text(payload)
             clean_json = re.sub(r"^```json\\s*", "", text_content.strip(), flags=re.MULTILINE)
             clean_json = re.sub(r"\\s*```$", "", clean_json, flags=re.MULTILINE).strip()

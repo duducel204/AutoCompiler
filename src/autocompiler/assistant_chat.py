@@ -342,6 +342,32 @@ def chat_with_assistant(
     }
 
 
+def draft_from_prompt(prompt: str) -> dict[str, Any]:
+    """Create candidate IR using the already-validated assistant session."""
+    config = AssistantConfig.current()
+    if config is None:
+        return {
+            "ok": False,
+            "error": "assistant_not_configured",
+            "message": "Conecte a Gemini API no assistente antes de gerar um rascunho.",
+        }
+
+    text = str(prompt or "").strip()
+    if not text:
+        return {"ok": False, "error": "prompt_required", "message": "Descreva a automação que deseja criar."}
+
+    result = draft_intent_to_ir(
+        text,
+        api_key=config.api_key,
+        provider=config.provider,
+        model=config.model,
+    )
+    result.setdefault("provider", config.provider)
+    result.setdefault("model", config.model)
+    result["uses_assistant_session"] = True
+    return result
+
+
 def draft_from_conversation(
     *,
     history: Any,

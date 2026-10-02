@@ -204,7 +204,7 @@ body.builder-mode .lifecycle-strip{background:#0c1016;border-color:#292e36}
           <button id="assistant-send" disabled>Enviar</button>
         </div>
         <div class="assistant-dev-actions">
-          <button id="assistant-actions" disabled>Ações locais OFF</button>
+          <button id="assistant-actions">Conecte IA para ações</button>
           <button id="assistant-draft" disabled>Gerar / atualizar rascunho</button>
           <button id="assistant-open-builder" disabled>Abrir rascunho no Construtor</button>
         </div>
@@ -316,7 +316,7 @@ body.builder-mode .lifecycle-strip{background:#0c1016;border-color:#292e36}
           <div class="builder-panel-title">Descrever automação <span>AI</span></div>
           <div class="field-group"><textarea id="ai-prompt" rows="3" placeholder="Ex.: organize PDFs e mova para outra pasta"></textarea></div>
           <div class="field-group"><label>Interpretação</label><select id="ai-provider"><option value="deterministic-rules">Regras locais</option><option value="google-gemini">Google Gemini</option></select></div>
-          <div id="gemini-key-box" class="field-group" style="display:none"><label>Chave Gemini</label><input type="password" id="ai-key"></div>
+          <div id="builder-gemini-session" class="muted" style="margin-top:6px">Google Gemini usa a mesma sessão conectada no assistente.</div>
           <button id="btn-ai-draft" class="btn" style="width:100%;margin-top:8px">Gerar rascunho</button>
           <div class="quick-prompts">
             <button type="button" data-quick-prompt="Organize os PDFs de uma pasta e copie para outra">PDFs</button>
@@ -668,9 +668,15 @@ function renderAssistantStatus(status){
     badge.textContent='AGUARDANDO API';badge.className='assistant-status offline';send.disabled=true;config.classList.remove('hidden');assistantActionsEnabled=false;
   }
   if(actions){
-    actions.disabled=!assistantConfigured;
-    actions.textContent=assistantActionsEnabled?'Ações locais ON':'Ações locais OFF';
+    actions.disabled=false;
+    actions.textContent=!assistantConfigured?'Conecte IA para ações':assistantActionsEnabled?'Ações locais ON':'Ações locais OFF';
     actions.className=assistantActionsEnabled?'success-btn':'';
+  }
+  const builderProvider=document.querySelector('#ai-provider');
+  if(builderProvider&&assistantConfigured&&builderProvider.value==='google-gemini'){
+    document.querySelector('#builder-gemini-session').textContent='Gemini conectada · '+(status.model||'modelo da sessão');
+  }else if(document.querySelector('#builder-gemini-session')){
+    document.querySelector('#builder-gemini-session').textContent='Google Gemini usa a mesma sessão conectada no assistente.';
   }
   refreshAssistantDraftButtons();
 }
@@ -711,10 +717,15 @@ document.querySelector('#assistant-connect').onclick=configureAssistant;
 document.querySelector('#assistant-reconfigure').onclick=()=>document.querySelector('#assistant-config').classList.toggle('hidden');
 
 async function toggleAssistantActions(){
-  if(!assistantConfigured)return;
+  const button=document.querySelector('#assistant-actions');
+  if(!assistantConfigured){
+    document.querySelector('#assistant-config').classList.remove('hidden');
+    document.querySelector('#assistant-api-key').focus();
+    appendAssistantMessage('assistant','Conecte a Gemini API primeiro. A mesma sessão será usada pelo chat, pelos rascunhos e pelas ações locais.');
+    return;
+  }
   const next=!assistantActionsEnabled;
-  if(next&&!confirm('Habilitar nesta sessão ações locais de navegador? O Gemini poderá pedir ao AutoCompiler para abrir o navegador, pesquisar e abrir URLs http/https. Shell, PowerShell e arquivos continuam bloqueados.'))return;
-  const button=document.querySelector('#assistant-actions');button.disabled=true;
+  button.disabled=true;
   try{
     const r=await fetch('/api/assistant/actions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:next,authorization:next?'enable-browser-actions':null})});
     const res=await r.json();if(!res.ok)throw new Error(res.status||res.error||'Falha ao alterar ações locais');
@@ -724,7 +735,7 @@ async function toggleAssistantActions(){
     appendAssistantMessage('assistant',assistantActionsEnabled?'Ações locais de navegador habilitadas nesta sessão. Você pode pedir, por exemplo: “abra o navegador” ou “pesquise tradutor”.':'Ações locais desabilitadas.');
     log('assistant.actions',assistantActionsEnabled?'browser actions enabled':'browser actions disabled');
   }catch(e){appendAssistantMessage('assistant','Não consegui alterar as ações locais: '+e.message);log('assistant.actions_error',e.message,true);}
-  finally{button.disabled=!assistantConfigured;}
+  finally{button.disabled=false;}
 }
 document.querySelector('#assistant-actions').onclick=toggleAssistantActions;
 
@@ -1214,13 +1225,38 @@ document.querySelectorAll('[data-quick-prompt]').forEach(btn=>btn.onclick=()=>{d
 document.querySelector('#canvas-viewport').addEventListener('wheel',e=>{if(e.ctrlKey){e.preventDefault();setCanvasZoom(canvasZoom+(e.deltaY<0?.08:-.08));}},{passive:false});
 flowContainer.addEventListener('click',e=>{if(e.target===flowContainer)flowContainer.querySelectorAll('.insert-menu').forEach(m=>m.remove());});
 
-document.querySelector('#ai-provider').onchange=e=>document.querySelector('#gemini-key-box').style.display=e.target.value==='google-gemini'?'flex':'none';
-async function createDraft(prompt,provider='deterministic-rules',apiKey=null){
-  const r=await fetch('/api/ai/draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,provider,api_key:apiKey})});const res=await r.json();
+document.querySelector('#ai-provider').onchange=e=>{
+  const note=document.querySelector('#builder-gemini-session');
+  if(e.target.value==='google-gemini'&&!assistantConfigured){
+    note.textContent='Conecte a Gemini no assistente principal antes de gerar o rascunho.';
+  }else if(e.target.value==='google-gemini'){
+    note.textContent='Gemini conectada nesta sessão.';
+  }else{
+    note.textContent='Regras locais não usam API.';
+  }
+};
+async function createDraft(prompt,provider='deterministic-rules'){
+  const r=await fetch('/api/ai/draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,provider})});const res=await r.json();
   if(res.ok&&res.ir){currentIR=res.ir;currentSource='ai';buildTimeAI=true;currentAIProvider=provider;nodePositions={};selectedCanvasNode=null;resetPlan('novo rascunho');document.querySelector('#wf-title').textContent=currentIR.name;document.querySelector('#wf-desc').textContent='Rascunho criado. Revise o fluxo antes de ativar.';renderFlow();renderInspector();return res;}
-  if(res.ambiguous)throw new Error((res.questions||[]).join(' '));throw new Error(res.error||res.message||'Não foi possível interpretar a descrição');
+  if(res.ambiguous)throw new Error((res.questions||[]).join(' '));
+  const diag=res.diagnostic||{};
+  const suffix=diag.kind?(' ['+diag.kind+(diag.http_status?' · HTTP '+diag.http_status:'')+']'):'';
+  throw new Error((res.message||diag.message||res.details||res.error||'Não foi possível interpretar a descrição')+suffix);
 }
-document.querySelector('#btn-ai-draft').onclick=async()=>{try{await createDraft(document.querySelector('#ai-prompt').value.trim(),document.querySelector('#ai-provider').value,document.querySelector('#ai-key').value);log('ai.draft_success','Rascunho criado');}catch(e){log('ai.error',e.message,true);}};
+document.querySelector('#btn-ai-draft').onclick=async()=>{
+  try{
+    const provider=document.querySelector('#ai-provider').value;
+    if(provider==='google-gemini'&&!assistantConfigured){
+      showMode('basic');
+      document.querySelector('#assistant-config').classList.remove('hidden');
+      document.querySelector('#assistant-api-key').focus();
+      appendAssistantMessage('assistant','Conecte a Gemini uma vez aqui. O Builder vai reutilizar essa mesma sessão.');
+      return;
+    }
+    await createDraft(document.querySelector('#ai-prompt').value.trim(),provider);
+    log('ai.draft_success','Rascunho criado');
+  }catch(e){log('ai.error',e.message,true);}
+};
 document.querySelector('#btn-basic-intent').onclick=async()=>{
   const prompt=document.querySelector('#basic-intent').value.trim();if(!prompt)return;
   try{await createDraft(prompt);showMode('builder');log('intent.to_builder','Descrição transformada em rascunho; Construtor aberto para revisão');}

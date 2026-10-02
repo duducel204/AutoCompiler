@@ -14,6 +14,7 @@ from autocompiler.assistant_chat import (
     clear_assistant_configuration,
     configure_assistant,
     draft_from_conversation,
+    draft_from_prompt,
 )
 
 
@@ -152,6 +153,36 @@ class AssistantChatTests(unittest.TestCase):
             {"browser_open", "browser_search", "browser_navigate"},
         )
         self.assertNotIn("shell", str(declarations).lower())
+
+    @patch("autocompiler.assistant_chat.probe")
+    @patch("autocompiler.assistant_chat.draft_intent_to_ir")
+    def test_builder_prompt_reuses_validated_assistant_session(self, draft, probe):
+        probe.return_value = {"ok": True, "provider": "google-gemini", "model": "gemini-3.8-flash"}
+        draft.return_value = {
+            "ok": True,
+            "ir": {
+                "schema_version": "0.1",
+                "name": "Session Draft",
+                "trigger": {"type": "manual"},
+                "steps": [
+                    {"id": "s1", "skill": "filesystem.scan", "with": {"path": ".", "glob": "*"}},
+                    {"id": "s2", "skill": "state.record", "with": {"from": "s1"}},
+                ],
+                "state": {"file": "history.db"},
+            },
+        }
+        configure_assistant(api_key="AQ.temporary-secret-key", model="gemini-3.8-flash")
+
+        result = draft_from_prompt("registre arquivos")
+
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["uses_assistant_session"])
+        draft.assert_called_once_with(
+            "registre arquivos",
+            api_key="AQ.temporary-secret-key",
+            provider="google-gemini",
+            model="gemini-3.8-flash",
+        )
 
     @patch("autocompiler.assistant_chat.probe")
     @patch("autocompiler.assistant_chat.draft_intent_to_ir")

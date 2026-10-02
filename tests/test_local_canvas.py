@@ -464,6 +464,43 @@ class LocalCanvasTests(unittest.TestCase):
         finally:
             server.shutdown()
 
+    @patch("autocompiler.local_canvas.draft_from_prompt")
+    def test_builder_gemini_draft_uses_connected_assistant_session(self, draft):
+        draft.return_value = {
+            "ok": True,
+            "ir": {
+                "schema_version": "0.1",
+                "name": "Unified Gemini Draft",
+                "trigger": {"type": "manual"},
+                "steps": [{"id": "s1", "skill": "filesystem.scan", "with": {"path": ".", "glob": "*"}}],
+                "state": {"file": "history.db"},
+            },
+            "provider": "google-gemini",
+            "model": "gemini-3.8-flash",
+            "uses_assistant_session": True,
+        }
+        server = ThreadingHTTPServer(("127.0.0.1", 0), CanvasHandler)
+        port = server.server_port
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            req = Request(
+                f"http://127.0.0.1:{port}/api/ai/draft",
+                data=json.dumps({
+                    "prompt": "Organize meus PDFs",
+                    "provider": "google-gemini",
+                    "api_key": "must-be-ignored",
+                }).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with urlopen(req) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(result["ok"])
+            self.assertTrue(result["uses_assistant_session"])
+            draft.assert_called_once_with("Organize meus PDFs")
+        finally:
+            server.shutdown()
+
     @patch("autocompiler.local_canvas.draft_from_conversation")
     @patch("autocompiler.local_canvas.configure_assistant")
     def test_basic_assistant_can_configure_session_and_create_draft_only(self, configure, draft):

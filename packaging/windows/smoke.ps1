@@ -61,6 +61,12 @@ try {
     if (-not (Select-String -Path $CanvasHtml -Pattern 'id="assistant-actions"' -Quiet)) {
         throw "Installed Canvas does not expose the assistant local-actions control."
     }
+    if (Select-String -Path $CanvasHtml -Pattern 'id="ai-key"' -Quiet) {
+        throw "Installed Canvas still contains the obsolete second Gemini API key field."
+    }
+    if (Select-String -Path $CanvasHtml -Pattern '<button id="assistant-actions" disabled' -Quiet) {
+        throw "Installed Canvas ships the local-actions control disabled at markup level."
+    }
 
     & $Bridge --self-test | Out-Null
     if ($LASTEXITCODE -ne 0) {
