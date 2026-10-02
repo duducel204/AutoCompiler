@@ -37,11 +37,9 @@ def build_machine_preflight(
                 "discovery_summary": inventory_data.get("summary", {}),
                 "automation_ready": False,
                 "phase": "blocked",
-                "readiness_summary": {"required": 0, "usable": 0, "missing": 0, "validation_required": 0, "unready": 0},
+                "readiness_summary": {"required": 0, "usable": 0, "missing": 0},
                 "statuses": [],
                 "missing_required": [],
-                "validation_required": [],
-                "unready_required": [],
                 "preparation": {
                     "can_apply": False,
                     "unresolved_capabilities": [],
@@ -67,13 +65,10 @@ def build_machine_preflight(
         message = "Windows Automation Base verified. Canvas can be released."
     elif prep_plan.can_apply:
         phase = "prepare"
-        message = "Missing providers have a complete verified preparation plan."
+        message = "Required capability gaps have a complete verified preparation plan."
     else:
         phase = "blocked"
-        if inspection.get("validation_required"):
-            message = "Providers exist, but Automation Base capabilities still require end-to-end product validation."
-        else:
-            message = "Required capability gaps remain unresolved by validated preparation recipes."
+        message = "Required capability gaps remain unresolved by validated preparation recipes."
 
     return (
         {
@@ -85,9 +80,7 @@ def build_machine_preflight(
             "phase": phase,
             "readiness_summary": inspection.get("summary", {}),
             "statuses": inspection["statuses"],
-            "missing_required": inspection.get("missing_required", []),
-            "validation_required": inspection.get("validation_required", []),
-            "unready_required": inspection.get("unready_required", []),
+            "missing_required": inspection["missing_required"],
             "preparation": prep_plan.to_dict(),
             "message": message,
         },
