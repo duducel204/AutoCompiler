@@ -42,7 +42,10 @@ MAX_REQUEST_BYTES = 2 * 1024 * 1024
 SAFE_LEAF = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 WORKFLOW_PLANS = WorkflowPlanStore()
 MACHINE_PLANS = MachinePreparationStore()
-INSTALLATIONS = WorkflowInstallationRegistry(STATE_ROOT / "installations.json", GENERATED_ROOT)
+
+
+def _installations_registry() -> WorkflowInstallationRegistry:
+    return WorkflowInstallationRegistry(STATE_ROOT / "installations.json", GENERATED_ROOT)
 
 
 def _safe_leaf(value: object, *, default: str, suffix: str | None = None) -> str:
@@ -199,12 +202,12 @@ class CanvasHandler(BaseHTTPRequestHandler):
             self._json({"ok": True, "utilities": list_utilities()})
             return
         if path == "/api/installations":
-            self._json({"ok": True, "installations": INSTALLATIONS.list()})
+            self._json({"ok": True, "installations": _installations_registry().list()})
             return
         if path == "/api/installations/history":
             qs = parse_qs(parsed_url.query)
             installation_id = str(qs.get("id", [""])[0])
-            result = INSTALLATIONS.history(installation_id, limit=int(qs.get("limit", ["50"])[0]))
+            result = _installations_registry().history(installation_id, limit=int(qs.get("limit", ["50"])[0]))
             self._json(result, 200 if result.get("ok") else 404)
             return
         if path == "/api/assistant/status":
@@ -432,7 +435,7 @@ class CanvasHandler(BaseHTTPRequestHandler):
             try:
                 result = apply_workflow_plan(record)
                 if result.get("ok"):
-                    installation = INSTALLATIONS.record(
+                    installation = _installations_registry().record(
                         plan_id=plan_id,
                         ir=record["ir"],
                         plan=record["plan"],
@@ -459,11 +462,11 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 return
             try:
                 if action == "disable":
-                    result = INSTALLATIONS.disable(installation_id)
+                    result = _installations_registry().disable(installation_id)
                 elif action == "enable":
-                    result = INSTALLATIONS.enable(installation_id)
+                    result = _installations_registry().enable(installation_id)
                 else:
-                    result = INSTALLATIONS.remove(installation_id)
+                    result = _installations_registry().remove(installation_id)
                 self._json(result, 200 if result.get("ok") else 409)
             except Exception as exc:
                 self._json({"ok": False, "status": "lifecycle_failed", "error": str(exc)}, 500)
