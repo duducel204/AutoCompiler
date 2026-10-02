@@ -197,7 +197,7 @@ STARTER_TEMPLATES: dict[str, dict[str, Any]] = {
             ],
             "state": {"file": "history.db"},
         },
-    },,
+    },
     "w11": {
         "id": "w11",
         "name": "Organize Downloads",
