@@ -89,16 +89,32 @@ class IRCompilerTest(unittest.TestCase):
         self.assertNotIn("http.client", validation.required_capabilities)
         self.assertIn("trigger:schedule", validation.capability_sources["schedule"])
 
-    def test_compiler_reports_unsupported_semantics_before_generation(self):
+    def test_compiler_requires_a_materializable_resolved_http_provider(self):
         ir = {
             "schema_version": "0.3",
             "name": "http-only",
             "trigger": {"type": "manual"},
             "steps": [{"id": "fetch", "skill": "http.request", "with": {"url": "https://example.com"}}],
         }
-        support = analyze_compile_support(ir, "python-sqlite")
+        wrong = {
+            "schema_version": "0.1",
+            "target": "python-sqlite",
+            "requirements": [
+                {"capability": "http.request", "provider": "custom-http", "status": "resolved"}
+            ],
+        }
+        support = analyze_compile_support(ir, "python-sqlite", wrong)
         self.assertFalse(support["supported"])
-        self.assertIn("http.request", support["unsupported_skills"])
+        self.assertEqual(support["provider_mismatches"][0]["capability"], "http.request")
+
+        right = {
+            "schema_version": "0.1",
+            "target": "python-sqlite",
+            "requirements": [
+                {"capability": "http.request", "provider": "autocompiler.http_provider", "status": "resolved"}
+            ],
+        }
+        self.assertTrue(analyze_compile_support(ir, "python-sqlite", right)["supported"])
 
     def test_schema_malformed_workflows_rejected(self):
         with self.assertRaises(ValueError):
