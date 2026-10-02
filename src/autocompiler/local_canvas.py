@@ -14,7 +14,13 @@ from .environment import build_unified_resource_graph
 from .first_run import MachinePreparationStore, build_machine_preflight
 from .git_acquisition import plan_git_capability
 from .ai_draft import draft_intent_to_ir
-from .assistant_chat import assistant_status, chat_with_assistant
+from .assistant_chat import (
+    assistant_status,
+    chat_with_assistant,
+    clear_assistant_configuration,
+    configure_assistant,
+    draft_from_conversation,
+)
 from .ir import validate_ir
 from .templates import instantiate_template, list_templates, list_utilities
 from .workflow_lifecycle import WorkflowPlanStore, apply_workflow_plan, build_workflow_plan
@@ -231,6 +237,18 @@ class CanvasHandler(BaseHTTPRequestHandler):
             except Exception as exc:
                 self._json({"ok": False, "error": str(exc)}, 400)
             return
+        if path == "/api/assistant/configure":
+            body = self._body()
+            res = configure_assistant(
+                api_key=body.get("api_key", ""),
+                provider=body.get("provider", "google-gemini"),
+                model=body.get("model", "gemini-3.8-flash"),
+            )
+            self._json(res, 200 if res.get("ok") else 400)
+            return
+        if path == "/api/assistant/clear":
+            self._json(clear_assistant_configuration())
+            return
         if path == "/api/assistant/chat":
             body = self._body()
             try:
@@ -242,6 +260,17 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 self._json(res, 200 if res.get("ok") else 503 if res.get("error") == "assistant_not_configured" else 400)
             except Exception as exc:
                 self._json({"ok": False, "error": "assistant_failed", "details": str(exc)}, 500)
+            return
+        if path == "/api/assistant/draft":
+            body = self._body()
+            try:
+                res = draft_from_conversation(
+                    history=body.get("history", []),
+                    current_ir=body.get("current_ir"),
+                )
+                self._json(res, 200 if res.get("ok") else 503 if res.get("error") == "assistant_not_configured" else 400)
+            except Exception as exc:
+                self._json({"ok": False, "error": "assistant_draft_failed", "details": str(exc)}, 500)
             return
         if path == "/api/workflow/validate":
             body = self._body()
