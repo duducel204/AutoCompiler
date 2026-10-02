@@ -17,6 +17,12 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / ".autocompiler" / "node_context_graph.json"
+CACHE_SCHEMA_VERSION = 2
+CONTRACT_FILES = (
+    "scripts/node_context_index.py",
+    "scripts/node_context_spider.py",
+    "scripts/post_cycle_spider.py",
+)
 ELIGIBLE_SUFFIXES = {".py", ".md", ".json", ".yml", ".yaml", ".html"}
 CAPABILITY_PATTERN = re.compile(
     r"\b(?:filesystem\.[a-z_]+|state\.[a-z_]+|http\.request|notification\.send|"
@@ -42,6 +48,40 @@ def tracked_files() -> list[str]:
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def contract_fingerprint() -> str:
+    """Fingerprint the code contract that creates/interprets derived node context."""
+    h = hashlib.sha256()
+    for relative in CONTRACT_FILES:
+        path = ROOT / relative
+        h.update(relative.encode("utf-8"))
+        h.update(b"\0")
+        h.update(path.read_bytes())
+        h.update(b"\0")
+    return h.hexdigest()
+
+
+def _fresh_cache(reason: str) -> dict[str, Any]:
+    return {
+        "schema_version": CACHE_SCHEMA_VERSION,
+        "contract_fingerprint": contract_fingerprint(),
+        "files": {},
+        "_cache_state": reason,
+    }
+
+
+def _record_is_valid(record: Any) -> bool:
+    if not isinstance(record, dict):
+        return False
+    sha = record.get("sha256")
+    return (
+        isinstance(sha, str)
+        and len(sha) == 64
+        and all(ch in "0123456789abcdef" for ch in sha.lower())
+        and isinstance(record.get("nodes"), list)
+        and isinstance(record.get("edges"), list)
+    )
 
 
 def node(node_id: str, kind: str, label: str, source: str, **extra: Any) -> dict[str, Any]:
@@ -150,16 +190,34 @@ def extract(path: str) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
 
 
 def load_cache(path: Path) -> dict[str, Any]:
+    """Load only context produced by the current derivation contract.
+
+    The cache is disposable derived state. Corrupt, stale or structurally invalid
+    cache never becomes trusted input: it is discarded and rebuilt from tracked
+    repository files.
+    """
     if not path.exists():
-        return {"schema_version": 1, "files": {}}
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if data.get("schema_version") != 1 or not isinstance(data.get("files"), dict):
-        raise ValueError("unsupported node context graph cache")
+        return _fresh_cache("missing")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeError):
+        return _fresh_cache("corrupt")
+
+    if data.get("schema_version") != CACHE_SCHEMA_VERSION:
+        return _fresh_cache("schema_mismatch")
+    if data.get("contract_fingerprint") != contract_fingerprint():
+        return _fresh_cache("contract_mismatch")
+    files = data.get("files")
+    if not isinstance(files, dict) or not all(_record_is_valid(record) for record in files.values()):
+        return _fresh_cache("invalid_records")
+
+    data["_cache_state"] = "reused"
     return data
 
 
 def run_cycle(output: Path = DEFAULT_OUTPUT) -> dict[str, Any]:
     cache = load_cache(output)
+    cache_state = str(cache.pop("_cache_state", "unknown"))
     previous = cache["files"]
     current_paths = tracked_files()
     current_set = set(current_paths)
@@ -180,7 +238,11 @@ def run_cycle(output: Path = DEFAULT_OUTPUT) -> dict[str, Any]:
 
     removed = sorted(set(previous) - current_set)
     output.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"schema_version": 1, "files": next_files}
+    payload = {
+        "schema_version": CACHE_SCHEMA_VERSION,
+        "contract_fingerprint": contract_fingerprint(),
+        "files": next_files,
+    }
     output.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True), encoding="utf-8")
 
     node_ids = {n["id"] for record in next_files.values() for n in record["nodes"]}
@@ -190,6 +252,8 @@ def run_cycle(output: Path = DEFAULT_OUTPUT) -> dict[str, Any]:
     }
     return {
         "ok": True,
+        "cache_state": cache_state,
+        "contract_fingerprint": payload["contract_fingerprint"],
         "changed_files": changed,
         "unchanged_files": len(unchanged),
         "removed_files": removed,
