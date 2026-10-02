@@ -19,7 +19,7 @@ The Automation IR schema:
   "steps": [
     {
       "id": "s1",
-      "skill": "filesystem.scan" | "filter.extension" | "filesystem.copy" | "http.request" | "state.record" | "state.check" | "state.update" | "csv.read" | "csv.write" | "xlsx.read" | "xlsx.write" | "pdf.detect" | "pdf.basic_text" | "notify",
+      "skill": "filesystem.scan" | "filter.extension" | "filesystem.copy" | "filesystem.move" | "http.request" | "state.record" | "state.check" | "state.update" | "csv.read" | "csv.write" | "xlsx.read" | "xlsx.write" | "pdf.detect" | "pdf.basic_text" | "notify",
       "with": { ... }
     }
   ],
