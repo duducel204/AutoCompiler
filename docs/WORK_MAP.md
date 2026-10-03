@@ -10,7 +10,7 @@ O CSV declara trabalho e evidência; estado operacional é derivado. Merge, test
 
 - Ready: `SEC-OS1`, `UI-CANVAS1`, `REPO-H1`, `TARGET-PS1`, `IMPORT-N8N1`
 - Dívida de verificação: nenhuma
-- Bloqueados: `AY-C8`
+- Bloqueados: nenhum
 - Conflitos de ownership acionáveis: 0
 
 ## Grafo
@@ -30,9 +30,9 @@ flowchart LR
   W_AY_C4["AY-C4<br/>Crystallize repeated complex analysis into task scripts<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C5["AY-C5<br/>Close resolution into evidence state and cheaper reuse<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C6["AY-C6<br/>Post-cycle Spider assimilation via GitHub Actions<br/>SYSTEM_PROOF_WIRED"]
-  W_AY_C6H["AY-C6H<br/>Post-cycle context integrity hardening<br/>COMPONENT_GATE_WIRED"]
+  W_AY_C6H["AY-C6H<br/>Post-cycle context integrity hardening<br/>SYSTEM_PROOF_WIRED"]
   W_AY_C7["AY-C7<br/>Post-cycle next-work synthesis<br/>SYSTEM_PROOF_WIRED"]
-  W_AY_C8["AY-C8<br/>Development-cycle continuity dispatcher<br/>BLOCKED"]
+  W_AY_C8["AY-C8<br/>Development-cycle continuity dispatcher<br/>SYSTEM_PROOF_WIRED"]
   W_SEC_OS1["SEC-OS1<br/>Native OS secret storage provider<br/>READY"]
   W_UI_CANVAS1["UI-CANVAS1<br/>Modularize local Canvas without behavior change<br/>READY"]
   W_REPO_H1["REPO-H1<br/>Consolidate root demo and build entrypoints<br/>READY"]
@@ -82,9 +82,9 @@ flowchart LR
 | `AY-C4` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C5` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C6` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
-| `AY-C6H` | ✓ | ✓ | ✓ | — | ✓ | `COMPONENT_GATE_WIRED` | integrate |
+| `AY-C6H` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `AY-C7` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
-| `AY-C8` | ✓ | ✓ | ✓ | — | ✓ | `BLOCKED` | wait for AY-C6H |
+| `AY-C8` | ✓ | ✓ | ✓ | ✓ | ✓ | `SYSTEM_PROOF_WIRED` | observe system proof execution |
 | `SEC-OS1` | — | — | — | — | — | `READY` | implement |
 | `UI-CANVAS1` | — | — | — | — | — | `READY` | implement |
 | `REPO-H1` | — | — | — | — | — | `READY` | implement |
@@ -122,6 +122,10 @@ Nenhuma colisão de ownership entre trabalhos acionáveis.
 | `AY-C6` | `ci_check` | Actions#37075802268 | `pass` | system-proof | 2026-10-02 | Post-cycle Spider restored cache node-context-main-285bc29..., incrementally reparsed 3 changed eligible files, produced 15 context nodes/14 edges/8 semantic labels/1 logic node without truncation, and published artifact 11256441692. |
 | `AY-C7` | `merged_pr` | PR#90 | `pass` | integration | 2026-10-02 | Post-cycle next-work planner merged; exact-head Trust Gate passed and Actions#37076501876 generated next_cycle.json from canonical work state plus bounded Spider context. |
 | `AY-C7` | `ci_check` | Actions#37076501876 | `pass` | system-proof | 2026-10-02 | After trusted main SHA 5186125b..., Post-cycle Spider restored prior context and next_cycle_plan selected AY-C7/integrate because merge evidence was not yet canonical, proving state-sensitive planning rather than a hardcoded next task. |
+| `AY-C6H` | `merged_pr` | PR#93 | `pass` | integration | 2026-10-02 | Context-integrity hardening merged: node-context schema v2, derivation-contract fingerprint, cache-key scoping and fail-closed rebuild semantics. |
+| `AY-C6H` | `ci_check` | Actions#37080065262 | `pass` | system-proof | 2026-10-02 | Trusted main cycle 42f08b... completed Post-cycle Spider with the hardened context contract, published refreshed context and generated next_cycle.json successfully. |
+| `AY-C8` | `merged_pr` | PR#93 | `pass` | integration | 2026-10-02 | Executor-agnostic continuity dispatcher and structured CI failure handoff merged; deterministic PR checks and Trust Gate passed on Ubuntu and Windows. |
+| `AY-C8` | `ci_check` | Actions#37080083310 | `pass` | system-proof | 2026-10-02 | After trusted Post-cycle Spider output, Development cycle dispatcher consumed next_cycle.json and emitted STOP_NEEDS_EXECUTOR for AY-C6H because no executor is registered; workflow completed successfully and published the dispatch envelope. |
 
 ## Comandos
 
