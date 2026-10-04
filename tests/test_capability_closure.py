@@ -119,6 +119,14 @@ class CapabilityClosureGateTests(unittest.TestCase):
                     },
                     {
                         "id": "s4",
+                        "skill": "act",
+                        "with": {
+                            "capability": capability_id,
+                            "args": ["report_a"],
+                        },
+                    },
+                    {
+                        "id": "s5",
                         "skill": "state.record",
                         "with": {"from": "s3"},
                     },
@@ -126,8 +134,19 @@ class CapabilityClosureGateTests(unittest.TestCase):
                 "state": {"file": "history_a.db"},
             }
 
+            resolved_a = {
+                "requirements": [
+                    {
+                        "capability": capability_id,
+                        "status": "resolved",
+                        "provider": provider_id,
+                        "binding": {"executable": str(installed_binary)},
+                    }
+                ]
+            }
+
             compiled_a_dir = root / "compiled_a"
-            compile_ir(ir_a, "python-sqlite", compiled_a_dir)
+            compile_ir(ir_a, "python-sqlite", compiled_a_dir, resolved_execution=resolved_a)
 
             run_a = subprocess.run(
                 [sys.executable, str(compiled_a_dir / "automation.py")],
@@ -137,6 +156,7 @@ class CapabilityClosureGateTests(unittest.TestCase):
             self.assertEqual(run_a.returncode, 0, run_a.stderr)
             res_a = json.loads(run_a.stdout)
             self.assertTrue(res_a["ok"])
+            self.assertIn("FORMATTED_OUTPUT", str(res_a["context"]["s4"]))
             self.assertFalse(res_a["autocompiler_runtime_used"])
             self.assertFalse(res_a["recurring_ai_used"])
 
@@ -176,6 +196,14 @@ class CapabilityClosureGateTests(unittest.TestCase):
                     },
                     {
                         "id": "s4",
+                        "skill": "act",
+                        "with": {
+                            "capability": capability_id,
+                            "args": ["summary_b"],
+                        },
+                    },
+                    {
+                        "id": "s5",
                         "skill": "state.record",
                         "with": {"from": "s3"},
                     },
@@ -183,8 +211,19 @@ class CapabilityClosureGateTests(unittest.TestCase):
                 "state": {"file": "history_b.db"},
             }
 
+            resolved_b = {
+                "requirements": [
+                    {
+                        "capability": capability_id,
+                        "status": "resolved",
+                        "provider": provider_id,
+                        "binding": {"executable": str(installed_binary)},
+                    }
+                ]
+            }
+
             compiled_b_dir = root / "compiled_b"
-            compile_ir(ir_b, "python-sqlite", compiled_b_dir)
+            compile_ir(ir_b, "python-sqlite", compiled_b_dir, resolved_execution=resolved_b)
 
             run_b = subprocess.run(
                 [sys.executable, str(compiled_b_dir / "automation.py")],
@@ -194,6 +233,7 @@ class CapabilityClosureGateTests(unittest.TestCase):
             self.assertEqual(run_b.returncode, 0, run_b.stderr)
             res_b = json.loads(run_b.stdout)
             self.assertTrue(res_b["ok"])
+            self.assertIn("FORMATTED_OUTPUT", str(res_b["context"]["s4"]))
             self.assertFalse(res_b["autocompiler_runtime_used"])
             self.assertFalse(res_b["recurring_ai_used"])
 

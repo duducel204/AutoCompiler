@@ -206,9 +206,18 @@ def execute(ir: dict[str, Any], event: dict[str, Any], root: Path, http_request=
                 })
 
             if fallback:
-                fallback_result = {"ok": False, "fallback_executed": True, "fallback": fallback, "error": last_error}
+                if isinstance(fallback, dict) and "skill" in fallback:
+                    try:
+                        fallback_out = run_skill(fallback["skill"], fallback.get("with", {}), f"{sid}_fallback")
+                        fallback_result = {"ok": False, "fallback_executed": True, "fallback_result": fallback_out, "error": last_error}
+                        trace.append({"step": f"{sid}_fallback", "skill": fallback["skill"], "status": "ok"})
+                    except Exception as fb_exc:
+                        fallback_result = {"ok": False, "fallback_executed": True, "fallback_error": str(fb_exc), "error": last_error}
+                        trace.append({"step": f"{sid}_fallback", "skill": fallback["skill"], "status": "failed", "error": str(fb_exc)})
+                else:
+                    fallback_result = {"ok": False, "fallback_executed": True, "fallback": fallback, "error": last_error}
+                    trace.append({"step": f"{sid}_fallback", "skill": "fallback", "status": "ok"})
                 context[sid] = fallback_result
-                trace.append({"step": f"{sid}_fallback", "skill": "fallback", "status": "ok"})
             elif not stop_on_error:
                 context[sid] = {"ok": False, "error": last_error}
             else:
