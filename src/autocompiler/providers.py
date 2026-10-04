@@ -712,6 +712,9 @@ ALL_PROVIDERS: list[CapabilityProvider] = [
 
 
 def get_provider_for_capability(capability: str) -> CapabilityProvider | None:
+    if capability == "http.request":
+        from .http_provider import HTTPRequestProvider
+        return HTTPRequestProvider()
     for provider in ALL_PROVIDERS:
         if provider.capability == capability:
             return provider

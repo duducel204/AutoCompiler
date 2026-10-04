@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json, time
+from typing import Any
 from urllib.request import Request, urlopen
+from .providers import CapabilityProvider
 
 def request(method: str, url: str, body=None, retries: int = 0):
     data = None if body is None else json.dumps(body).encode("utf-8")
@@ -17,3 +19,27 @@ def request(method: str, url: str, body=None, retries: int = 0):
             if attempt < retries:
                 time.sleep(min(2 ** attempt, 4))
     raise last
+
+
+class HTTPRequestProvider(CapabilityProvider):
+    @property
+    def capability(self) -> str:
+        return "http.request"
+
+    @property
+    def provider_name(self) -> str:
+        return "autocompiler.http_provider"
+
+    def health_check(self) -> dict[str, Any]:
+        return {"ok": True, "provider": self.provider_name, "capability": self.capability}
+
+    def execute(self, params: dict[str, Any]) -> dict[str, Any]:
+        return request(
+            method=params.get("method", "GET"),
+            url=params["url"],
+            body=params.get("body"),
+            retries=int(params.get("retries", 0)),
+        )
+
+
+HTTPClientProvider = HTTPRequestProvider

@@ -96,6 +96,7 @@ class CapabilityRegistry:
 
     def resolve(self, requirements: list[str], resource_graph: dict, constraints: dict | None = None) -> ExecutionPlan:
         constraints = constraints or {}
+        cost_ranks = {"free": 0, "low": 1, "medium": 2, "high": 3, "paid": 4}
         existing = {}
         for resource in resource_graph.get("resources", []):
             existing.setdefault(resource["capability"], []).append(resource)
@@ -112,13 +113,17 @@ class CapabilityRegistry:
                     matching = [c for c in candidates if c.get("provider") == preferred]
                     if matching:
                         candidates = matching
-                chosen = sorted(candidates, key=lambda x: (x.get("cost", "free"), x["provider"]))[0]
+                chosen = sorted(candidates, key=lambda x: (cost_ranks.get(x.get("cost", "free"), 0), x["provider"]))[0]
+                cost = chosen.get("cost", "free")
+                reason = f"Existing usable provider '{chosen['provider']}' satisfies capability."
+                if len(candidates) > 1:
+                    reason += f" Selected among {len(candidates)} candidates using lowest cost policy ({cost})."
                 out.append(
                     Resolution(
                         capability,
                         "reuse",
                         chosen["provider"],
-                        f"Existing usable provider '{chosen['provider']}' satisfies capability.",
+                        reason,
                         binding=chosen.get("binding"),
                     )
                 )

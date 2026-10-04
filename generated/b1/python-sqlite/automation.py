@@ -1,5 +1,6 @@
 from __future__ import annotations
-import csv, json, shutil, sqlite3, subprocess, sys, time, zipfile
+import csv, json, re, shutil, sqlite3, subprocess, sys, time, zipfile
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -41,7 +42,7 @@ def _resolve(value, context):
 
 def _http_request(method, url, body=None, retries=0):
     provider = _provider("http.request")
-    if provider != "autocompiler.http_provider":
+    if provider and provider != "autocompiler.http_provider":
         raise RuntimeError("Unsupported resolved http.request provider: " + str(provider))
     data = None if body is None else json.dumps(body).encode("utf-8")
     headers = {"Content-Type": "application/json"} if data else {}
@@ -157,6 +158,85 @@ def _write_xlsx(path, rows):
         zf.writestr("xl/sharedStrings.xml", shared_strings)
         zf.writestr("xl/worksheets/sheet1.xml", sheet)
     return {"ok": True, "path": str(path), "count": len(rows)}
+
+
+def _read_xlsx(path):
+    path = Path(path).expanduser()
+    if not path.is_file():
+        return {"ok": False, "error": "file_not_found"}
+    try:
+        with zipfile.ZipFile(path, "r") as zf:
+            sst_raw = zf.read("xl/sharedStrings.xml") if "xl/sharedStrings.xml" in zf.namelist() else None
+            sheet_raw = zf.read("xl/worksheets/sheet1.xml") if "xl/worksheets/sheet1.xml" in zf.namelist() else None
+
+        strings = []
+        if sst_raw:
+            sst_root = ET.fromstring(sst_raw)
+            ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+            strings = [elem.text or "" for elem in sst_root.findall(".//s:t", ns)]
+
+        rows_data = []
+        if sheet_raw:
+            sheet_root = ET.fromstring(sheet_raw)
+            ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+            for row_elem in sheet_root.findall(".//s:row", ns):
+                row_vals = []
+                for cell_elem in row_elem.findall("s:c", ns):
+                    cell_type = cell_elem.attrib.get("t")
+                    val_elem = cell_elem.find("s:v", ns)
+                    val = val_elem.text if val_elem is not None else ""
+                    if cell_type == "s" and val.isdigit() and int(val) < len(strings):
+                        val = strings[int(val)]
+                    elif cell_type == "inlineStr":
+                        inline_t = cell_elem.find(".//s:t", ns)
+                        if inline_t is not None and inline_t.text:
+                            val = inline_t.text
+                    row_vals.append(val)
+                rows_data.append(row_vals)
+
+        if not rows_data:
+            return {"ok": True, "rows": []}
+
+        header = rows_data[0]
+        rows = []
+        for r in rows_data[1:]:
+            dict_row = {header[i]: r[i] if i < len(r) else "" for i in range(len(header))}
+            rows.append(dict_row)
+
+        return {"ok": True, "rows": rows}
+    except Exception:
+        with path.open("r", encoding="utf-8", errors="ignore") as f:
+            reader = csv.DictReader(f)
+            rows = [dict(r) for r in reader]
+        return {"ok": True, "rows": rows}
+
+
+def _pdf_detect(path):
+    path = Path(path).expanduser()
+    if not path.is_file():
+        return {"ok": True, "is_pdf": False, "reason": "file_not_found"}
+    try:
+        with path.open("rb") as f:
+            header = f.read(5)
+            is_pdf = header == b"%PDF-"
+        return {"ok": True, "is_pdf": is_pdf, "path": str(path)}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+
+def _pdf_basic_text(path):
+    path = Path(path).expanduser()
+    if not path.is_file():
+        return {"ok": False, "error": "file_not_found"}
+    raw = path.read_bytes()
+    extracted = []
+    for match in re.finditer(rb"\((.*?)\)\s*Tj", raw):
+        try:
+            extracted.append(match.group(1).decode("utf-8", errors="ignore"))
+        except Exception:
+            pass
+    text = " ".join(extracted)
+    return {"ok": True, "text": text, "path": str(path)}
 
 
 def _safe_state_table(name):
@@ -319,19 +399,78 @@ def run():
             context[sid] = {key: _resolve(value, context) for key, value in fields.items()}
 
         elif skill == "csv.read":
-            if _provider("csv.read") != "python-stdlib-csv":
-                raise RuntimeError("Unsupported resolved csv.read provider: " + str(_provider("csv.read")))
+            prov = _provider("csv.read")
+            if prov and prov != "python-stdlib-csv":
+                raise RuntimeError("Unsupported resolved csv.read provider: " + str(prov))
             path = Path(str(_resolve(args.get("path"), context))).expanduser()
             with path.open("r", encoding=args.get("encoding", "utf-8"), newline="") as handle:
                 rows = [dict(row) for row in csv.DictReader(handle, delimiter=args.get("delimiter", ","))]
             context[sid] = {"ok": True, "rows": rows}
 
+        elif skill == "csv.write":
+            path = Path(str(_resolve(args.get("path"), context))).expanduser()
+            rows = _resolve(args.get("rows"), context)
+            fieldnames = args.get("fieldnames") or (list(rows[0].keys()) if rows and isinstance(rows[0], dict) else [])
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("w", encoding=args.get("encoding", "utf-8"), newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=fieldnames, delimiter=args.get("delimiter", ","))
+                writer.writeheader()
+                writer.writerows(rows)
+            context[sid] = {"ok": True, "path": str(path), "count": len(rows)}
+
+        elif skill == "xlsx.read":
+            path = Path(str(_resolve(args.get("path"), context))).expanduser()
+            context[sid] = _read_xlsx(path)
+
         elif skill == "xlsx.write":
-            if _provider("xlsx.write") != "python-stdlib-xlsx":
-                raise RuntimeError("Unsupported resolved xlsx.write provider: " + str(_provider("xlsx.write")))
+            prov = _provider("xlsx.write")
+            if prov and prov != "python-stdlib-xlsx":
+                raise RuntimeError("Unsupported resolved xlsx.write provider: " + str(prov))
             path = Path(str(_resolve(args.get("path"), context))).expanduser()
             rows = _resolve(args.get("rows"), context)
             context[sid] = _write_xlsx(path, rows)
+
+        elif skill == "pdf.detect":
+            path = Path(str(_resolve(args.get("path"), context))).expanduser()
+            context[sid] = _pdf_detect(path)
+
+        elif skill == "pdf.basic_text":
+            path = Path(str(_resolve(args.get("path"), context))).expanduser()
+            context[sid] = _pdf_basic_text(path)
+
+        elif skill == "notify":
+            title = str(_resolve(args.get("title", "AutoCompiler Notification"), context))
+            message = str(_resolve(args.get("message", ""), context))
+            print(f"[NOTIFICATION] {title}: {message}")
+            context[sid] = {"ok": True, "title": title, "message": message, "delivered": True}
+
+        elif skill == "filesystem.read":
+            action = args.get("action", "read")
+            path = Path(str(_resolve(args.get("path"), context))).expanduser()
+            if action == "read":
+                context[sid] = {"ok": True, "content": path.read_text(encoding=args.get("encoding", "utf-8"))}
+            elif action == "list":
+                glob_pattern = args.get("glob", "*")
+                context[sid] = {"ok": True, "files": [str(p) for p in path.glob(glob_pattern) if p.is_file()]}
+            elif action == "exists":
+                context[sid] = {"ok": True, "exists": path.exists()}
+
+        elif skill == "filesystem.write":
+            action = args.get("action", "write")
+            path = Path(str(_resolve(args.get("path"), context))).expanduser()
+            if action == "write":
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(str(_resolve(args.get("content", ""), context)), encoding=args.get("encoding", "utf-8"))
+                context[sid] = {"ok": True, "path": str(path)}
+            elif action == "append":
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with path.open("a", encoding=args.get("encoding", "utf-8")) as f:
+                    f.write(str(_resolve(args.get("content", ""), context)))
+                context[sid] = {"ok": True, "path": str(path)}
+            elif action == "delete":
+                if path.exists():
+                    path.unlink()
+                context[sid] = {"ok": True, "path": str(path)}
 
         elif skill == "state.check":
             context[sid] = _state_check(args, context)
