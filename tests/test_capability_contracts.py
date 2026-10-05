@@ -99,6 +99,41 @@ class CapabilityContractsTests(unittest.TestCase):
         res_pref = registry.resolve(["http.request"], graph, constraints={"prefer_provider": "premium_http"})
         self.assertEqual(res_pref.resolutions[0].provider, "premium_http")
 
+    def test_registry_recipe_constraints_policy(self):
+        from autocompiler.acquisition import AcquisitionArtifact, Provenance
+        from autocompiler.provisioning import AcquisitionRecipe
+
+        prov_free = Provenance(
+            source="pip", version="1.0", platform="win32", architecture="x64",
+            checksum=None, license="MIT", install_scope="user", requires_admin=False,
+            rollback="pip uninstall pysqlite3", verification="python -c 'import sqlite3'",
+        )
+        prov_admin = Provenance(
+            source="installer", version="14.0", platform="win32", architecture="x64",
+            checksum=None, license="PostgreSQL", install_scope="system", requires_admin=True,
+            rollback="uninstall.exe", verification="pg_isready",
+        )
+
+        art_free = AcquisitionArtifact(
+            provider="sqlite_local", capabilities=("db.engine",), strategy="package",
+            command=("pip", "install", "pysqlite3"), provenance=prov_free,
+        )
+        art_admin = AcquisitionArtifact(
+            provider="postgres_local", capabilities=("db.engine",), strategy="installer",
+            command=("installer.exe", "/S"), provenance=prov_admin,
+        )
+
+        rec_free = AcquisitionRecipe(capability="db.engine", provider="sqlite_local", artifact=art_free, cost="free")
+        rec_admin = AcquisitionRecipe(capability="db.engine", provider="postgres_local", artifact=art_admin, cost="paid")
+
+        registry = CapabilityRegistry(recipes=[rec_admin, rec_free])
+        graph = {"resources": []}
+
+        # no_admin & zero_cost should select sqlite_local
+        plan = registry.resolve(["db.engine"], graph, constraints={"no_admin": True, "zero_cost": True})
+        self.assertEqual(plan.resolutions[0].provider, "sqlite_local")
+        self.assertEqual(plan.resolutions[0].action, "acquire")
+
     def test_pdf_detect_provider(self):
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
