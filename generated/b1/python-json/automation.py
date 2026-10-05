@@ -1,5 +1,6 @@
 from __future__ import annotations
-import csv, json, shutil, sqlite3, subprocess, sys, time, zipfile
+import csv, fnmatch, json, re, shutil, sqlite3, subprocess, sys, time, zipfile
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -70,6 +71,72 @@ def _log_copy_event(db, name, source, destination, status):
             source TEXT NOT NULL, destination TEXT NOT NULL, status TEXT NOT NULL)""")
         con.execute("INSERT INTO events(ts,name,source,destination,status) VALUES(?,?,?,?,?)",
                     (datetime.now(timezone.utc).isoformat(), name, source, destination, status))
+
+
+def _compare(left, op, right):
+    operations = {
+        "eq": lambda: left == right,
+        "ne": lambda: left != right,
+        "gt": lambda: left > right,
+        "gte": lambda: left >= right,
+        "lt": lambda: left < right,
+        "lte": lambda: left <= right,
+        "contains": lambda: right in left if left is not None else False,
+    }
+    if op not in operations:
+        raise ValueError("Unsupported comparison operator: " + str(op))
+    return operations[op]()
+
+
+def _read_xlsx(path):
+    path = Path(path).expanduser()
+    if not path.is_file():
+        return {"ok": False, "error": "file_not_found"}
+    try:
+        with zipfile.ZipFile(path, "r") as zf:
+            sst_raw = zf.read("xl/sharedStrings.xml") if "xl/sharedStrings.xml" in zf.namelist() else None
+            sheet_raw = zf.read("xl/worksheets/sheet1.xml") if "xl/worksheets/sheet1.xml" in zf.namelist() else None
+
+        strings = []
+        if sst_raw:
+            sst_root = ET.fromstring(sst_raw)
+            ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+            strings = [elem.text or "" for elem in sst_root.findall(".//s:t", ns)]
+
+        rows_data = []
+        if sheet_raw:
+            sheet_root = ET.fromstring(sheet_raw)
+            ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+            for row_elem in sheet_root.findall(".//s:row", ns):
+                row_vals = []
+                for cell_elem in row_elem.findall("s:c", ns):
+                    cell_type = cell_elem.attrib.get("t")
+                    val_elem = cell_elem.find("s:v", ns)
+                    val = val_elem.text if val_elem is not None else ""
+                    if cell_type == "s" and val.isdigit() and int(val) < len(strings):
+                        val = strings[int(val)]
+                    elif cell_type == "inlineStr":
+                        inline_t = cell_elem.find(".//s:t", ns)
+                        if inline_t is not None and inline_t.text:
+                            val = inline_t.text
+                    row_vals.append(val)
+                rows_data.append(row_vals)
+
+        if not rows_data:
+            return {"ok": True, "rows": []}
+
+        header = rows_data[0]
+        rows = []
+        for r in rows_data[1:]:
+            dict_row = {header[i]: r[i] if i < len(r) else "" for i in range(len(header))}
+            rows.append(dict_row)
+
+        return {"ok": True, "rows": rows}
+    except Exception:
+        with path.open("r", encoding="utf-8", errors="ignore") as f:
+            reader = csv.DictReader(f)
+            rows = [dict(r) for r in reader]
+        return {"ok": True, "rows": rows}
 
 
 def _write_xlsx(path, rows):
@@ -173,8 +240,9 @@ def _state_value(value):
 
 
 def _state_check(args, context):
-    if _provider("state.check") != "sqlite":
-        raise RuntimeError("Unsupported resolved state.check provider: " + str(_provider("state.check")))
+    prov = _provider("state.check")
+    if prov and prov != "sqlite":
+        raise RuntimeError("Unsupported resolved state.check provider: " + str(prov))
     db = Path(str(_resolve(args.get("file") or args.get("db") or "state.db", context))).expanduser()
     if not db.is_absolute():
         db = ROOT / db
@@ -201,8 +269,9 @@ def _state_check(args, context):
 
 
 def _state_update(args, context):
-    if _provider("state.update") != "sqlite":
-        raise RuntimeError("Unsupported resolved state.update provider: " + str(_provider("state.update")))
+    prov = _provider("state.update")
+    if prov and prov != "sqlite":
+        raise RuntimeError("Unsupported resolved state.update provider: " + str(prov))
     db = Path(str(_resolve(args.get("file") or args.get("db") or "state.db", context))).expanduser()
     if not db.is_absolute():
         db = ROOT / db
@@ -271,8 +340,15 @@ def run():
             context[sid] = [p for p in items if p.suffix.lower() == ext]
 
         elif skill == "filesystem.copy":
-            from_ref = args["from"]
-            items = _resolve(from_ref, context) if isinstance(from_ref, str) and from_ref.startswith("$") else context[from_ref]
+            raw_from = args["from"]
+            from_val = _resolve(raw_from, context) if (isinstance(raw_from, str) and raw_from.startswith("$")) else raw_from
+            if isinstance(from_val, str) and from_val in context:
+                items = context[from_val]
+            elif isinstance(from_val, list):
+                items = [_resolve(x, context) for x in from_val]
+            else:
+                items = [_resolve(from_val, context)]
+
             destination = Path(_resolve(args["destination"], context)).expanduser()
             destination.mkdir(parents=True, exist_ok=True)
             copied = []
@@ -285,8 +361,15 @@ def run():
             processed += len(copied)
 
         elif skill == "filesystem.move":
-            from_ref = args["from"]
-            items = _resolve(from_ref, context) if isinstance(from_ref, str) and from_ref.startswith("$") else context[from_ref]
+            raw_from = args["from"]
+            from_val = _resolve(raw_from, context) if (isinstance(raw_from, str) and raw_from.startswith("$")) else raw_from
+            if isinstance(from_val, str) and from_val in context:
+                items = context[from_val]
+            elif isinstance(from_val, list):
+                items = [_resolve(x, context) for x in from_val]
+            else:
+                items = [_resolve(from_val, context)]
+
             destination = Path(_resolve(args["destination"], context)).expanduser()
             destination.mkdir(parents=True, exist_ok=True)
             moved = []
@@ -319,19 +402,69 @@ def run():
             context[sid] = {key: _resolve(value, context) for key, value in fields.items()}
 
         elif skill == "csv.read":
-            if _provider("csv.read") != "python-stdlib-csv":
-                raise RuntimeError("Unsupported resolved csv.read provider: " + str(_provider("csv.read")))
+            prov = _provider("csv.read")
+            if prov and prov != "python-stdlib-csv":
+                raise RuntimeError("Unsupported resolved csv.read provider: " + str(prov))
             path = Path(str(_resolve(args.get("path"), context))).expanduser()
             with path.open("r", encoding=args.get("encoding", "utf-8"), newline="") as handle:
                 rows = [dict(row) for row in csv.DictReader(handle, delimiter=args.get("delimiter", ","))]
             context[sid] = {"ok": True, "rows": rows}
 
+        elif skill == "xlsx.read":
+            prov = _provider("xlsx.read")
+            if prov and prov != "python-stdlib-xlsx":
+                raise RuntimeError("Unsupported resolved xlsx.read provider: " + str(prov))
+            path = Path(str(_resolve(args.get("path"), context))).expanduser()
+            context[sid] = _read_xlsx(path)
+
         elif skill == "xlsx.write":
-            if _provider("xlsx.write") != "python-stdlib-xlsx":
-                raise RuntimeError("Unsupported resolved xlsx.write provider: " + str(_provider("xlsx.write")))
+            prov = _provider("xlsx.write")
+            if prov and prov != "python-stdlib-xlsx":
+                raise RuntimeError("Unsupported resolved xlsx.write provider: " + str(prov))
             path = Path(str(_resolve(args.get("path"), context))).expanduser()
             rows = _resolve(args.get("rows"), context)
             context[sid] = _write_xlsx(path, rows)
+
+        elif skill == "pdf.detect":
+            path = Path(str(_resolve(args.get("path"), context))).expanduser()
+            if not path.is_file():
+                context[sid] = {"ok": True, "is_pdf": False, "reason": "file_not_found"}
+            else:
+                with path.open("rb") as f:
+                    header = f.read(5)
+                context[sid] = {"ok": True, "is_pdf": (header == b"%PDF-"), "path": str(path)}
+
+        elif skill == "pdf.basic_text":
+            path = Path(str(_resolve(args.get("path"), context))).expanduser()
+            if not path.is_file():
+                context[sid] = {"ok": False, "error": "file_not_found"}
+            else:
+                raw = path.read_bytes()
+                extracted = []
+                for match in re.finditer(rb"\((.*?)\)\s*Tj", raw):
+                    try:
+                        extracted.append(match.group(1).decode("utf-8", errors="ignore"))
+                    except Exception:
+                        pass
+                text = " ".join(extracted)
+                context[sid] = {"ok": True, "text": text, "path": str(path)}
+
+        elif skill == "flow.condition":
+            left = _resolve(args.get("left"), context)
+            op = args.get("op", "eq")
+            right = _resolve(args.get("right"), context)
+            context[sid] = _compare(left, op, right)
+
+        elif skill == "flow.branch":
+            cond = bool(_resolve(args.get("condition"), context))
+            branch = args.get("then") if cond else args.get("else")
+            context[sid] = _resolve(branch, context)
+
+        elif skill in ("notify", "notification.send"):
+            title = _resolve(args.get("title", "AutoCompiler Notification"), context)
+            msg = _resolve(args.get("message", ""), context)
+            print(f"[NOTIFICATION] {title}: {msg}")
+            context[sid] = {"ok": True, "title": title, "message": msg, "delivered": True}
 
         elif skill == "state.check":
             context[sid] = _state_check(args, context)

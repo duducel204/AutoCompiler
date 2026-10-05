@@ -272,6 +272,78 @@ class TestCompilerCapabilityBinding(unittest.TestCase):
         self.assertEqual(result["context"]["step_up"], {"upper": "SAMPLE_TEXT"})
         self.assertEqual(result["context"]["step_calc"], {"sum": 30})
 
+    def test_w05_spreadsheet_transform_compiles_and_executes_independently(self):
+        csv_path = self.root / "input.csv"
+        xlsx_path = self.root / "output.xlsx"
+        csv_path.write_text("name,role\nAlice,admin\nBob,user\n", encoding="utf-8")
+
+        ir = {
+            "schema_version": "0.3",
+            "name": "W-05 Spreadsheet Transformation",
+            "trigger": {"type": "manual"},
+            "steps": [
+                {"id": "read_csv", "skill": "csv.read", "with": {"path": str(csv_path)}},
+                {"id": "write_xlsx", "skill": "xlsx.write", "with": {"path": str(xlsx_path), "rows": "$read_csv.rows"}},
+                {"id": "read_back_xlsx", "skill": "xlsx.read", "with": {"path": str(xlsx_path)}},
+            ],
+        }
+
+        support = analyze_compile_support(ir, "python-sqlite")
+        self.assertTrue(support["supported"])
+
+        out_dir = self.root / "compiled_w05"
+        manifest = compile_ir(ir, "python-sqlite", out_dir)
+        self.assertFalse(manifest["recurring_ai_required"])
+        self.assertFalse(manifest["autocompiler_required_after_compile"])
+
+        script_path = out_dir / "automation.py"
+        proc = subprocess.run([sys.executable, str(script_path)], capture_output=True, text=True, check=True)
+        result = json.loads(proc.stdout)
+
+        self.assertTrue(result["ok"])
+        self.assertTrue(xlsx_path.exists())
+        read_rows = result["context"]["read_back_xlsx"]["rows"]
+        self.assertEqual(read_rows, [{"name": "Alice", "role": "admin"}, {"name": "Bob", "role": "user"}])
+
+    def test_w01_pdf_organizer_compiles_and_executes_independently(self):
+        pdf_file = self.root / "doc.pdf"
+        pdf_file.write_bytes(b"%PDF-1.4\n(Invoice #1001) Tj\n")
+        target_dir = self.root / "processed_pdfs"
+
+        ir = {
+            "schema_version": "0.3",
+            "name": "W-01 PDF Organizer",
+            "trigger": {"type": "manual"},
+            "steps": [
+                {"id": "detect_pdf", "skill": "pdf.detect", "with": {"path": str(pdf_file)}},
+                {
+                    "id": "check_is_pdf",
+                    "skill": "flow.condition",
+                    "with": {"left": "$detect_pdf.is_pdf", "op": "eq", "right": True},
+                },
+                {"id": "extract_text", "skill": "pdf.basic_text", "with": {"path": str(pdf_file)}},
+                {
+                    "id": "move_file",
+                    "skill": "filesystem.copy",
+                    "with": {"from": [str(pdf_file)], "destination": str(target_dir)},
+                },
+            ],
+        }
+
+        support = analyze_compile_support(ir, "python-sqlite")
+        self.assertTrue(support["supported"])
+
+        out_dir = self.root / "compiled_w01"
+        compile_ir(ir, "python-sqlite", out_dir)
+
+        script_path = out_dir / "automation.py"
+        proc = subprocess.run([sys.executable, str(script_path)], capture_output=True, text=True, check=True)
+        result = json.loads(proc.stdout)
+
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["context"]["detect_pdf"]["is_pdf"])
+        self.assertTrue((target_dir / "doc.pdf").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
