@@ -116,6 +116,52 @@ class IRCompilerTest(unittest.TestCase):
         }
         self.assertTrue(analyze_compile_support(ir, "python-sqlite", right)["supported"])
 
+    def test_xlsx_read_and_write_standalone_compilation(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            out = root / "generated"
+            xlsx_write_path = root / "data.xlsx"
+
+            ir = {
+                "schema_version": "0.3",
+                "name": "xlsx-flow",
+                "trigger": {"type": "manual"},
+                "steps": [
+                    {
+                        "id": "write",
+                        "skill": "xlsx.write",
+                        "with": {
+                            "path": str(xlsx_write_path),
+                            "rows": [{"col1": "val1", "col2": "val2"}],
+                        },
+                    },
+                    {
+                        "id": "read",
+                        "skill": "xlsx.read",
+                        "with": {"path": str(xlsx_write_path)},
+                    },
+                ],
+            }
+
+            resolved = {
+                "requirements": [
+                    {"capability": "xlsx.write", "provider": "python-stdlib-xlsx", "status": "resolved"},
+                    {"capability": "xlsx.read", "provider": "python-stdlib-xlsx", "status": "resolved"},
+                ]
+            }
+
+            support = analyze_compile_support(ir, "python-sqlite", resolved)
+            self.assertTrue(support["supported"], support)
+
+            compile_ir(ir, "python-sqlite", out, resolved_execution=resolved)
+            proc = subprocess.run([sys.executable, str(out / "automation.py")], capture_output=True, text=True, check=True)
+            res = json.loads(proc.stdout)
+            self.assertTrue(res["ok"])
+            read_ctx = res["context"]["read"]
+            self.assertTrue(read_ctx["ok"])
+            self.assertEqual(len(read_ctx["rows"]), 1)
+            self.assertEqual(read_ctx["rows"][0], {"col1": "val1", "col2": "val2"})
+
     def test_schema_malformed_workflows_rejected(self):
         with self.assertRaises(ValueError):
             validate_ir({"schema_version": "99.0", "name": "bad", "trigger": {"type": "manual"}, "steps": [{"id": "s1", "type": "get"}]})

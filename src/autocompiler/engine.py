@@ -206,9 +206,32 @@ def execute(ir: dict[str, Any], event: dict[str, Any], root: Path, http_request=
                 })
 
             if fallback:
-                fallback_result = {"ok": False, "fallback_executed": True, "fallback": fallback, "error": last_error}
+                fb_executed = False
+                fb_result = None
+                if isinstance(fallback, dict):
+                    fb_skill = fallback.get("skill") or fallback.get("type") or fallback.get("action")
+                    fb_args = fallback.get("with") or fallback.get("args") or {}
+                    if fb_skill:
+                        try:
+                            fb_res = run_skill(str(fb_skill), fb_args if isinstance(fb_args, dict) else {}, f"{sid}_fallback")
+                            fb_executed = True
+                            fb_result = fb_res
+                            trace.append({"step": f"{sid}_fallback", "skill": fb_skill, "status": "ok", "result": fb_res})
+                        except Exception as fb_exc:
+                            fb_executed = True
+                            fb_result = {"ok": False, "error": str(fb_exc)}
+                            trace.append({"step": f"{sid}_fallback", "skill": fb_skill, "status": "failed", "error": str(fb_exc)})
+                if not fb_executed:
+                    trace.append({"step": f"{sid}_fallback", "skill": "fallback", "status": "ok"})
+
+                fallback_result = {
+                    "ok": False,
+                    "fallback_executed": True,
+                    "fallback": fallback,
+                    "fallback_result": fb_result,
+                    "error": last_error,
+                }
                 context[sid] = fallback_result
-                trace.append({"step": f"{sid}_fallback", "skill": "fallback", "status": "ok"})
             elif not stop_on_error:
                 context[sid] = {"ok": False, "error": last_error}
             else:

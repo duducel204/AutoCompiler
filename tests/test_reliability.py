@@ -74,6 +74,39 @@ class ReliabilityTests(unittest.TestCase):
             self.assertIn("failing_fetch", trace_steps)
             self.assertIn("failing_fetch_fallback", trace_steps)
 
+    def test_failure_executes_fallback_skill_action(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+
+            def failing_http(method, url, body, retries):
+                raise RuntimeError("Service unavailable")
+
+            ir = {
+                "schema_version": "0.1",
+                "name": "Fallback Action Test",
+                "trigger": {"type": "manual"},
+                "steps": [
+                    {
+                        "id": "fetch",
+                        "skill": "http.request",
+                        "with": {"url": "http://example.com/fail"},
+                        "error_policy": {
+                            "retries": 1,
+                            "backoff_sec": 0.001,
+                            "fallback": {
+                                "skill": "data.map",
+                                "with": {"fields": {"status": "cached", "source": "fallback"}},
+                            },
+                        },
+                    }
+                ],
+            }
+
+            res = execute(ir, {}, root, failing_http)
+            fetch_res = res["context"]["fetch"]
+            self.assertTrue(fetch_res["fallback_executed"])
+            self.assertEqual(fetch_res["fallback_result"], {"status": "cached", "source": "fallback"})
+
 
 if __name__ == "__main__":
     unittest.main()

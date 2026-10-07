@@ -81,6 +81,60 @@ def _log_copy_event(db, name, source, destination, status):
                     (datetime.now(timezone.utc).isoformat(), name, source, destination, status))
 
 
+def _read_xlsx(path):
+    if _provider("xlsx.read") != "python-stdlib-xlsx":
+        raise RuntimeError("Unsupported resolved xlsx.read provider: " + str(_provider("xlsx.read")))
+    path = Path(path).expanduser()
+    if not path.is_file():
+        return {"ok": False, "error": "file_not_found"}
+    try:
+        import xml.etree.ElementTree as ET
+        with zipfile.ZipFile(path, "r") as zf:
+            sst_raw = zf.read("xl/sharedStrings.xml") if "xl/sharedStrings.xml" in zf.namelist() else None
+            sheet_raw = zf.read("xl/worksheets/sheet1.xml") if "xl/worksheets/sheet1.xml" in zf.namelist() else None
+
+        strings = []
+        if sst_raw:
+            sst_root = ET.fromstring(sst_raw)
+            ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+            strings = [elem.text or "" for elem in sst_root.findall(".//s:t", ns)]
+
+        rows_data = []
+        if sheet_raw:
+            sheet_root = ET.fromstring(sheet_raw)
+            ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+            for row_elem in sheet_root.findall(".//s:row", ns):
+                row_vals = []
+                for cell_elem in row_elem.findall("s:c", ns):
+                    cell_type = cell_elem.attrib.get("t")
+                    val_elem = cell_elem.find("s:v", ns)
+                    val = val_elem.text if val_elem is not None else ""
+                    if cell_type == "s" and val.isdigit() and int(val) < len(strings):
+                        val = strings[int(val)]
+                    elif cell_type == "inlineStr":
+                        inline_t = cell_elem.find(".//s:t", ns)
+                        if inline_t is not None and inline_t.text:
+                            val = inline_t.text
+                    row_vals.append(val)
+                rows_data.append(row_vals)
+
+        if not rows_data:
+            return {"ok": True, "rows": []}
+
+        header = rows_data[0]
+        rows = []
+        for r in rows_data[1:]:
+            dict_row = {header[i]: r[i] if i < len(r) else "" for i in range(len(header))}
+            rows.append(dict_row)
+
+        return {"ok": True, "rows": rows}
+    except Exception:
+        with path.open("r", encoding="utf-8", errors="ignore") as f:
+            reader = csv.DictReader(f)
+            rows = [dict(r) for r in reader]
+        return {"ok": True, "rows": rows}
+
+
 def _write_xlsx(path, rows):
     rows = rows or []
     fieldnames = list(rows[0].keys()) if rows and isinstance(rows[0], dict) else []
@@ -335,6 +389,10 @@ def run():
                 rows = [dict(row) for row in csv.DictReader(handle, delimiter=args.get("delimiter", ","))]
             context[sid] = {"ok": True, "rows": rows}
 
+        elif skill == "xlsx.read":
+            path = Path(str(_resolve(args.get("path"), context))).expanduser()
+            context[sid] = _read_xlsx(path)
+
         elif skill == "xlsx.write":
             if _provider("xlsx.write") != "python-stdlib-xlsx":
                 raise RuntimeError("Unsupported resolved xlsx.write provider: " + str(_provider("xlsx.write")))
@@ -454,6 +512,7 @@ TARGET_SKILLS = {
         "data.map",
         "state.record_jsonl",
         "csv.read",
+        "xlsx.read",
         "xlsx.write",
         "state.check",
         "state.update",
@@ -469,6 +528,7 @@ TARGET_SKILLS = {
         "data.map",
         "state.record_jsonl",
         "csv.read",
+        "xlsx.read",
         "xlsx.write",
         "state.check",
         "state.update",
@@ -486,6 +546,7 @@ TARGET_CAPABILITY_PROVIDERS = {
         "durable_state": {"sqlite"},
         "http.request": {"autocompiler.http_provider"},
         "csv.read": {"python-stdlib-csv"},
+        "xlsx.read": {"python-stdlib-xlsx"},
         "xlsx.write": {"python-stdlib-xlsx"},
         "state.check": {"sqlite"},
         "state.update": {"sqlite"},
@@ -496,6 +557,7 @@ TARGET_CAPABILITY_PROVIDERS = {
         "durable_state": {"jsonl", "python-json", "sqlite"},
         "http.request": {"autocompiler.http_provider"},
         "csv.read": {"python-stdlib-csv"},
+        "xlsx.read": {"python-stdlib-xlsx"},
         "xlsx.write": {"python-stdlib-xlsx"},
         "state.check": {"sqlite"},
         "state.update": {"sqlite"},
