@@ -75,6 +75,13 @@ class CapabilityContractsTests(unittest.TestCase):
             self.assertTrue(res["ok"])
             self.assertEqual(res["rows"], rows)
 
+    def test_http_request_provider(self):
+        prov = get_provider_for_capability("http.request")
+        self.assertIsNotNone(prov)
+        self.assertEqual(prov.capability, "http.request")
+        self.assertEqual(prov.provider_name, "autocompiler.http_provider")
+        self.assertTrue(prov.health_check()["ok"])
+
     def test_schedule_provider(self):
         prov = ScheduleProvider()
         health = prov.health_check()

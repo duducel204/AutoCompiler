@@ -97,6 +97,17 @@ class CapabilityClosureGateTests(unittest.TestCase):
             # Create a sample text file in root to scan
             (root / "input.txt").write_text("sample content")
 
+            resolved_a = {
+                "requirements": [
+                    {
+                        "capability": capability_id,
+                        "provider": provider_id,
+                        "status": "resolved",
+                        "binding": {"executable": str(installed_binary)},
+                    }
+                ]
+            }
+
             ir_a = {
                 "schema_version": "0.1",
                 "name": "Automation A",
@@ -122,12 +133,17 @@ class CapabilityClosureGateTests(unittest.TestCase):
                         "skill": "state.record",
                         "with": {"from": "s3"},
                     },
+                    {
+                        "id": "s5",
+                        "skill": "act",
+                        "with": {"capability": capability_id, "args": ["report_a"]},
+                    },
                 ],
                 "state": {"file": "history_a.db"},
             }
 
             compiled_a_dir = root / "compiled_a"
-            compile_ir(ir_a, "python-sqlite", compiled_a_dir)
+            compile_ir(ir_a, "python-sqlite", compiled_a_dir, resolved_execution=resolved_a)
 
             run_a = subprocess.run(
                 [sys.executable, str(compiled_a_dir / "automation.py")],
@@ -154,6 +170,17 @@ class CapabilityClosureGateTests(unittest.TestCase):
             self.assertTrue(any("Memory reuse:" in n for n in plan_b.notes))
 
             # --- STEP 6: Compile and execute Automation B independently ---
+            resolved_b = {
+                "requirements": [
+                    {
+                        "capability": capability_id,
+                        "provider": provider_id,
+                        "status": "resolved",
+                        "binding": {"executable": str(installed_binary)},
+                    }
+                ]
+            }
+
             ir_b = {
                 "schema_version": "0.1",
                 "name": "Automation B",
@@ -179,12 +206,17 @@ class CapabilityClosureGateTests(unittest.TestCase):
                         "skill": "state.record",
                         "with": {"from": "s3"},
                     },
+                    {
+                        "id": "s5",
+                        "skill": "act",
+                        "with": {"capability": capability_id, "args": ["report_b"]},
+                    },
                 ],
                 "state": {"file": "history_b.db"},
             }
 
             compiled_b_dir = root / "compiled_b"
-            compile_ir(ir_b, "python-sqlite", compiled_b_dir)
+            compile_ir(ir_b, "python-sqlite", compiled_b_dir, resolved_execution=resolved_b)
 
             run_b = subprocess.run(
                 [sys.executable, str(compiled_b_dir / "automation.py")],
