@@ -115,6 +115,27 @@ class FilesystemWatchProvider(CapabilityProvider):
         return {"ok": True, "path": str(path), "matched": matched}
 
 
+class HTTPRequestProvider(CapabilityProvider):
+    @property
+    def capability(self) -> str:
+        return "http.request"
+
+    @property
+    def provider_name(self) -> str:
+        return "autocompiler.http_provider"
+
+    def health_check(self) -> dict[str, Any]:
+        return {"ok": True, "provider": self.provider_name, "capability": self.capability}
+
+    def execute(self, params: dict[str, Any]) -> dict[str, Any]:
+        from .http_provider import request
+        url = params.get("url", "")
+        method = params.get("method", "GET")
+        body = params.get("body")
+        retries = int(params.get("retries", 0))
+        return request(method=method, url=url, body=body, retries=retries)
+
+
 class CSVReadProvider(CapabilityProvider):
     @property
     def capability(self) -> str:
@@ -693,6 +714,7 @@ ALL_PROVIDERS: list[CapabilityProvider] = [
     FilesystemReadProvider(),
     FilesystemWriteProvider(),
     FilesystemWatchProvider(),
+    HTTPRequestProvider(),
     CSVReadProvider(),
     CSVWriteProvider(),
     XLSXReadProvider(),

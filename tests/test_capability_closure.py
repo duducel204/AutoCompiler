@@ -97,6 +97,17 @@ class CapabilityClosureGateTests(unittest.TestCase):
             # Create a sample text file in root to scan
             (root / "input.txt").write_text("sample content")
 
+            resolved_a = {
+                "requirements": [
+                    {
+                        "capability": capability_id,
+                        "provider": provider_id,
+                        "status": "resolved",
+                        "binding": {"executable": str(installed_binary)},
+                    }
+                ]
+            }
+
             ir_a = {
                 "schema_version": "0.1",
                 "name": "Automation A",
@@ -129,6 +140,11 @@ class CapabilityClosureGateTests(unittest.TestCase):
                         "id": "s5",
                         "skill": "state.record",
                         "with": {"from": "s3"},
+                    },
+                    {
+                        "id": "s5",
+                        "skill": "act",
+                        "with": {"capability": capability_id, "args": ["report_a"]},
                     },
                 ],
                 "state": {"file": "history_a.db"},
@@ -174,6 +190,17 @@ class CapabilityClosureGateTests(unittest.TestCase):
             self.assertTrue(any("Memory reuse:" in n for n in plan_b.notes))
 
             # --- STEP 6: Compile and execute Automation B independently ---
+            resolved_b = {
+                "requirements": [
+                    {
+                        "capability": capability_id,
+                        "provider": provider_id,
+                        "status": "resolved",
+                        "binding": {"executable": str(installed_binary)},
+                    }
+                ]
+            }
+
             ir_b = {
                 "schema_version": "0.1",
                 "name": "Automation B",
@@ -206,6 +233,11 @@ class CapabilityClosureGateTests(unittest.TestCase):
                         "id": "s5",
                         "skill": "state.record",
                         "with": {"from": "s3"},
+                    },
+                    {
+                        "id": "s5",
+                        "skill": "act",
+                        "with": {"capability": capability_id, "args": ["report_b"]},
                     },
                 ],
                 "state": {"file": "history_b.db"},

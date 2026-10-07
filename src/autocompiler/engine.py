@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import shutil
+import time
 from pathlib import Path
 from typing import Any
 
@@ -32,9 +34,6 @@ def compare(left: Any, op: str, right: Any) -> bool:
     if op not in operations:
         raise ValueError(f"Unsupported comparison operator: {op}")
     return operations[op]()
-
-import shutil
-import time
 
 def execute(ir: dict[str, Any], event: dict[str, Any], root: Path, http_request=None) -> dict[str, Any]:
     context: dict[str, Any] = {"event": event}
@@ -206,17 +205,31 @@ def execute(ir: dict[str, Any], event: dict[str, Any], root: Path, http_request=
                 })
 
             if fallback:
-                if isinstance(fallback, dict) and "skill" in fallback:
-                    try:
-                        fallback_out = run_skill(fallback["skill"], fallback.get("with", {}), f"{sid}_fallback")
-                        fallback_result = {"ok": False, "fallback_executed": True, "fallback_result": fallback_out, "error": last_error}
-                        trace.append({"step": f"{sid}_fallback", "skill": fallback["skill"], "status": "ok"})
-                    except Exception as fb_exc:
-                        fallback_result = {"ok": False, "fallback_executed": True, "fallback_error": str(fb_exc), "error": last_error}
-                        trace.append({"step": f"{sid}_fallback", "skill": fallback["skill"], "status": "failed", "error": str(fb_exc)})
-                else:
-                    fallback_result = {"ok": False, "fallback_executed": True, "fallback": fallback, "error": last_error}
+                fb_executed = False
+                fb_result = None
+                if isinstance(fallback, dict):
+                    fb_skill = fallback.get("skill") or fallback.get("type") or fallback.get("action")
+                    fb_args = fallback.get("with") or fallback.get("args") or {}
+                    if fb_skill:
+                        try:
+                            fb_res = run_skill(str(fb_skill), fb_args if isinstance(fb_args, dict) else {}, f"{sid}_fallback")
+                            fb_executed = True
+                            fb_result = fb_res
+                            trace.append({"step": f"{sid}_fallback", "skill": fb_skill, "status": "ok", "result": fb_res})
+                        except Exception as fb_exc:
+                            fb_executed = True
+                            fb_result = {"ok": False, "error": str(fb_exc)}
+                            trace.append({"step": f"{sid}_fallback", "skill": fb_skill, "status": "failed", "error": str(fb_exc)})
+                if not fb_executed:
                     trace.append({"step": f"{sid}_fallback", "skill": "fallback", "status": "ok"})
+
+                fallback_result = {
+                    "ok": False,
+                    "fallback_executed": True,
+                    "fallback": fallback,
+                    "fallback_result": fb_result,
+                    "error": last_error,
+                }
                 context[sid] = fallback_result
             elif not stop_on_error:
                 context[sid] = {"ok": False, "error": last_error}
