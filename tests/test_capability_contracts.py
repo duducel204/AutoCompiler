@@ -106,6 +106,29 @@ class CapabilityContractsTests(unittest.TestCase):
         res_pref = registry.resolve(["http.request"], graph, constraints={"prefer_provider": "premium_http"})
         self.assertEqual(res_pref.resolutions[0].provider, "premium_http")
 
+    def test_registry_policy_tier_selection(self):
+        registry = CapabilityRegistry()
+        graph = {
+            "resources": [
+                {
+                    "capability": "http.request",
+                    "provider": "standard_http",
+                    "state": "usable",
+                    "cost": "free",
+                    "policy": {"tier": "standard"},
+                },
+                {
+                    "capability": "http.request",
+                    "provider": "preferred_http",
+                    "state": "usable",
+                    "cost": "free",
+                    "policy": {"tier": "preferred"},
+                },
+            ]
+        }
+        res_policy = registry.resolve(["http.request"], graph)
+        self.assertEqual(res_policy.resolutions[0].provider, "preferred_http")
+
     def test_pdf_detect_provider(self):
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
