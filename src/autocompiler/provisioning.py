@@ -112,7 +112,16 @@ class CapabilityRegistry:
                     matching = [c for c in candidates if c.get("provider") == preferred]
                     if matching:
                         candidates = matching
-                chosen = sorted(candidates, key=lambda x: (x.get("cost", "free"), x["provider"]))[0]
+
+                def _sort_key(c: dict[str, Any]) -> tuple:
+                    policy = c.get("policy") if isinstance(c.get("policy"), dict) else {}
+                    cost = c.get("cost") or policy.get("cost") or "free"
+                    tier = policy.get("tier", "standard")
+                    tier_order = {"preferred": 0, "standard": 1, "fallback": 2}.get(tier, 1)
+                    cost_order = 0 if cost == "free" else 1
+                    return (cost_order, tier_order, c["provider"])
+
+                chosen = sorted(candidates, key=_sort_key)[0]
                 out.append(
                     Resolution(
                         capability,
