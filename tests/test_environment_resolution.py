@@ -47,4 +47,33 @@ class EnvironmentResolutionTests(unittest.TestCase):
         plan=CapabilityRegistry().resolve(["unknown.capability"],{"resources":[]})
         self.assertEqual(plan.resolutions[0].action,"unresolved")
 
+    def test_policy_cost_provider_selection(self):
+        graph = {
+            "resources": [
+                {
+                    "capability": "http.request",
+                    "provider": "paid-http-provider",
+                    "state": "usable",
+                    "cost": "paid",
+                },
+                {
+                    "capability": "http.request",
+                    "provider": "autocompiler.http_provider",
+                    "state": "usable",
+                    "cost": "free",
+                },
+            ]
+        }
+        # Default sorts by (cost, provider) -> free provider selected
+        default_plan = CapabilityRegistry().resolve(["http.request"], graph)
+        self.assertEqual(default_plan.resolutions[0].provider, "autocompiler.http_provider")
+
+        # Explicit policy constraint prefer_provider overrides sorting
+        policy_plan = CapabilityRegistry().resolve(
+            ["http.request"],
+            graph,
+            constraints={"prefer_provider": "paid-http-provider"},
+        )
+        self.assertEqual(policy_plan.resolutions[0].provider, "paid-http-provider")
+
 if __name__=="__main__": unittest.main()
