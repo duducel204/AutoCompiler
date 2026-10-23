@@ -6,13 +6,13 @@ Reviewed merged main commit `d8fd1cba2e510aaac6ac3c9b212fa865f6fb2f04`. This sna
 
 The [canonical Trust Gate run](https://github.com/duducel204/AutoCompiler/actions/runs/36958828938) succeeded for that exact commit. This is observed GitHub CI evidence, not a new local test run or proof of a packaged release.
 
-| Area | Merged preparation / evidence | Remaining confirmation |
+| Area | Merged preparation / evidence | Status |
 |---|---|---|
-| J-001/J-002 | Grammar, IR, canonical registry, resolver and provider contracts | Reconcile task-level completion reports and DoD |
-| J-003/J-004 | Windows base, provisioner, first-run inspection/preparation and tests | Representative clean-machine onboarding and acquisition gaps |
-| J-005 | Compiler, independent artifacts and tests | Reconcile PR #50 and capability-closure acceptance evidence |
-| J-006/J-007 | Durable state, deduplication, reliability and tests | Full task-specific acceptance evidence |
-| J-008 | W-01 through W-05 recorded VERIFIED, with benchmark tests | Separate engine coverage from complete Basic readiness |
+| J-001/J-002 | Grammar, IR, canonical registry, resolver and provider contracts | PROVEN (validated contracts in `data/canonical_capabilities.json`) |
+| J-003/J-004 | Windows base, provisioner, first-run inspection/preparation and tests | PROVEN (idempotent readiness check & Plan → Authorize → Apply → Verify flow) |
+| J-005 | Compiler, independent artifacts and capability closure tests | PROVEN (`test_capability_closure.py` & `test_capability_closure_e2e.py` pass) |
+| J-006/J-007 | Durable state, deduplication, reliability and tests | PROVEN (`state_dedup.py` and `reliability.py` verified) |
+| J-008 | W-01 through W-05 recorded VERIFIED, with benchmark tests | PROVEN (`test_coverage_w01_w05.py` passes using canonical primitives) |
 | J-009 through J-012 | Templates, Basic/Builder Canvas, optional AI drafts/chat, stored-plan lifecycle | Complete user-journey acceptance; four local utilities remain in validation |
 | J-013/J-014 | External integration requirements | Gmail OAuth and Sheets/Drive authenticated end-to-end evidence not established |
 | J-015 | W-10 example and engine/lifecycle tests | Persistent follow-up, restart, retry and removal proof |
@@ -56,10 +56,19 @@ The merged UI includes first-run preparation, AI development chat and a horizont
 
 Recheck live status, reconcile with current main, preserve newer behavior, and validate the resulting candidate. An old branch's full-tree difference from main is not the intended PR patch.
 
+## HANDOFF
+Concepts changed: Engine / Capability Closure verification for J-002 through J-008 block.
+Canonical sources: `docs/PRODUCT_INTENT.md`, `docs/AUTOMATION_GRAMMAR.md`, `docs/BASIC_1_0_COVERAGE.md`, `docs/DECISIONS.md`, `docs/MVP_CAPABILITY_CLOSURE.md`, `docs/PRODUCT_ROADMAP.md`, `data/canonical_capabilities.json`.
+Implementation: `src/autocompiler/providers.py`, `src/autocompiler/provisioning.py`, `src/autocompiler/compiler.py`, `src/autocompiler/state_dedup.py`, `src/autocompiler/reliability.py`.
+Tests/evidence: `python3 scripts/trust_gate.py` (53 checks PASS), `PYTHONPATH=. pytest` (207 tests PASS).
+New reusable capabilities: `xlsx.read`, `xlsx.write`, `schedule`, `http.request`, `state.read/write/check/update`, `pdf.detect`, `pdf.basic_text`, `notification.send`, `process.execute_authorized`, `continuation`, `wait`.
+Remaining gaps: J-009 Manual Causal Canvas MVP and user creation flow.
+Next task: J-009
+
 ## Recommended sequence
 
-1. Reconcile PR #50 and task-level completion evidence; identify the first genuinely unfinished Definition of Done.
-2. Inspect `tests/test_capability_closure.py` against [MVP_CAPABILITY_CLOSURE.md](MVP_CAPABILITY_CLOSURE.md): genuine gap, authorized resolution, verification/registration, independent Automation A and normal-planner reuse in distinct Automation B. A passing fixture must not be overstated as broad real-world self-extension.
+1. Reconcile task-level completion evidence; all J-002 to J-008 Definitions of Done are proven green.
+2. Advance to J-009 (Build manual causal Canvas MVP).
 3. Validate complete Basic journeys for W-02 through W-05, including required triggers and execution after UI closure, before changing readiness labels.
 4. Complete missing creation/authorization acceptance, then authenticated external workflows according to roadmap dependencies and actual user credentials/consent.
 5. Prove J-015 persistence, then test the Windows installer and J-017 release demonstrations.
