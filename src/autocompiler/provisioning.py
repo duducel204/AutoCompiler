@@ -112,7 +112,7 @@ class CapabilityRegistry:
                     matching = [c for c in candidates if c.get("provider") == preferred]
                     if matching:
                         candidates = matching
-                chosen = sorted(candidates, key=lambda x: (x.get("cost", "free"), x["provider"]))[0]
+                chosen = sorted(candidates, key=lambda x: (0 if x.get("cost", "free") == "free" else 1, x.get("cost", "free"), x["provider"]))[0]
                 out.append(
                     Resolution(
                         capability,

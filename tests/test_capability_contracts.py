@@ -67,7 +67,7 @@ class CapabilityContractsTests(unittest.TestCase):
             w_prov = XLSXWriteProvider()
             r_prov = XLSXReadProvider()
 
-            rows = [{"name": "Alice", "role": "admin"}, {"name": "Bob", "role": "user"}]
+            rows = [{"name": "Alice & Bob", "role": "admin <special>"}, {"name": "Charlie", "role": 'user "quote"'}]
             res = w_prov.execute({"path": str(xlsx_path), "rows": rows})
             self.assertTrue(res["ok"])
 
