@@ -10,6 +10,7 @@ import sqlite3
 import time
 import zipfile
 import xml.etree.ElementTree as ET
+from xml.sax.saxutils import escape
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from pathlib import Path
@@ -269,7 +270,7 @@ class XLSXWriteProvider(CapabilityProvider):
         shared_strings_xml = (
             '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
             f'<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="{len(strings)}" uniqueCount="{len(strings)}">'
-            f'{"".join(f"<si><t>{s}</t></si>" for s in strings)}</sst>'
+            f'{"".join(f"<si><t>{escape(s)}</t></si>" for s in strings)}</sst>'
         )
 
         sheet1_xml = (

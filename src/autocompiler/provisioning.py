@@ -107,22 +107,39 @@ class CapabilityRegistry:
                 if item.get("state") == "usable"
             ]
             if candidates:
+                allowed_providers = constraints.get("allowed_providers")
+                if allowed_providers:
+                    candidates = [c for c in candidates if c.get("provider") in allowed_providers]
+
+                cost_policy = constraints.get("cost_policy")
+                if cost_policy == "free_only":
+                    candidates = [c for c in candidates if c.get("cost", "free") == "free"]
+                elif constraints.get("max_cost"):
+                    max_c = constraints.get("max_cost")
+                    if max_c != "any":
+                        candidates = [c for c in candidates if c.get("cost", "free") == max_c]
+
                 preferred = constraints.get("prefer_provider")
-                if preferred:
+                if preferred and candidates:
                     matching = [c for c in candidates if c.get("provider") == preferred]
                     if matching:
                         candidates = matching
-                chosen = sorted(candidates, key=lambda x: (x.get("cost", "free"), x["provider"]))[0]
-                out.append(
-                    Resolution(
-                        capability,
-                        "reuse",
-                        chosen["provider"],
-                        f"Existing usable provider '{chosen['provider']}' satisfies capability.",
-                        binding=chosen.get("binding"),
+
+                if candidates:
+                    chosen = sorted(
+                        candidates,
+                        key=lambda x: (0 if x.get("cost", "free") == "free" else 1, x.get("cost", "free"), x["provider"])
+                    )[0]
+                    out.append(
+                        Resolution(
+                            capability,
+                            "reuse",
+                            chosen["provider"],
+                            f"Existing usable provider '{chosen['provider']}' satisfies capability.",
+                            binding=chosen.get("binding"),
+                        )
                     )
-                )
-                continue
+                    continue
             recipes = [r for r in self.recipes if r.capability == capability]
             if constraints.get("no_admin"):
                 recipes = [r for r in recipes if not r.requires_admin]
