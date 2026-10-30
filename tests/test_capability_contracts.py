@@ -67,7 +67,7 @@ class CapabilityContractsTests(unittest.TestCase):
             w_prov = XLSXWriteProvider()
             r_prov = XLSXReadProvider()
 
-            rows = [{"name": "Alice", "role": "admin"}, {"name": "Bob", "role": "user"}]
+            rows = [{"name": "Alice & <Bob>", "role": "admin \"special\""}, {"name": "Bob", "role": "user 'standard'"}]
             res = w_prov.execute({"path": str(xlsx_path), "rows": rows})
             self.assertTrue(res["ok"])
 
@@ -98,6 +98,7 @@ class CapabilityContractsTests(unittest.TestCase):
             "resources": [
                 {"capability": "http.request", "provider": "custom_http", "state": "usable", "cost": "free"},
                 {"capability": "http.request", "provider": "premium_http", "state": "usable", "cost": "paid"},
+                {"capability": "http.request", "provider": "restricted_http", "state": "usable", "cost": "free"},
             ]
         }
         res_default = registry.resolve(["http.request"], graph)
@@ -105,6 +106,12 @@ class CapabilityContractsTests(unittest.TestCase):
 
         res_pref = registry.resolve(["http.request"], graph, constraints={"prefer_provider": "premium_http"})
         self.assertEqual(res_pref.resolutions[0].provider, "premium_http")
+
+        res_free_only = registry.resolve(["http.request"], graph, constraints={"cost_policy": "free_only"})
+        self.assertIn(res_free_only.resolutions[0].provider, ["custom_http", "restricted_http"])
+
+        res_allowed = registry.resolve(["http.request"], graph, constraints={"allowed_providers": ["premium_http"]})
+        self.assertEqual(res_allowed.resolutions[0].provider, "premium_http")
 
     def test_pdf_detect_provider(self):
         with tempfile.TemporaryDirectory() as td:
