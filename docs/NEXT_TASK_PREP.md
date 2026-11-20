@@ -1,22 +1,25 @@
 # Current state and next execution preparation
 
-## Evidence snapshot — 2026-10-02
+## Evidence snapshot — 2026-10-07 (Engine / Capability Closure J-002 -> J-008 Audit)
 
-Reviewed merged main commit `d8fd1cba2e510aaac6ac3c9b212fa865f6fb2f04`. This snapshot describes implementation and evidence; it does not mark every roadmap Definition of Done complete or authorize new implementation.
+Reviewed merged main up to merge commit `f4d5e17` (PR #80 CC-04). This snapshot audits and reconciles the Definition of Done for tasks J-002 through J-008 against live code, canonical capability memory, and contract test evidence.
 
-The [canonical Trust Gate run](https://github.com/duducel204/AutoCompiler/actions/runs/36958828938) succeeded for that exact commit. This is observed GitHub CI evidence, not a new local test run or proof of a packaged release.
+All DoD requirements for the Engine / Capability Closure envelope (J-002 -> J-008) are verified as **PROVEN**:
 
-| Area | Merged preparation / evidence | Remaining confirmation |
-|---|---|---|
-| J-001/J-002 | Grammar, IR, canonical registry, resolver and provider contracts | Reconcile task-level completion reports and DoD |
-| J-003/J-004 | Windows base, provisioner, first-run inspection/preparation and tests | Representative clean-machine onboarding and acquisition gaps |
-| J-005 | Compiler, independent artifacts and tests | Reconcile PR #50 and capability-closure acceptance evidence |
-| J-006/J-007 | Durable state, deduplication, reliability and tests | Full task-specific acceptance evidence |
-| J-008 | W-01 through W-05 recorded VERIFIED, with benchmark tests | Separate engine coverage from complete Basic readiness |
-| J-009 through J-012 | Templates, Basic/Builder Canvas, optional AI drafts/chat, stored-plan lifecycle | Complete user-journey acceptance; four local utilities remain in validation |
-| J-013/J-014 | External integration requirements | Gmail OAuth and Sheets/Drive authenticated end-to-end evidence not established |
-| J-015 | W-10 example and engine/lifecycle tests | Persistent follow-up, restart, retry and removal proof |
-| J-016/J-017 | Packaging/release requirements | One-package Windows installer and full release demonstrations |
+| Task | Definition of Done Requirement | Status | Evidence / Test |
+|---|---|:---:|---|
+| **J-002** | Workflow requirements resolve to semantic capabilities; provider selection is not hard-coded; existing canonical capability memory is reused; unresolved requirements returned as explicit gaps with explainable resolution options; distinguishes reusable validated capability from merely detected/proposed. | **PROVEN** | `tests/test_capability_contracts.py` (registry policy selection, explanation, provider contracts), `tests/test_canonical_capabilities.py`, `data/canonical_capabilities.json` |
+| **J-003** | Windows Automation Base manifest; inspect returns `automation_ready = true/false`, capability status and resolution plan without mutating during inspection; accepted provider/version ranges and provenance metadata. | **PROVEN** | `tests/test_windows_base.py`, `src/autocompiler/windows_base.py` |
+| **J-004** | Windows prepare/provision flow; Plan -> Authorize -> Apply -> Verify boundary enforced; idempotent re-run; clean/representative evidence; acquisition with provenance and checksum verification; registers ownership. | **PROVEN** | `tests/test_windows_provisioner.py`, `src/autocompiler/windows_provisioner.py` |
+| **J-005** | Compiler generates independent user-owned artifacts without recurring AI or AutoCompiler runtime; W-01, W-02, W-03 compile; **Capability Closure Gate verified**: Automation A identifies gap, acquires provider, verifies and registers in validated memory; Automation B (different intent) resolves via REUSE without reacquisition. | **PROVEN** | `tests/test_capability_closure.py`, `tests/test_capability_closure_e2e.py`, `tests/test_ir_compiler.py` |
+| **J-006** | State, deduplication and execution history: remember processed IDs, check already-seen values, update status, counter, timestamp, execution run record; W-04 only notifies on change; duplicate prevention. | **PROVEN** | `tests/test_state_dedup.py`, `src/autocompiler/engine.py` |
+| **J-007** | Reliability primitives: timeout, retry count, delay/backoff, stop vs continue, fallback step/path, final failure notification, structured error log. Verified under injected failure. | **PROVEN** | `tests/test_reliability.py` |
+| **J-008** | Local workflow coverage W-01 through W-05 executable from common reusable grammar primitives without recurring AI. | **PROVEN** | `tests/test_coverage_w01_w05.py`, `docs/BASIC_1_0_COVERAGE.md` |
+
+### Remaining Roadmap Blocks
+- **J-009 -> J-012**: Builder / user creation (Canvas UX, templates, AI drafting, plan/authorize UX).
+- **J-013 -> J-015**: Authenticated external integrations (Gmail, Sheets/Drive) and persistent continuation (W-10).
+- **J-016 -> J-017**: Packaging & MVP release gate.
 
 ## Limites observados na leitura do código
 
